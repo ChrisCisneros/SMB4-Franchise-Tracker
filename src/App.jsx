@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
+const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [
   "franchise-tracker-fixed7",
   "franchise-tracker-stable-v1",
@@ -70,24 +71,77 @@ const TEAM_COLORS = Object.fromEntries(
 );
 
 // Put your team-specific overrides directly below, like this:
-// TEAM_COLORS.SF = {
-//   primary: { main: "#FD5A1E", alt: "#27251F", text: "#FFFFFF" },
-//   alternates: [
-//     { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }
-//   ],
-//   cityConnect: { main: "#FDB927", alt: "#000000", text: "#000000" },
-//   extras: [],
-// };
+TEAM_COLORS.SF = {
+  primary: { main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false},
+  alternates: [
+    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }
+  ],
+  cityConnect: { main: "#FD5A1E", alt: "#852cde", border: "#FD5a1e", text: "#FFFFFF", gradient:true },
+  extras: [],
+};
+TEAM_COLORS.SD = {
+  primary: {main: "#302505", alt: "#e3ac17", border: "#e3ac17", text: "#FFFFFF", gradient:false},
+  alternates: [
+    { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
+};
+
+
+function getAvailableLooks(abbr) {
+  const team = TEAM_COLORS[abbr];
+  if (!team) return [{ mode: "primary", index: 0, label: "Primary" }];
+
+  const looks = [{ mode: "primary", index: 0, label: "Primary" }];
+
+  if (team.cityConnect) {
+    looks.push({ mode: "cityConnect", index: 0, label: "City Connect" });
+  }
+
+  (team.alternates || []).forEach((alt, index) => {
+    looks.push({
+      mode: "alternate",
+      index,
+      label: alt?.name || `Alt ${index + 1}`,
+    });
+  });
+
+  (team.extras || []).forEach((extra, index) => {
+    looks.push({
+      mode: "extra",
+      index,
+      label: extra?.name || `Extra ${index + 1}`,
+    });
+  });
+
+  return looks;
+}
 
 function getTeamColorsByAbbr(abbr, themeMode = "primary", variantIndex = 0) {
-  const fallback = { main: "#071739", alt: "#2f66ff", text: "#FFFFFF" };
+  const fallback = {
+    main: "#071739",
+    alt: "#2f66ff",
+    border: "#2f66ff",
+    text: "#FFFFFF",
+    gradient: false,
+    name: "Primary",
+  };
   if (!abbr || !TEAM_COLORS[abbr]) return fallback;
   const team = TEAM_COLORS[abbr];
 
-  if (themeMode === "cityConnect") return team.cityConnect || team.primary || fallback;
-  if (themeMode === "alternate") return team.alternates?.[variantIndex] || team.primary || fallback;
-  if (themeMode === "extra") return team.extras?.[variantIndex] || team.primary || fallback;
-  return team.primary || fallback;
+  const normalize = (colors) => ({
+    main: colors?.main || fallback.main,
+    alt: colors?.alt || colors?.main || fallback.alt,
+    border: colors?.border || colors?.alt || colors?.main || fallback.border,
+    text: colors?.text || fallback.text,
+    gradient: Boolean(colors?.gradient),
+    name: colors?.name || "Primary",
+  });
+
+  if (themeMode === "cityConnect") return normalize(team.cityConnect || team.primary || fallback);
+  if (themeMode === "alternate") return normalize(team.alternates?.[variantIndex] || team.primary || fallback);
+  if (themeMode === "extra") return normalize(team.extras?.[variantIndex] || team.primary || fallback);
+  return normalize(team.primary || fallback);
 }
 const DAILY_ROWS = 15;
 const MAX_HISTORY = 40;
@@ -120,6 +174,8 @@ const defaultCurrentGame = () => ({
   strikes: 0,
   bases: { first: false, second: false, third: false },
   status: "Not Started",
+  awayLook: { mode: "primary", index: 0 },
+  homeLook: { mode: "primary", index: 0 },
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
@@ -364,9 +420,11 @@ export default function App() {
   const [selectedAdminTeamId, setSelectedAdminTeamId] = useState("");
   const [selectedDeletePlayerId, setSelectedDeletePlayerId] = useState("");
   const [playMode, setPlayMode] = useState("hits");
-  const [quickEntryInput, setQuickEntryInput] = useState("");
+  const [bulkResultsInput, setBulkResultsInput] = useState("");
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
+  const [controlPasswordInput, setControlPasswordInput] = useState("");
+  const [controlsUnlocked, setControlsUnlocked] = useState(false);
   const playerNameInputRef = useRef(null);
   const channelRef = useRef(null);
 
@@ -469,17 +527,56 @@ export default function App() {
     setSelectedDeletePlayerId("");
   }, [selectedAdminTeamId]);
 
+  useEffect(() => {
+    const saved = sessionStorage.getItem("franchise_controls_unlocked");
+    if (saved === "true") setControlsUnlocked(true);
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem("franchise_controls_unlocked", controlsUnlocked ? "true" : "false");
+  }, [controlsUnlocked]);
+
+  useEffect(() => {
+    if (!controlsUnlocked && protectedPages.includes(page)) {
+      setPage("dashboard");
+    }
+  }, [controlsUnlocked, page]);
+
   const teams = data.teams;
   const players = data.players;
   const sortedTeams = [...teams].sort((a, b) => a.abbr.localeCompare(b.abbr) || a.name.localeCompare(b.name));
-  const teamAbbrLookup = Object.fromEntries(sortedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
+  const numberedTeams = sortedTeams.map((team, index) => ({ ...team, listNumber: index + 1 }));
+  const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
+  const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
-  const dailyUsedTeamIds = new Set(
-    data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
-  );
+  const protectedPages = ["live", "daily", "quick", "admin"];
 
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
   const homeTeam = teams.find((t) => t.id === currentGame.homeTeamId);
+  const liveAwayLooks = getAvailableLooks(awayTeam?.abbr);
+  const liveHomeLooks = getAvailableLooks(homeTeam?.abbr);
+  const awayColors = getTeamColorsByAbbr(
+    awayTeam?.abbr,
+    currentGame.awayLook?.mode || "primary",
+    currentGame.awayLook?.index || 0
+  );
+  const homeColors = getTeamColorsByAbbr(
+    homeTeam?.abbr,
+    currentGame.homeLook?.mode || "primary",
+    currentGame.homeLook?.index || 0
+  );
+  const liveAwayLookLabel =
+    liveAwayLooks.find(
+      (look) =>
+        look.mode === (currentGame.awayLook?.mode || "primary") &&
+        look.index === (currentGame.awayLook?.index || 0)
+    )?.label || "Primary";
+  const liveHomeLookLabel =
+    liveHomeLooks.find(
+      (look) =>
+        look.mode === (currentGame.homeLook?.mode || "primary") &&
+        look.index === (currentGame.homeLook?.index || 0)
+    )?.label || "Primary";
   const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
   const homeRoster = [...players.filter((p) => p.teamId === currentGame.homeTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
   const selectedAdminTeam = teams.find((t) => t.id === selectedAdminTeamId);
@@ -496,8 +593,52 @@ export default function App() {
   const fieldingPitcher = currentGame.half === "Top" ? currentHomePitcher : currentAwayPitcher;
   const displayGameState = getDisplayGameState(currentGame, inningBanner);
   const combinedCountText = `${currentGame.balls}-${currentGame.strikes}, ${currentGame.outs} outs`;
-  const awayColors = getTeamColors(awayTeam);
-  const homeColors = getTeamColors(homeTeam);
+
+
+  function cycleLiveLook(side) {
+    if (side === "away") {
+      const looks = getAvailableLooks(awayTeam?.abbr);
+      const currentIndex = looks.findIndex(
+        (look) =>
+          look.mode === (currentGame.awayLook?.mode || "primary") &&
+          look.index === (currentGame.awayLook?.index || 0)
+      );
+      const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
+      updateCurrentGame("awayLook", { mode: nextLook.mode, index: nextLook.index });
+      return;
+    }
+
+    const looks = getAvailableLooks(homeTeam?.abbr);
+    const currentIndex = looks.findIndex(
+      (look) =>
+        look.mode === (currentGame.homeLook?.mode || "primary") &&
+        look.index === (currentGame.homeLook?.index || 0)
+    );
+    const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
+    updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
+  }
+
+  function goToPage(nextPage) {
+    if (!controlsUnlocked && protectedPages.includes(nextPage)) {
+      setPage("dashboard");
+      return;
+    }
+    setPage(nextPage);
+  }
+
+  function unlockControls() {
+    if (controlPasswordInput === CONTROL_PASSWORD) {
+      setControlsUnlocked(true);
+      setControlPasswordInput("");
+      return;
+    }
+    window.alert("Incorrect password.");
+  }
+
+  function lockControls() {
+    setControlsUnlocked(false);
+    setPage("dashboard");
+  }
 
   const standings = useMemo(() => {
     const grouped = {};
@@ -596,7 +737,16 @@ export default function App() {
 
   function updateCurrentGame(field, value) {
     clearBanner();
-    setData((prev) => ({ ...prev, currentGame: { ...prev.currentGame, inningStatus: "", [field]: value } }));
+    setData((prev) => {
+      const nextGame = { ...prev.currentGame, inningStatus: "", [field]: value };
+      if (field === "awayTeamId") {
+        nextGame.awayLook = { mode: "primary", index: 0 };
+      }
+      if (field === "homeTeamId") {
+        nextGame.homeLook = { mode: "primary", index: 0 };
+      }
+      return { ...prev, currentGame: nextGame };
+    });
   }
 
   function changePitcher(side, pitcherId) {
@@ -923,12 +1073,8 @@ export default function App() {
     setData((prev) => ({ ...prev, dailyResultsRows: [...prev.dailyResultsRows, ...Array.from({ length: count }, emptyDailyRow)] }));
   }
 
-  function applyQuickEntryInput() {
-    const lines = quickEntryInput
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
-
+  function applyBulkResultsInput() {
+    const lines = bulkResultsInput.split("\n").map((line) => line.trim()).filter(Boolean);
     if (!lines.length) return;
 
     const warnings = [];
@@ -940,18 +1086,20 @@ export default function App() {
     lines.forEach((line, index) => {
       const parts = line.split(/\s+/).filter(Boolean);
       if (parts.length !== 4) {
-        warnings.push(`Line ${index + 1} skipped: use format "SF 5 SD 2".`);
+        warnings.push(`Line ${index + 1} skipped: use format "away score home score".`);
         return;
       }
 
       const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
-      const awayTeamId = teamAbbrLookup[awayToken.toUpperCase()];
-      const homeTeamId = teamAbbrLookup[homeToken.toUpperCase()];
+      const awayKey = awayToken.toUpperCase();
+      const homeKey = homeToken.toUpperCase();
+      const awayTeamId = teamNumberLookup[awayToken] || teamAbbrLookup[awayKey];
+      const homeTeamId = teamNumberLookup[homeToken] || teamAbbrLookup[homeKey];
       const awayScore = Number(awayScoreRaw);
       const homeScore = Number(homeScoreRaw);
 
       if (!awayTeamId || !homeTeamId) {
-        warnings.push(`Line ${index + 1} skipped: team abbreviation not recognized.`);
+        warnings.push(`Line ${index + 1} skipped: team not recognized.`);
         return;
       }
       if (awayTeamId === homeTeamId) {
@@ -966,14 +1114,19 @@ export default function App() {
         warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
         return;
       }
-      if (usedTeamIds.has(awayTeamId) || usedTeamIds.has(homeTeamId)) {
-        warnings.push(`Line ${index + 1} skipped: one of those teams is already added today.`);
+      if (usedTeamIds.has(awayTeamId)) {
+        const team = teams.find((t) => t.id === awayTeamId);
+        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || awayToken} already used earlier.`);
+        return;
+      }
+      if (usedTeamIds.has(homeTeamId)) {
+        const team = teams.find((t) => t.id === homeTeamId);
+        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || homeToken} already used earlier.`);
         return;
       }
 
       usedTeamIds.add(awayTeamId);
       usedTeamIds.add(homeTeamId);
-
       parsedRows.push({
         id: crypto.randomUUID(),
         awayTeamId,
@@ -984,44 +1137,32 @@ export default function App() {
       });
     });
 
-    if (!parsedRows.length) {
-      setBulkWarnings(warnings);
-      return;
-    }
+    setBulkWarnings(warnings);
+    if (!parsedRows.length) return;
 
     setData((prev) => {
-      const existingRows = [...prev.dailyResultsRows];
-      let parseIndex = 0;
+      const updatedRows = [...prev.dailyResultsRows];
+      let parsedIndex = 0;
 
-      const updatedRows = existingRows.map((row) => {
-        const isEmpty =
-          !row.awayTeamId &&
-          !row.homeTeamId &&
-          row.awayScore === "" &&
-          row.homeScore === "";
-        if (isEmpty && parseIndex < parsedRows.length) {
-          const nextRow = parsedRows[parseIndex];
-          parseIndex += 1;
-          return nextRow;
+      for (let i = 0; i < updatedRows.length && parsedIndex < parsedRows.length; i += 1) {
+        const row = updatedRows[i];
+        const isEmpty = !row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "";
+        if (isEmpty) {
+          updatedRows[i] = { ...parsedRows[parsedIndex], id: row.id };
+          parsedIndex += 1;
         }
-        return row;
-      });
-
-      while (parseIndex < parsedRows.length) {
-        updatedRows.push(parsedRows[parseIndex]);
-        parseIndex += 1;
       }
 
-      return {
-        ...prev,
-        dailyResultsRows: updatedRows,
-      };
+      while (parsedIndex < parsedRows.length) {
+        updatedRows.push(parsedRows[parsedIndex]);
+        parsedIndex += 1;
+      }
+
+      return { ...prev, dailyResultsRows: updatedRows };
     });
 
-    setBulkWarnings(warnings);
-    setQuickEntryInput("");
+    setBulkResultsInput("");
   }
-
 
   function getDailyRowIssue(row, allRows) {
     if (!row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "") return "empty";
@@ -1134,15 +1275,44 @@ export default function App() {
           <button className="danger" onClick={resetLeague}>Reset All Data</button>
         </div>
       </div>
-
       <div className="nav">
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("live")}>Live Game</button>
-        <button onClick={() => setPage("daily")}>Daily Results</button>
-        <button onClick={() => setPage("standings")}>Standings</button>
-        <button onClick={() => setPage("quick")}>Quick Update</button>
-        <button onClick={() => setPage("admin")}>Admin</button>
+        <button onClick={() => goToPage("dashboard")}>Dashboard</button>
+        <button onClick={() => goToPage("standings")}>Standings</button>
+        {controlsUnlocked && (
+          <>
+            <button onClick={() => goToPage("live")}>Live Game</button>
+            <button onClick={() => goToPage("daily")}>Daily Results</button>
+            <button onClick={() => goToPage("quick")}>Quick Update</button>
+            <button onClick={() => goToPage("admin")}>Admin</button>
+          </>
+        )}
       </div>
+
+      <div className="access-card">
+        <div>
+          <strong>{controlsUnlocked ? "Controls unlocked" : "Viewer mode"}</strong>
+          <div className="muted">
+            {controlsUnlocked
+              ? "All pages are available."
+              : "Only Dashboard and Standings are available until unlocked."}
+          </div>
+        </div>
+
+        {controlsUnlocked ? (
+          <button onClick={lockControls}>Lock Controls</button>
+        ) : (
+          <div className="access-form">
+            <input
+              type="password"
+              value={controlPasswordInput}
+              onChange={(e) => setControlPasswordInput(e.target.value)}
+              placeholder="Enter control password"
+            />
+            <button onClick={unlockControls}>Unlock Controls</button>
+          </div>
+        )}
+      </div>
+
 
 
       {page === "dashboard" && (
@@ -1155,8 +1325,16 @@ export default function App() {
                   <div className="score-panel">
                     <div className="unified-scoreboard-card dashboard-scoreboard-card">
                       <div className="unified-scoreboard-header">
-                        <div className="team-pill" style={{ background: awayColors.primary, borderColor: awayColors.accent, color: awayColors.accent }}>
-                          {awayTeam ? awayTeam.abbr : "AWY"}
+                        <div className="team-look-column">
+                          <div className="team-pill" style={{
+  background: awayColors.gradient
+    ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})`
+    : awayColors.main,
+  borderColor: awayColors.border,
+  color: awayColors.text
+}}>
+                            {awayTeam ? awayTeam.abbr : "AWY"}
+                          </div>
                         </div>
 
                         <div className="score-center">
@@ -1165,8 +1343,16 @@ export default function App() {
                           <span className="score-number">{currentGame.homeScore}</span>
                         </div>
 
-                        <div className="team-pill" style={{ background: homeColors.primary, borderColor: homeColors.accent, color: homeColors.accent }}>
-                          {homeTeam ? homeTeam.abbr : "HME"}
+                        <div className="team-look-column">
+                          <div className="team-pill" style={{
+  background: homeColors.gradient
+    ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})`
+    : homeColors.main,
+  borderColor: homeColors.border,
+  color: homeColors.text
+}}>
+                            {homeTeam ? homeTeam.abbr : "HME"}
+                          </div>
                         </div>
                       </div>
 
@@ -1243,8 +1429,11 @@ export default function App() {
               <div className="score-panel">
                 <div className="unified-scoreboard-card">
                   <div className="unified-scoreboard-header">
-                    <div className="team-pill" style={{ background: awayColors.primary, borderColor: awayColors.accent, color: awayColors.accent }}>
-                      {awayTeam ? awayTeam.abbr : "AWY"}
+                    <div className="team-look-column">
+                      <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
+                        {awayTeam ? awayTeam.abbr : "AWY"}
+                      </div>
+                      <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
                     </div>
 
                     <div className="score-center">
@@ -1253,8 +1442,11 @@ export default function App() {
                       <span className="score-number">{currentGame.homeScore}</span>
                     </div>
 
-                    <div className="team-pill" style={{ background: homeColors.primary, borderColor: homeColors.accent, color: homeColors.accent }}>
-                      {homeTeam ? homeTeam.abbr : "HME"}
+                    <div className="team-look-column">
+                      <div className="team-pill" style={{ background: homeColors.gradient ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})` : homeColors.main, borderColor: homeColors.border, color: homeColors.text }}>
+                        {homeTeam ? homeTeam.abbr : "HME"}
+                      </div>
+                      <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
                     </div>
                   </div>
 
@@ -1426,9 +1618,19 @@ export default function App() {
                 const issue = getDailyRowIssue(row, data.dailyResultsRows);
                 return (
                   <div className="daily-results-row" key={row.id}>
-                    <div><select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}><option value="">Away team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
+                    <div>
+                      <select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}>
+                        <option value="">Away team</option>
+                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
+                      </select>
+                    </div>
                     <div><input type="number" value={row.awayScore} onChange={(e) => updateDailyRow(row.id, "awayScore", e.target.value)} placeholder="0" /></div>
-                    <div><select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}><option value="">Home team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
+                    <div>
+                      <select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}>
+                        <option value="">Home team</option>
+                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
+                      </select>
+                    </div>
                     <div><input type="number" value={row.homeScore} onChange={(e) => updateDailyRow(row.id, "homeScore", e.target.value)} placeholder="0" /></div>
                     <div className="daily-status-cell">
                       {issue === "applied" && <span className="status-pill applied">Applied</span>}
@@ -1446,47 +1648,35 @@ export default function App() {
             </div>
           </div>
 
-          <div className="card daily-helper-card">
-            <h3>Quick Add</h3>
-            <p className="muted">Enter one matchup at a time like <strong>SF 5 SD 2</strong>. Duplicate teams are skipped automatically.</p>
-
-            {bulkWarnings.length > 0 && (
-              <div className="bulk-warning-box">
-                {bulkWarnings.map((warning, index) => (
-                  <div key={`${warning}-${index}`}>{warning}</div>
-                ))}
-              </div>
-            )}
-
-            <div className="quick-entry-row">
-              <input
-                className="quick-entry-input"
-                value={quickEntryInput}
-                onChange={(e) => setQuickEntryInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyQuickEntryInput();
-                  }
-                }}
-                placeholder="SF 5 SD 2"
-              />
-              <button onClick={applyQuickEntryInput}>Add Entry</button>
-            </div>
-
-            <h3>Teams Added Today</h3>
-            <p className="muted">Red means already added somewhere in today’s results. Gray means not added yet.</p>
-
-            <div className="team-status-grid">
-              {sortedTeams.map((team) => (
-                <div
-                  key={team.id}
-                  className={`team-status-chip ${dailyUsedTeamIds.has(team.id) ? "is-added" : "is-open"}`}
-                >
-                  <span className="team-status-abbr">{team.abbr}</span>
-                  <span className="team-status-name">{team.name}</span>
+          <div className="card daily-bulk-card">
+            <h3>Team Number Key</h3>
+            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
+            <div className="team-key-grid compact-abbr-grid">
+              {numberedTeams.map((team) => (
+                <div className="team-key-item" key={team.id}>
+                  <span className="team-key-number">{team.listNumber}</span>
+                  <span className="team-key-text">{team.abbr}</span>
                 </div>
               ))}
+            </div>
+
+            <h3>Bulk Results Entry</h3>
+            <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
+            {bulkWarnings.length > 0 && (
+              <div className="bulk-warning-box">
+                <strong>Skipped lines</strong>
+                {bulkWarnings.map((warning, index) => <div key={`${warning}-${index}`}>{warning}</div>)}
+              </div>
+            )}
+            <textarea
+              className="bulk-results-input"
+              value={bulkResultsInput}
+              onChange={(e) => setBulkResultsInput(e.target.value)}
+              placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
+              rows={8}
+            />
+            <div className="inline-buttons">
+              <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
             </div>
           </div>
         </div>
