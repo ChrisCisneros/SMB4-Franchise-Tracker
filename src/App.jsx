@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { db } from "./firebase";
-import { ref, set } from "firebase/database";
+import { onValue, ref, set } from "firebase/database";
 
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
 const LEGACY_STORAGE_KEYS = [];
@@ -448,6 +448,7 @@ export default function App() {
   const [liveHomeLook, setLiveHomeLook] = useState({ mode: "primary", index: 0 });
   const playerNameInputRef = useRef(null);
   const channelRef = useRef(null);
+  const hasLoadedFirebaseGame = useRef(false);
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -456,10 +457,10 @@ export default function App() {
   }
 
   function syncPlayersToFirebase(nextPlayers) {
-  set(ref(db, "players"), nextPlayers).catch((error) => {
-    console.error("[Firebase Debug] WRITE players failed", error);
-  });
-}
+    set(ref(db, "players"), nextPlayers).catch((error) => {
+      console.error("[Firebase Debug] WRITE players failed", error);
+    });
+  }
 
   useEffect(() => {
     const safeData = {
@@ -559,6 +560,34 @@ export default function App() {
   useEffect(() => {
     setSelectedDeletePlayerId("");
   }, [selectedAdminTeamId]);
+
+  useEffect(() => {
+    const firebaseGameRef = ref(db, "currentGame");
+    const unsubscribe = onValue(firebaseGameRef, (snapshot) => {
+      const value = snapshot.val();
+      if (!value) {
+        hasLoadedFirebaseGame.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        currentGame: makeSafeGame(value),
+      }));
+      hasLoadedFirebaseGame.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedFirebaseGame.current) return;
+    const firebaseGameRef = ref(db, "currentGame");
+    set(firebaseGameRef, makeSafeGame(data.currentGame)).catch((error) => {
+      console.error("[Firebase Debug] WRITE currentGame failed", error);
+    });
+  }, [data.currentGame]);
+
 
   const teams = data.teams;
   const players = data.players;
@@ -1005,27 +1034,14 @@ export default function App() {
   }
 
   function addPlayer() {
-  if (!newPlayer.teamId || !newPlayer.name) return;
-
-  setData((prev) => {
-    const nextPlayers = [
-      ...prev.players,
-      {
-        id: crypto.randomUUID(),
-        teamId: newPlayer.teamId,
-        name: newPlayer.name,
-        number: newPlayer.number,
-      },
-    ];
-
-    syncPlayersToFirebase(nextPlayers);
-
-    return { ...prev, players: nextPlayers };
-  });
-
-  setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
-  setTimeout(() => playerNameInputRef.current?.focus(), 0);
-}
+    if (!newPlayer.teamId || !newPlayer.name) return;
+    setData((prev) => ({
+      ...prev,
+      players: [...prev.players, { id: crypto.randomUUID(), teamId: newPlayer.teamId, name: newPlayer.name, number: newPlayer.number }],
+    }));
+    setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
+    setTimeout(() => playerNameInputRef.current?.focus(), 0);
+  }
 
   function deletePlayer(playerId) {
     setData((prev) => ({ ...prev, players: prev.players.filter((player) => player.id !== playerId) }));
