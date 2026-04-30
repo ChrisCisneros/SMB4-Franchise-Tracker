@@ -450,6 +450,9 @@ export default function App() {
   const channelRef = useRef(null);
   const hasLoadedFirebaseGame = useRef(false);
 
+const hasLoadedFirebaseTeams = useRef(false);
+const hasLoadedFirebasePlayers = useRef(false);
+
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
       console.error("[Firebase Debug] WRITE teams failed", error);
@@ -461,6 +464,48 @@ export default function App() {
       console.error("[Firebase Debug] WRITE players failed", error);
     });
   }
+
+useEffect(() => {
+  const firebaseTeamsRef = ref(db, "teams");
+  const unsubscribe = onValue(firebaseTeamsRef, (snapshot) => {
+    const value = snapshot.val();
+
+    if (!Array.isArray(value)) {
+      hasLoadedFirebaseTeams.current = true;
+      return;
+    }
+
+    setData((prev) => ({
+      ...prev,
+      teams: value,
+    }));
+
+    hasLoadedFirebaseTeams.current = true;
+  });
+
+  return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  const firebasePlayersRef = ref(db, "players");
+  const unsubscribe = onValue(firebasePlayersRef, (snapshot) => {
+    const value = snapshot.val();
+
+    if (!Array.isArray(value)) {
+      hasLoadedFirebasePlayers.current = true;
+      return;
+    }
+
+    setData((prev) => ({
+      ...prev,
+      players: value,
+    }));
+
+    hasLoadedFirebasePlayers.current = true;
+  });
+
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     const safeData = {
