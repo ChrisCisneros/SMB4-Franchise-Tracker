@@ -1158,20 +1158,28 @@ export default function App() {
   }
 
   function addTeam() {
-    debugFirebase("ADD TEAM clicked", {
-      city: newTeam.city,
-      name: newTeam.name,
-      abbr: newTeam.abbr,
-    });
-    if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
-    const teamId = crypto.randomUUID();
-    setData((prev) => ({
-      ...prev,
-      teams: [...prev.teams, { id: teamId, city: newTeam.city, name: newTeam.name, abbr: newTeam.abbr.toUpperCase(), league: newTeam.league, division: newTeam.division, wins: 0, losses: 0, runDiff: 0 }],
-    }));
-    setSelectedAdminTeamId(teamId);
-    setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East" });
-  }
+  if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
+
+  const nextTeam = {
+    id: crypto.randomUUID(),
+    city: newTeam.city.trim(),
+    name: newTeam.name.trim(),
+    abbr: newTeam.abbr.trim().toUpperCase(),
+    league: newTeam.league,
+    division: newTeam.division,
+    wins: Number(newTeam.wins) || 0,
+    losses: Number(newTeam.losses) || 0,
+    runDiff: Number(newTeam.runDiff) || 0,
+  };
+
+  setData((prev) => {
+    const nextTeams = [...prev.teams, nextTeam];
+    syncTeamsToFirebase(nextTeams);
+    return { ...prev, teams: nextTeams };
+  });
+
+  setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East", wins: 0, losses: 0, runDiff: 0 });
+}
 
   function deleteTeam(teamId) {
     setData((prev) => ({
@@ -1187,20 +1195,56 @@ export default function App() {
   }
 
   function addPlayer() {
-      alert("addPlayer fired");
+  console.log("[Firebase Debug] addPlayer fired", {
+    teamId: newPlayer.teamId,
+    name: newPlayer.name,
+    number: newPlayer.number,
+  });
 
-    if (!newPlayer.teamId || !newPlayer.name) return;
-    setData((prev) => ({
+  if (!newPlayer.teamId || !newPlayer.name) return;
+
+  setData((prev) => {
+    const nextPlayers = [
+      ...prev.players,
+      {
+        id: crypto.randomUUID(),
+        teamId: newPlayer.teamId,
+        name: newPlayer.name,
+        number: newPlayer.number,
+      },
+    ];
+
+    console.log("[Firebase Debug] writing players", {
+      count: nextPlayers.length,
+      lastPlayer: nextPlayers[nextPlayers.length - 1],
+    });
+
+    syncPlayersToFirebase(nextPlayers);
+
+    return {
       ...prev,
-      players: [...prev.players, { id: crypto.randomUUID(), teamId: newPlayer.teamId, name: newPlayer.name, number: newPlayer.number }],
-    }));
-    setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
-    setTimeout(() => playerNameInputRef.current?.focus(), 0);
-  }
+      players: nextPlayers,
+    };
+  });
+
+  setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
+  setTimeout(() => playerNameInputRef.current?.focus(), 0);
+}
 
   function deletePlayer(playerId) {
-    setData((prev) => ({ ...prev, players: prev.players.filter((player) => player.id !== playerId) }));
-  }
+  setData((prev) => {
+    const nextPlayers = prev.players.filter((player) => player.id !== playerId);
+    console.log("[Firebase Debug] deleting player", {
+      playerId,
+      remaining: nextPlayers.length,
+    });
+    syncPlayersToFirebase(nextPlayers);
+    return {
+      ...prev,
+      players: nextPlayers,
+    };
+  });
+}
 
   function updateRecord(teamId, field, value) {
     setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
@@ -1520,6 +1564,18 @@ export default function App() {
         console.error("[Firebase Debug] WRITE players failed", error);
       });
   }
+
+  function syncTeamsToFirebase(nextTeams) {
+  set(ref(db, "teams"), nextTeams).catch((error) => {
+    console.error("[Firebase Debug] WRITE teams failed", error);
+  });
+}
+
+function syncPlayersToFirebase(nextPlayers) {
+  set(ref(db, "players"), nextPlayers).catch((error) => {
+    console.error("[Firebase Debug] WRITE players failed", error);
+  });
+}
 
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
