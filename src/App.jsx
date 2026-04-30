@@ -1275,7 +1275,18 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) =>
+        team.id === teamId ? { ...team, [field]: Number(value) } : team
+      );
+
+      syncTeamsToFirebase(nextTeams);
+
+      return {
+        ...prev,
+        teams: nextTeams,
+      };
+    });
   }
 
   function setLineup(side, index, playerId) {
@@ -1535,7 +1546,6 @@ export default function App() {
         {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
         {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
         {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
-        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
       </div>
 
 
@@ -1906,29 +1916,17 @@ export default function App() {
             </div>
           </div>
 
-          <div className="card daily-helper-card">
-            <h3>Teams Added In These Rows</h3>
-            <p className="muted">Filled rows light up the teams currently included in Daily Results so you can spot duplicates fast.</p>
-            <div className="team-status-grid">
-              {numberedTeams.map((team) => {
-                const relatedRows = data.dailyResultsRows.filter((row) => row.awayTeamId === team.id || row.homeTeamId === team.id);
-                const isAdded = relatedRows.some((row) => row.awayTeamId && row.homeTeamId && row.awayScore !== "" && row.homeScore !== "");
-                const isOpen = relatedRows.length > 0;
-
-                return (
-                  <div
-                    key={`daily-status-${team.id}`}
-                    className={`team-status-chip ${isAdded ? "is-added" : isOpen ? "is-open" : ""}`}
-                  >
-                    <span className="team-status-abbr">{team.abbr}</span>
-                    <span className="team-status-name">{team.city} {team.name}</span>
-                  </div>
-                );
-              })}
+          <div className="card daily-bulk-card">
+            <h3>Team Number Key</h3>
+            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
+            <div className="team-key-grid compact-abbr-grid">
+              {numberedTeams.map((team) => (
+                <div className="team-key-item" key={team.id}>
+                  <span className="team-key-number">{team.listNumber}</span>
+                  <span className="team-key-text">{team.abbr}</span>
+                </div>
+              ))}
             </div>
-          </div>
-
-          
 
             <h3>Bulk Results Entry</h3>
             <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
@@ -1939,23 +1937,17 @@ export default function App() {
               </div>
             )}
             <textarea
-  className="bulk-results-input"
-  value={bulkResultsInput}
-  onChange={(e) => setBulkResultsInput(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      applyBulkResultsInput();
-    }
-  }}
-  placeholder={"sf 5 sd 2\nlad 3 nyy 1"}
-  rows={8}
-/>
+              className="bulk-results-input"
+              value={bulkResultsInput}
+              onChange={(e) => setBulkResultsInput(e.target.value)}
+              placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
+              rows={8}
+            />
             <div className="inline-buttons">
               <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
             </div>
           </div>
-        
+        </div>
       )}
 
       {page === "standings" && (
@@ -2056,10 +2048,20 @@ export default function App() {
                           <div>
                             <label>Run Diff</label>
                             <input
-                              type="number"
-                              value={team.runDiff || 0}
-                              onChange={(e) => updateRecord(team.id, "runDiff", e.target.value)}
-                            />
+  type="number"
+  value={team.runDiff ?? ""}
+  onChange={(e) => {
+    const val = e.target.value;
+
+    // allow empty or just "-"
+    if (val === "" || val === "-") {
+      updateRecord(team.id, "runDiff", val);
+      return;
+    }
+
+    updateRecord(team.id, "runDiff", Number(val));
+  }}
+/>
                           </div>
 
                           <div className="muted">{pct(team.wins, team.losses)}</div>
