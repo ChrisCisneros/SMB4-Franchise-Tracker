@@ -987,18 +987,48 @@ export default function App() {
   }
 
   function changeScore(side, amount) {
-    clearBanner();
-    commitGameUpdate((next) => {
-      next.inningStatus = "";
-      if (side === "away") {
-        next.awayScore = Math.max(0, next.awayScore + amount);
-        if (amount > 0) addRunsToLineScore(next, "away", amount);
-      } else {
-        next.homeScore = Math.max(0, next.homeScore + amount);
-        if (amount > 0) addRunsToLineScore(next, "home", amount);
+  clearBanner();
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+
+    if (side === "away") {
+      const oldScore = next.awayScore;
+      next.awayScore = Math.max(0, next.awayScore + amount);
+      const applied = next.awayScore - oldScore;
+
+      if (applied !== 0) {
+        addRunsToLineScore(next, "away", applied);
       }
-      if (amount !== 0) next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
-    });
+    } else {
+      const oldScore = next.homeScore;
+      next.homeScore = Math.max(0, next.homeScore + amount);
+      const applied = next.homeScore - oldScore;
+
+      if (applied !== 0) {
+        addRunsToLineScore(next, "home", applied);
+      }
+    }
+
+    if (amount !== 0) {
+      next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
+    }
+  });
+}
+
+  function resetCurrentMatch() {
+    clearBanner();
+    if (!window.confirm("Reset the current live game back to a fresh matchup?")) return;
+
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...defaultCurrentGame(),
+        date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
+        awayTeamId: prev.currentGame?.awayTeamId || "",
+        homeTeamId: prev.currentGame?.homeTeamId || "",
+        status: "Not Started",
+      },
+    }));
   }
 
   function markLive() {
@@ -1126,37 +1156,6 @@ export default function App() {
         }
       }
 
-      const lastABMap = {
-        single: "1B",
-        double: "2B",
-        triple: "3B",
-        homerun: "HR",
-        flyout: "Fly Out",
-        groundout: "Ground Out",
-        lineout: "Line Out",
-        popup: "Pop Up",
-        fielderschoice: "FC",
-        doubleplay: "DP",
-        caughtstealing: "CS",
-        walk: "BB",
-        hitbypitch: "HBP",
-        error: "ROE",
-        sacfly: "SF",
-      };
-
-      const shouldTrackLastAB =
-        category === "hit" ||
-        category === "out" ||
-        type === "walk" ||
-        type === "hitbypitch" ||
-        type === "error" ||
-        type === "sacfly";
-
-      if (shouldTrackLastAB) {
-        const lastABResult = lastABMap[type] || type;
-        setCurrentBatterLastAB(lastABResult);
-      }
-
       next.latestPlay = text;
       next.playLog = [text, ...next.playLog];
       if (category !== "out" || !text.includes("Score update")) {
@@ -1248,7 +1247,6 @@ export default function App() {
           teamId: newPlayer.teamId,
           name: newPlayer.name,
           number: newPlayer.number,
-          lastAB: "",
         },
       ];
 
@@ -1269,18 +1267,7 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => {
-      const nextTeams = prev.teams.map((team) =>
-        team.id === teamId ? { ...team, [field]: Number(value) } : team
-      );
-
-      syncTeamsToFirebase(nextTeams);
-
-      return {
-        ...prev,
-        teams: nextTeams,
-      };
-    });
+    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
   }
 
   function setLineup(side, index, playerId) {
@@ -1295,23 +1282,6 @@ export default function App() {
     const positions = [...currentGame[key]];
     positions[index] = position;
     updateCurrentGame(key, positions);
-  }
-
-  function setCurrentBatterLastAB(result) {
-    if (!currentBatter?.id) return;
-
-    setData((prev) => {
-      const nextPlayers = prev.players.map((player) =>
-        player.id === currentBatter.id ? { ...player, lastAB: result } : player
-      );
-
-      syncPlayersToFirebase(nextPlayers);
-
-      return {
-        ...prev,
-        players: nextPlayers,
-      };
-    });
   }
 
   function addPlayLog() {
@@ -1589,7 +1559,6 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
-                          <ChallengeBars count={currentGame.awayChallenges} />
                         </div>
 
                         <div className="score-center">
@@ -1608,7 +1577,6 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
-                          <ChallengeBars count={currentGame.homeChallenges} />
                         </div>
                       </div>
 
@@ -1618,14 +1586,8 @@ export default function App() {
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">
-                        At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}
-                        {currentBatter?.lastAB && (
-                          <div className="small-text muted">Last AB: {currentBatter.lastAB}</div>
-                        )}
-                      </div>
+                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
                       <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
-                      <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "Set lineup"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
@@ -1679,6 +1641,10 @@ export default function App() {
           <div className="card live-main-card">
             <h2>Live Scoring</h2>
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
+
+            <div className="inline-buttons" style={{ marginBottom: "12px" }}>
+              <button className="danger-lite" onClick={resetCurrentMatch}>Reset Current Match</button>
+            </div>
 
             <div className="live-top-setup">
               <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
