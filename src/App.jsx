@@ -566,6 +566,56 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const firebaseTeamsRef = ref(db, "teams");
+    const unsubscribe = onValue(firebaseTeamsRef, (snapshot) => {
+      const value = snapshot.val();
+
+      if (!value) {
+        hasLoadedFirebaseTeams.current = true;
+        return;
+      }
+
+      if (!Array.isArray(value)) {
+        hasLoadedFirebaseTeams.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        teams: value,
+      }));
+      hasLoadedFirebaseTeams.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const firebasePlayersRef = ref(db, "players");
+    const unsubscribe = onValue(firebasePlayersRef, (snapshot) => {
+      const value = snapshot.val();
+
+      if (!value) {
+        hasLoadedFirebasePlayers.current = true;
+        return;
+      }
+
+      if (!Array.isArray(value)) {
+        hasLoadedFirebasePlayers.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        players: value,
+      }));
+      hasLoadedFirebasePlayers.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (!hasLoadedFirebaseGame.current) return;
     const firebaseGameRef = ref(db, "currentGame");
     set(firebaseGameRef, makeSafeGame(data.currentGame)).catch(() => {
