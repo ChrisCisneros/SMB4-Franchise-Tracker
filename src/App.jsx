@@ -78,7 +78,7 @@ TEAM_COLORS.SF = {
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }
   ],
-  cityConnect: { main: "#FD5A1E", alt: "#852cde", border: "#FD5a1e", text: "#FFFFFF", gradient:true },
+  cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
   extras: [],
 };
 TEAM_COLORS.SD = {
@@ -87,6 +87,42 @@ TEAM_COLORS.SD = {
     { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" }
   ],
   cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.NYM = {
+  primary: {main: "#0d0d6e", alt: "#ed5f07", border: "#ed5f07", text: "#FFFFFF", gradient:false},
+  alternates: [
+    { name: "White Alt", main: "#ffffff", alt: "#ed5f07", text: "#0d0d6e" }
+  ],
+  cityConnect: { main: "#454545", alt: "#ba4404", border: "#000000", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.PHI = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#a60000", text: "#a60000", gradient:false},
+  alternates: [
+    { name: "Powder Blue", main: "#388dc2", alt: "#a60000", text: "#ffffff" },
+    {name: "Red", main: "#a60000", alt: "#110982", text: "#ffffff"}
+  ],
+  cityConnect: { main: "#0782ab", alt: "#020a4d", border: "#e6d437", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.CIN = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#c40404", text: "#c40404", gradient:false},
+  alternates: [
+    { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#262626", alt: "#ba4404", border: "#c40404", text: "#590101", gradient:false},
+};
+TEAM_COLORS.WSH = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#44679e", alt: "#ba4404", border: "#162133", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.LAD = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#001994", text: "#001994", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#3952cc", alt: "#021059", border: "#6b83fa", text: "#ffffff", gradient:true},
 };
 
 
@@ -1369,6 +1405,60 @@ export default function App() {
     setPage("dashboard");
   }
 
+
+  function setLiveInningHalf(nextHalf) {
+    clearBanner();
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...makeSafeGame(prev.currentGame),
+        inningStatus: "",
+        half: nextHalf,
+        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
+      },
+    }));
+  }
+
+  function changeLiveInning(delta) {
+    clearBanner();
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...makeSafeGame(prev.currentGame),
+        inningStatus: "",
+        inning: Math.max(1, (Number(prev.currentGame.inning) || 1) + delta),
+        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
+      },
+    }));
+  }
+
+  function resetCurrentGame() {
+    if (!window.confirm("Reset this live game back to a fresh start?")) return;
+
+    setData((prev) => {
+      const current = makeSafeGame(prev.currentGame);
+      const fresh = defaultCurrentGame();
+
+      return {
+        ...prev,
+        currentGame: {
+          ...fresh,
+          date: current.date || fresh.date,
+          awayTeamId: current.awayTeamId,
+          homeTeamId: current.homeTeamId,
+          awayLineup: current.awayLineup,
+          homeLineup: current.homeLineup,
+          awayPitcherId: current.awayPitcherId,
+          homePitcherId: current.homePitcherId,
+          awayLook: current.awayLook || fresh.awayLook,
+          homeLook: current.homeLook || fresh.homeLook,
+        },
+      };
+    });
+
+    setInningBanner("");
+  }
+
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
     setData({ ...defaultData, currentGame: defaultCurrentGame(), dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow) });
@@ -1508,8 +1598,8 @@ export default function App() {
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
-                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
+                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
@@ -1571,6 +1661,27 @@ export default function App() {
               <div><label>Status</label><select value={currentGame.status} onChange={(e) => updateCurrentGame("status", e.target.value)}><option>Not Started</option><option>Live</option><option>Mid-Inning</option><option>Final</option></select></div>
             </div>
 
+            <div className="live-correction-row">
+              <div className="live-correction-group">
+                <span className="live-correction-label">Inning</span>
+                <button onClick={() => changeLiveInning(-1)}>-</button>
+                <span className="live-correction-value">{currentGame.inning}</span>
+                <button onClick={() => changeLiveInning(1)}>+</button>
+              </div>
+
+              <div className="live-correction-group">
+                <span className="live-correction-label">Half</span>
+                <button onClick={() => setLiveInningHalf("Top")}>Top</button>
+                <button onClick={() => setLiveInningHalf("Bottom")}>Bot</button>
+                <button onClick={() => setLiveInningHalf("Mid")}>Mid</button>
+                <button onClick={() => setLiveInningHalf("End")}>End</button>
+              </div>
+
+              <div className="live-correction-group">
+                <button className="danger-lite" onClick={resetCurrentGame}>Reset This Game</button>
+              </div>
+            </div>
+
             <div className="mlb-live-layout">
               <div className="score-panel">
                 <div className="unified-scoreboard-card">
@@ -1625,9 +1736,9 @@ export default function App() {
                     {combinedCountText}
                   </div>
 
-                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
 
                   <BaseDiamond bases={currentGame.bases} />
                 </div>
