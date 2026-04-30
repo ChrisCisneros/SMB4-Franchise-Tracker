@@ -1529,6 +1529,7 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                          <ChallengeBars count={currentGame.awayChallenges} />
                         </div>
 
                         <div className="score-center">
@@ -1547,6 +1548,7 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <ChallengeBars count={currentGame.homeChallenges} />
                         </div>
                       </div>
 

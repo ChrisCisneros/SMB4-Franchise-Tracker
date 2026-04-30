@@ -1452,3 +1452,21 @@ label {
 .challenge-adjust-row button {
   min-width: 120px;
 }
+
+/* Dashboard featured game should be a bit smaller than Live */
+.dashboard-scoreboard-card .score-number {
+  font-size: 64px;
+}
+
+.dashboard-scoreboard-card .score-dash {
+  font-size: 32px;
+}
+
+.dashboard-scoreboard-card .team-pill {
+  min-height: 70px;
+  font-size: 30px;
+}
+
+.dashboard-scoreboard-card .challenge-bars {
+  margin-top: 6px;
+}
