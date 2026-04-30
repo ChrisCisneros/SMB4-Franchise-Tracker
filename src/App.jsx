@@ -2,8 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { db } from "./firebase";
-import { ref, set } from "firebase/database";
-
+import { onValue, ref, set } from "firebase/database";
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
 const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [];
