@@ -1962,7 +1962,7 @@ export default function App() {
               <label>Edit Existing Team</label>
               <select value={selectedAdminTeamId} onChange={(e) => setSelectedAdminTeamId(e.target.value)}>
                 <option value="">Select team</option>
-                {numberedTeams.map((team) => <option key={team.id} value={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
+                {sortedTeams.map((team) => <option key={team.id} value={team.id}>{teamOptionLabel(team)}</option>)}
               </select>
             </div>
           </div>
