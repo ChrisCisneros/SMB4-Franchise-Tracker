@@ -1459,6 +1459,19 @@ export default function App() {
     setInningBanner("");
   }
 
+
+  function syncTeamsToFirebase(nextTeams) {
+    set(ref(db, "teams"), nextTeams).catch(() => {
+      // ignore for now
+    });
+  }
+
+  function syncPlayersToFirebase(nextPlayers) {
+    set(ref(db, "players"), nextPlayers).catch(() => {
+      // ignore for now
+    });
+  }
+
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
     setData({ ...defaultData, currentGame: defaultCurrentGame(), dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow) });
