@@ -436,6 +436,7 @@ export default function App() {
   const [quickEntryInput, setQuickEntryInput] = useState("");
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
+  const importFileRef = useRef(null);
   const [controlPasswordInput, setControlPasswordInput] = useState("");
   const [controlsUnlocked, setControlsUnlocked] = useState(false);
   const playerNameInputRef = useRef(null);
@@ -659,6 +660,64 @@ export default function App() {
   function lockControls() {
     setControlsUnlocked(false);
     setPage("dashboard");
+  }
+
+
+  function exportLeagueData() {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        storageKey: STORAGE_KEY,
+        data,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `franchise-tracker-export-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      window.alert("Could not export league data.");
+    }
+  }
+
+  function triggerImportLeagueData() {
+    importFileRef.current?.click();
+  }
+
+  async function importLeagueData(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const importedData = parsed?.data ?? parsed;
+
+      if (!importedData || typeof importedData !== "object") {
+        throw new Error("Invalid file");
+      }
+
+      setData((prev) => ({
+        ...prev,
+        teams: Array.isArray(importedData.teams) ? importedData.teams : prev.teams,
+        players: Array.isArray(importedData.players) ? importedData.players : prev.players,
+        currentGame: importedData.currentGame ? makeSafeGame(importedData.currentGame) : prev.currentGame,
+        dailyResultsRows: Array.isArray(importedData.dailyResultsRows) ? importedData.dailyResultsRows : prev.dailyResultsRows,
+        dailyResultsDate: importedData.dailyResultsDate || prev.dailyResultsDate,
+      }));
+
+      setPage("dashboard");
+      window.alert("League data imported successfully.");
+    } catch (error) {
+      window.alert("That file could not be imported.");
+    } finally {
+      event.target.value = "";
+    }
   }
 
   const standings = useMemo(() => {
@@ -1302,7 +1361,16 @@ export default function App() {
           <p>MLB The Show 26 commissioner dashboard</p>
         </div>
         <div className="topbar-actions">
+          <button onClick={exportLeagueData}>Export Data</button>
+          <button onClick={triggerImportLeagueData}>Import Data</button>
           <button className="danger" onClick={resetLeague}>Reset All Data</button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json"
+            className="hidden-file-input"
+            onChange={importLeagueData}
+          />
         </div>
       </div>
       <div className="nav">
