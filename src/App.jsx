@@ -987,48 +987,18 @@ export default function App() {
   }
 
   function changeScore(side, amount) {
-  clearBanner();
-  commitGameUpdate((next) => {
-    next.inningStatus = "";
-
-    if (side === "away") {
-      const oldScore = next.awayScore;
-      next.awayScore = Math.max(0, next.awayScore + amount);
-      const applied = next.awayScore - oldScore;
-
-      if (applied !== 0) {
-        addRunsToLineScore(next, "away", applied);
-      }
-    } else {
-      const oldScore = next.homeScore;
-      next.homeScore = Math.max(0, next.homeScore + amount);
-      const applied = next.homeScore - oldScore;
-
-      if (applied !== 0) {
-        addRunsToLineScore(next, "home", applied);
-      }
-    }
-
-    if (amount !== 0) {
-      next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
-    }
-  });
-}
-
-  function resetCurrentMatch() {
     clearBanner();
-    if (!window.confirm("Reset the current live game back to a fresh matchup?")) return;
-
-    setData((prev) => ({
-      ...prev,
-      currentGame: {
-        ...defaultCurrentGame(),
-        date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
-        awayTeamId: prev.currentGame?.awayTeamId || "",
-        homeTeamId: prev.currentGame?.homeTeamId || "",
-        status: "Not Started",
-      },
-    }));
+    commitGameUpdate((next) => {
+      next.inningStatus = "";
+      if (side === "away") {
+        next.awayScore = Math.max(0, next.awayScore + amount);
+        if (amount > 0) addRunsToLineScore(next, "away", amount);
+      } else {
+        next.homeScore = Math.max(0, next.homeScore + amount);
+        if (amount > 0) addRunsToLineScore(next, "home", amount);
+      }
+      if (amount !== 0) next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
+    });
   }
 
   function markLive() {
@@ -1132,9 +1102,44 @@ export default function App() {
           hitbypitch: `${batterName} was hit by pitch.`,
           error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
           sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
+          pickoff1: "Pickoff attempt at 1B.",
+          pickoff2: "Pickoff attempt at 2B.",
+          pickoff3: "Pickoff attempt at 3B.",
+          awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call — overturned.`,
+  awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call — upheld.`,
+  awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call — overturned.`,
+  awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call — upheld.`,
+
+  homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call — overturned.`,
+  homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call — upheld.`,
+  homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call — overturned.`,
+  homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call — upheld.`,
         };
         text = custom || map[type] || text;
-        clearCount(next);
+
+        const infoOnlyTypes = new Set([
+          "pickoff1",
+          "pickoff2",
+          "pickoff3",
+          "awaychallengeball",
+          "awaychallengestrike",
+          "homechallengeball",
+          "homechallengestrike",
+          "callupheld",
+          "calloverturned",
+          "awayballoverturned",
+"awayballupheld",
+"awaystrikeoverturned",
+"awaystrikeupheld",
+"homeballoverturned",
+"homeballupheld",
+"homestrikeoverturned",
+"homestrikeupheld",
+        ]);
+
+        if (!infoOnlyTypes.has(type)) {
+          clearCount(next);
+        }
 
         if (type === "walk" || type === "hitbypitch" || type === "error") {
           if (type === "error") recordError(next);
@@ -1156,7 +1161,10 @@ export default function App() {
         }
       }
 
-      next.latestPlay = text;
+      const noLatestPlayTypes = new Set(["swinging", "called", "foul"]);
+      if (!noLatestPlayTypes.has(type)) {
+        next.latestPlay = text;
+      }
       next.playLog = [text, ...next.playLog];
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
@@ -1495,6 +1503,18 @@ export default function App() {
           { label: "HBP", category: "other", type: "hitbypitch" },
           { label: "Error", category: "other", type: "error" },
           { label: "Sac Fly", category: "other", type: "sacfly" },
+          { label: "Pickoff 1B", category: "other", type: "pickoff1" },
+          { label: "Pickoff 2B", category: "other", type: "pickoff2" },
+          { label: "Pickoff 3B", category: "other", type: "pickoff3" },
+          { label: "Away Ball → Overturned", category: "other", type: "awayballoverturned" },
+{ label: "Away Ball → Upheld", category: "other", type: "awayballupheld" },
+{ label: "Away Strike → Overturned", category: "other", type: "awaystrikeoverturned" },
+{ label: "Away Strike → Upheld", category: "other", type: "awaystrikeupheld" },
+
+{ label: "Home Ball → Overturned", category: "other", type: "homeballoverturned" },
+{ label: "Home Ball → Upheld", category: "other", type: "homeballupheld" },
+{ label: "Home Strike → Overturned", category: "other", type: "homestrikeoverturned" },
+{ label: "Home Strike → Upheld", category: "other", type: "homestrikeupheld" },
         ];
 
   return (
@@ -1515,6 +1535,7 @@ export default function App() {
         {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
         {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
         {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
+        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
       </div>
 
 
@@ -1641,10 +1662,6 @@ export default function App() {
           <div className="card live-main-card">
             <h2>Live Scoring</h2>
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
-
-            <div className="inline-buttons" style={{ marginBottom: "12px" }}>
-              <button className="danger-lite" onClick={resetCurrentMatch}>Reset Current Match</button>
-            </div>
 
             <div className="live-top-setup">
               <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
@@ -1889,17 +1906,29 @@ export default function App() {
             </div>
           </div>
 
-          <div className="card daily-bulk-card">
-            <h3>Team Number Key</h3>
-            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
-            <div className="team-key-grid compact-abbr-grid">
-              {numberedTeams.map((team) => (
-                <div className="team-key-item" key={team.id}>
-                  <span className="team-key-number">{team.listNumber}</span>
-                  <span className="team-key-text">{team.abbr}</span>
-                </div>
-              ))}
+          <div className="card daily-helper-card">
+            <h3>Teams Added In These Rows</h3>
+            <p className="muted">Filled rows light up the teams currently included in Daily Results so you can spot duplicates fast.</p>
+            <div className="team-status-grid">
+              {numberedTeams.map((team) => {
+                const relatedRows = data.dailyResultsRows.filter((row) => row.awayTeamId === team.id || row.homeTeamId === team.id);
+                const isAdded = relatedRows.some((row) => row.awayTeamId && row.homeTeamId && row.awayScore !== "" && row.homeScore !== "");
+                const isOpen = relatedRows.length > 0;
+
+                return (
+                  <div
+                    key={`daily-status-${team.id}`}
+                    className={`team-status-chip ${isAdded ? "is-added" : isOpen ? "is-open" : ""}`}
+                  >
+                    <span className="team-status-abbr">{team.abbr}</span>
+                    <span className="team-status-name">{team.city} {team.name}</span>
+                  </div>
+                );
+              })}
             </div>
+          </div>
+
+          
 
             <h3>Bulk Results Entry</h3>
             <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
@@ -1910,17 +1939,23 @@ export default function App() {
               </div>
             )}
             <textarea
-              className="bulk-results-input"
-              value={bulkResultsInput}
-              onChange={(e) => setBulkResultsInput(e.target.value)}
-              placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
-              rows={8}
-            />
+  className="bulk-results-input"
+  value={bulkResultsInput}
+  onChange={(e) => setBulkResultsInput(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      applyBulkResultsInput();
+    }
+  }}
+  placeholder={"sf 5 sd 2\nlad 3 nyy 1"}
+  rows={8}
+/>
             <div className="inline-buttons">
               <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
             </div>
           </div>
-        </div>
+        
       )}
 
       {page === "standings" && (
