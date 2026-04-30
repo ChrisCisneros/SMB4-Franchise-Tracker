@@ -404,25 +404,7 @@ function CountControls({ currentGame, updateCount, incrementPitchCount }) {
         </div>
       </div>
 
-      <div className="access-card">
-        <div>
-          <strong>{controlsUnlocked ? "Controls unlocked" : "Viewer mode"}</strong>
-          <div className="muted">{controlsUnlocked ? "All pages are available." : "Only Dashboard and Standings are available until unlocked."}</div>
-        </div>
-        {controlsUnlocked ? (
-          <button onClick={lockControls}>Lock Controls</button>
-        ) : (
-          <div className="access-form">
-            <input
-              type="password"
-              value={controlPasswordInput}
-              onChange={(e) => setControlPasswordInput(e.target.value)}
-              placeholder="Enter control password"
-            />
-            <button onClick={unlockControls}>Unlock Controls</button>
-          </div>
-        )}
-      </div>
+      
 
       <div className="compact-count-card strike-card">
         <div className="count-card-title">Strikes</div>
@@ -1467,17 +1449,33 @@ export default function App() {
       </div>
 
       <div className="nav">
-        <button onClick={() => goToPage("dashboard")}>Dashboard</button>
-        <button onClick={() => goToPage("standings")}>Standings</button>
-        {controlsUnlocked && (
-          <>
-            <button onClick={() => goToPage("live")}>Live Game</button>
-            <button onClick={() => goToPage("daily")}>Daily Results</button>
-            <button onClick={() => goToPage("quick")}>Quick Update</button>
-            <button onClick={() => goToPage("admin")}>Admin</button>
-          </>
-        )}
+        <button onClick={() => setPage("dashboard")}>Dashboard</button>
+        <button onClick={() => setPage("standings")}>Standings</button>
+        {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
+        {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
+        {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
       </div>
+
+
+      {!controlsUnlocked && (
+        <div className="control-warning-wrap">
+          <div className="control-warning">DONT TOUCH ME! AUTHORIZED PERSONNEL ONLY</div>
+          <div className="control-unlock-row">
+            <input
+              type="password"
+              placeholder="Enter control password"
+              value={controlPasswordInput}
+              onChange={(e) => setControlPasswordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") unlockControls();
+              }}
+            />
+            <button onClick={unlockControls}>Unlock Controls</button>
+          </div>
+        </div>
+      )}
+
+
 
 
       {page === "dashboard" && (
@@ -1577,7 +1575,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "live" && (
+      {page === "live" && controlsUnlocked && (
         <div className="live-layout">
           <div className="card live-main-card">
             <h2>Live Scoring</h2>
@@ -1758,7 +1756,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "daily" && (
+      {page === "daily" && controlsUnlocked && (
         <div className="daily-page-wrap">
           <div className="card">
             <div className="daily-header-row">
@@ -1965,7 +1963,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "admin" && (
+      {page === "admin" && controlsUnlocked && (
         <div className="grid two admin-picker-layout">
           <div className="card">
             <h2>Create Team</h2>
