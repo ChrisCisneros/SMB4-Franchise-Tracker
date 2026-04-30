@@ -1421,3 +1421,34 @@ label {
 .hidden-file-input {
   display: none;
 }
+
+
+/* --- CHALLENGES --- */
+
+.challenge-bars {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.challenge-bar {
+  width: 34px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #e3ac17;
+}
+
+.challenge-bar.is-on {
+  background: #ffd447;
+  box-shadow: 0 0 8px rgba(255, 212, 71, 0.45);
+}
+
+.challenge-bar.is-off {
+  background: #1f2937;
+  border-color: #475569;
+}
+
+.challenge-adjust-row button {
+  min-width: 120px;
+}
