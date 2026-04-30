@@ -1158,104 +1158,102 @@ export default function App() {
   }
 
   function addTeam() {
-  if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
+    if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
 
-  const nextTeam = {
-    id: crypto.randomUUID(),
-    city: newTeam.city.trim(),
-    name: newTeam.name.trim(),
-    abbr: newTeam.abbr.trim().toUpperCase(),
-    league: newTeam.league,
-    division: newTeam.division,
-    wins: Number(newTeam.wins) || 0,
-    losses: Number(newTeam.losses) || 0,
-    runDiff: Number(newTeam.runDiff) || 0,
-  };
+    const nextAbbr = newTeam.abbr.trim().toUpperCase();
 
-  setData((prev) => {
-    const nextTeams = [...prev.teams, nextTeam];
-    syncTeamsToFirebase(nextTeams);
-    return { ...prev, teams: nextTeams };
-  });
+    setData((prev) => {
+      if (prev.teams.some((team) => team.id === nextAbbr || (team.abbr || "").toUpperCase() === nextAbbr)) {
+        window.alert(`Team ${nextAbbr} already exists.`);
+        return prev;
+      }
 
-  setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East", wins: 0, losses: 0, runDiff: 0 });
-}
+      const nextTeam = {
+        id: nextAbbr,
+        city: newTeam.city.trim(),
+        name: newTeam.name.trim(),
+        abbr: nextAbbr,
+        league: newTeam.league,
+        division: newTeam.division,
+        wins: Number(newTeam.wins) || 0,
+        losses: Number(newTeam.losses) || 0,
+        runDiff: Number(newTeam.runDiff) || 0,
+      };
+
+      const nextTeams = [...prev.teams, nextTeam];
+      syncTeamsToFirebase(nextTeams);
+
+      return { ...prev, teams: nextTeams };
+    });
+
+    setSelectedAdminTeamId(nextAbbr);
+    setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East", wins: 0, losses: 0, runDiff: 0 });
+  }
 
   function deleteTeam(teamId) {
-    setData((prev) => ({
-      ...prev,
-      teams: prev.teams.filter((team) => team.id !== teamId),
-      players: prev.players.filter((player) => player.teamId !== teamId),
-      dailyResultsRows: prev.dailyResultsRows.map((row) => ({ ...row, awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId, homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId })),
-    }));
+    setData((prev) => {
+      const nextTeams = prev.teams.filter((team) => team.id !== teamId);
+      const nextPlayers = prev.players.filter((player) => player.teamId !== teamId);
+      const nextDailyResultsRows = prev.dailyResultsRows.map((row) => ({
+        ...row,
+        awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId,
+        homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId,
+      }));
+
+      syncTeamsToFirebase(nextTeams);
+      syncPlayersToFirebase(nextPlayers);
+
+      return {
+        ...prev,
+        teams: nextTeams,
+        players: nextPlayers,
+        dailyResultsRows: nextDailyResultsRows,
+      };
+    });
   }
 
   function editTeam(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: value } : team) }));
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) =>
+        team.id === teamId ? { ...team, [field]: value } : team
+      );
+
+      syncTeamsToFirebase(nextTeams);
+
+      return { ...prev, teams: nextTeams };
+    });
   }
 
   function addPlayer() {
-  alert("addPlayer fired");
-  console.log("[Firebase Debug] addPlayer fired", {
-    teamId: newPlayer.teamId,
-    name: newPlayer.name,
-    number: newPlayer.number,
-  });
+    if (!newPlayer.teamId || !newPlayer.name) return;
 
-  if (!newPlayer.teamId || !newPlayer.name) {
-    alert("guard blocked addPlayer");
-    console.log("[Firebase Debug] guard blocked addPlayer", {
-      teamId: newPlayer.teamId,
-      name: newPlayer.name,
-      number: newPlayer.number,
+    setData((prev) => {
+      const nextPlayers = [
+        ...prev.players,
+        {
+          id: crypto.randomUUID(),
+          teamId: newPlayer.teamId,
+          name: newPlayer.name,
+          number: newPlayer.number,
+        },
+      ];
+
+      syncPlayersToFirebase(nextPlayers);
+
+      return { ...prev, players: nextPlayers };
     });
-    return;
+
+    setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
+    setTimeout(() => playerNameInputRef.current?.focus(), 0);
   }
 
-  setData((prev) => {
-    const nextPlayers = [
-      ...prev.players,
-      {
-        id: crypto.randomUUID(),
-        teamId: newPlayer.teamId,
-        name: newPlayer.name,
-        number: newPlayer.number,
-      },
-    ];
-
-    alert("about to write players");
-    console.log("[Firebase Debug] writing players", {
-      count: nextPlayers.length,
-      lastPlayer: nextPlayers[nextPlayers.length - 1],
-    });
-
-    syncPlayersToFirebase(nextPlayers);
-
-    return {
-      ...prev,
-      players: nextPlayers,
-    };
-  });
-
-  setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
-  setTimeout(() => playerNameInputRef.current?.focus(), 0);
-}
-}
-
   function deletePlayer(playerId) {
-  setData((prev) => {
-    const nextPlayers = prev.players.filter((player) => player.id !== playerId);
-    console.log("[Firebase Debug] deleting player", {
-      playerId,
-      remaining: nextPlayers.length,
+    setData((prev) => {
+      const nextPlayers = prev.players.filter((player) => player.id !== playerId);
+      syncPlayersToFirebase(nextPlayers);
+      return { ...prev, players: nextPlayers };
     });
-    syncPlayersToFirebase(nextPlayers);
-    return {
-      ...prev,
-      players: nextPlayers,
-    };
-  });
-}
+  }
 
   function updateRecord(teamId, field, value) {
     setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
@@ -1467,113 +1465,6 @@ export default function App() {
     setPage("dashboard");
   }
 
-
-  function setLiveInningHalf(nextHalf) {
-    clearBanner();
-    setData((prev) => ({
-      ...prev,
-      currentGame: {
-        ...makeSafeGame(prev.currentGame),
-        inningStatus: "",
-        half: nextHalf,
-        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
-      },
-    }));
-  }
-
-  function changeLiveInning(delta) {
-    clearBanner();
-    setData((prev) => ({
-      ...prev,
-      currentGame: {
-        ...makeSafeGame(prev.currentGame),
-        inningStatus: "",
-        inning: Math.max(1, (Number(prev.currentGame.inning) || 1) + delta),
-        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
-      },
-    }));
-  }
-
-  function resetCurrentGame() {
-    if (!window.confirm("Reset this live game back to a fresh start?")) return;
-
-    setData((prev) => {
-      const current = makeSafeGame(prev.currentGame);
-      const fresh = defaultCurrentGame();
-
-      return {
-        ...prev,
-        currentGame: {
-          ...fresh,
-          date: current.date || fresh.date,
-          awayTeamId: current.awayTeamId,
-          homeTeamId: current.homeTeamId,
-          awayLineup: current.awayLineup,
-          homeLineup: current.homeLineup,
-          awayPitcherId: current.awayPitcherId,
-          homePitcherId: current.homePitcherId,
-          awayLook: current.awayLook || fresh.awayLook,
-          homeLook: current.homeLook || fresh.homeLook,
-        },
-      };
-    });
-
-    setInningBanner("");
-  }
-
-
-
-  function debugFirebase(label, payload) {
-    try {
-      console.log(`[Firebase Debug] ${label}`, payload);
-    } catch (error) {
-      // ignore
-    }
-  }
-
-  function syncTeamsToFirebase(nextTeams) {
-    debugFirebase("WRITE teams -> Firebase", {
-      count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
-      firstTeam: Array.isArray(nextTeams) && nextTeams[0]
-        ? {
-            id: nextTeams[0].id,
-            abbr: nextTeams[0].abbr,
-            name: nextTeams[0].name,
-          }
-        : null,
-    });
-
-    set(ref(db, "teams"), nextTeams)
-      .then(() => {
-        debugFirebase("WRITE teams success", {
-          count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
-        });
-      })
-      .catch((error) => {
-        console.error("[Firebase Debug] WRITE teams failed", error);
-      });
-  }
-
-  function syncPlayersToFirebase(nextPlayers) {
-    debugFirebase("WRITE players -> Firebase", {
-      count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
-      lastPlayer:
-        Array.isArray(nextPlayers) && nextPlayers.length
-          ? nextPlayers[nextPlayers.length - 1]
-          : null,
-    });
-
-    set(ref(db, "players"), nextPlayers)
-      .then(() => {
-        debugFirebase("WRITE players success", {
-          count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
-        });
-      })
-      .catch((error) => {
-        console.error("[Firebase Debug] WRITE players failed", error);
-      });
-  }
-
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
     setData({ ...defaultData, currentGame: defaultCurrentGame(), dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow) });
@@ -1713,8 +1604,8 @@ export default function App() {
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
-                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
+                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
@@ -1776,27 +1667,6 @@ export default function App() {
               <div><label>Status</label><select value={currentGame.status} onChange={(e) => updateCurrentGame("status", e.target.value)}><option>Not Started</option><option>Live</option><option>Mid-Inning</option><option>Final</option></select></div>
             </div>
 
-            <div className="live-correction-row">
-              <div className="live-correction-group">
-                <span className="live-correction-label">Inning</span>
-                <button onClick={() => changeLiveInning(-1)}>-</button>
-                <span className="live-correction-value">{currentGame.inning}</span>
-                <button onClick={() => changeLiveInning(1)}>+</button>
-              </div>
-
-              <div className="live-correction-group">
-                <span className="live-correction-label">Half</span>
-                <button onClick={() => setLiveInningHalf("Top")}>Top</button>
-                <button onClick={() => setLiveInningHalf("Bottom")}>Bot</button>
-                <button onClick={() => setLiveInningHalf("Mid")}>Mid</button>
-                <button onClick={() => setLiveInningHalf("End")}>End</button>
-              </div>
-
-              <div className="live-correction-group">
-                <button className="danger-lite" onClick={resetCurrentGame}>Reset This Game</button>
-              </div>
-            </div>
-
             <div className="mlb-live-layout">
               <div className="score-panel">
                 <div className="unified-scoreboard-card">
@@ -1851,9 +1721,9 @@ export default function App() {
                     {combinedCountText}
                   </div>
 
-                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
+                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
+                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
 
                   <BaseDiamond bases={currentGame.bases} />
                 </div>
