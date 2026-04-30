@@ -1,6 +1,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
+import { db } from "./firebase";
+import { onValue, ref, set } from "firebase/database";
 
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
 const CONTROL_PASSWORD = "changeme";
@@ -437,6 +439,7 @@ export default function App() {
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
   const importFileRef = useRef(null);
+  const hasLoadedFirebaseGame = useRef(false);
   const [controlPasswordInput, setControlPasswordInput] = useState("");
   const [controlsUnlocked, setControlsUnlocked] = useState(false);
   const playerNameInputRef = useRef(null);
@@ -540,6 +543,34 @@ export default function App() {
   useEffect(() => {
     setSelectedDeletePlayerId("");
   }, [selectedAdminTeamId]);
+
+  useEffect(() => {
+    const firebaseGameRef = ref(db, "currentGame");
+    const unsubscribe = onValue(firebaseGameRef, (snapshot) => {
+      const value = snapshot.val();
+      if (!value) {
+        hasLoadedFirebaseGame.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        currentGame: makeSafeGame(value),
+      }));
+      hasLoadedFirebaseGame.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedFirebaseGame.current) return;
+    const firebaseGameRef = ref(db, "currentGame");
+    set(firebaseGameRef, makeSafeGame(data.currentGame)).catch(() => {
+      // ignore for now
+    });
+  }, [data.currentGame]);
+
 
   useEffect(() => {
     const saved = sessionStorage.getItem("franchise_controls_unlocked");
