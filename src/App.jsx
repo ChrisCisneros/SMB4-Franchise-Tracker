@@ -203,8 +203,6 @@ const defaultCurrentGame = () => ({
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
-  awayChallenges: 2,
-  homeChallenges: 2,
   awayLineup: Array(9).fill(""),
   homeLineup: Array(9).fill(""),
   awayPositions: ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"],
@@ -390,18 +388,6 @@ function BaseDiamond({ bases }) {
     </div>
   );
 }
-
-function ChallengeBars({ count }) {
-  const safe = Math.max(0, Math.min(2, Number(count) || 0));
-
-  return (
-    <div className="challenge-bars">
-      <span className={`challenge-bar ${safe >= 1 ? "is-on" : "is-off"}`}></span>
-      <span className={`challenge-bar ${safe >= 2 ? "is-on" : "is-off"}`}></span>
-    </div>
-  );
-}
-
 
 
 function CountControls({ currentGame, updateCount, incrementPitchCount }) {
@@ -969,23 +955,6 @@ export default function App() {
     });
   }
 
-  function updateChallenges(side, delta) {
-    setData((prev) => {
-      const next = makeSafeGame(prev.currentGame);
-
-      if (side === "away") {
-        next.awayChallenges = Math.max(0, Math.min(2, (next.awayChallenges || 0) + delta));
-      } else {
-        next.homeChallenges = Math.max(0, Math.min(2, (next.homeChallenges || 0) + delta));
-      }
-
-      return {
-        ...prev,
-        currentGame: next,
-      };
-    });
-  }
-
   function changeScore(side, amount) {
     clearBanner();
     commitGameUpdate((next) => {
@@ -1529,6 +1498,7 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                          <ChallengeBars count={currentGame.awayChallenges} />
                         </div>
 
                         <div className="score-center">
@@ -1547,6 +1517,7 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <ChallengeBars count={currentGame.homeChallenges} />
                         </div>
                       </div>
 
@@ -1628,8 +1599,6 @@ export default function App() {
                         {awayTeam ? awayTeam.abbr : "AWY"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
-                      <ChallengeBars count={currentGame.awayChallenges} />
-                      <ChallengeBars count={currentGame.awayChallenges} />
                     </div>
 
                     <div className="score-center">
@@ -1643,8 +1612,6 @@ export default function App() {
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
-                      <ChallengeBars count={currentGame.homeChallenges} />
-                      <ChallengeBars count={currentGame.homeChallenges} />
                     </div>
                   </div>
 
@@ -1656,17 +1623,6 @@ export default function App() {
                     <div className="inline-buttons score-adjust-buttons">
                       <button onClick={() => changeScore("home", -1)}>-1</button>
                       <button onClick={() => changeScore("home", 1)}>+1</button>
-                    </div>
-                  </div>
-
-                  <div className="score-adjust-row challenge-adjust-row">
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => updateChallenges("away", -1)}>- Challenge</button>
-                      <button onClick={() => updateChallenges("away", 1)}>+ Challenge</button>
-                    </div>
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => updateChallenges("home", -1)}>- Challenge</button>
-                      <button onClick={() => updateChallenges("home", 1)}>+ Challenge</button>
                     </div>
                   </div>
 
