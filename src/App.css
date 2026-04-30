@@ -1316,3 +1316,83 @@ label {
 .dashboard-scoreboard-card .team-look-column .look-switch-button {
   display: none;
 }
+
+
+.control-warning {
+  margin: 10px 0 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #7f1d1d;
+  border: 1px solid #dc2626;
+  color: #fecaca;
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.daily-page-wrap {
+  display: grid;
+  gap: 20px;
+}
+
+.daily-helper-card h3 {
+  margin-top: 0;
+}
+
+.quick-entry-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.quick-entry-input {
+  width: 100%;
+}
+
+.team-status-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  padding: 10px 12px;
+  border: 1px solid #334155;
+  background: #1f2937;
+}
+
+.team-status-chip.is-added {
+  background: #7f1d1d;
+  border-color: #dc2626;
+}
+
+.team-status-chip.is-open {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.team-status-abbr {
+  font-weight: 900;
+  min-width: 38px;
+}
+
+.team-status-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+  .quick-entry-row {
+    grid-template-columns: 1fr;
+  }
+
+  .team-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

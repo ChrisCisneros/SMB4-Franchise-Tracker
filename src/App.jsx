@@ -179,6 +179,8 @@ const defaultCurrentGame = () => ({
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
+  awayChallenges: 2,
+  homeChallenges: 2,
   awayLineup: Array(9).fill(""),
   homeLineup: Array(9).fill(""),
   awayPositions: ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"],
@@ -410,6 +412,17 @@ function CountControls({ currentGame, updateCount, incrementPitchCount }) {
   );
 }
 
+
+function ChallengeBars({ count = 0, max = 2 }) {
+  return (
+    <div className="challenge-bars">
+      {Array.from({ length: max }).map((_, i) => (
+        <div key={i} className={`challenge-bar ${i < count ? "is-active" : ""}`} />
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(getInitialData);
   const [page, setPage] = useState("dashboard");
@@ -420,7 +433,7 @@ export default function App() {
   const [selectedAdminTeamId, setSelectedAdminTeamId] = useState("");
   const [selectedDeletePlayerId, setSelectedDeletePlayerId] = useState("");
   const [playMode, setPlayMode] = useState("hits");
-  const [bulkResultsInput, setBulkResultsInput] = useState("");
+  const [quickEntryInput, setQuickEntryInput] = useState("");
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
   const [controlPasswordInput, setControlPasswordInput] = useState("");
@@ -545,10 +558,11 @@ export default function App() {
   const teams = data.teams;
   const players = data.players;
   const sortedTeams = [...teams].sort((a, b) => a.abbr.localeCompare(b.abbr) || a.name.localeCompare(b.name));
-  const numberedTeams = sortedTeams.map((team, index) => ({ ...team, listNumber: index + 1 }));
-  const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
-  const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
+  const teamAbbrLookup = Object.fromEntries(sortedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
+  const dailyUsedTeamIds = new Set(
+    data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
+  );
   const protectedPages = ["live", "daily", "quick", "admin"];
 
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
@@ -616,6 +630,13 @@ export default function App() {
     );
     const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
     updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
+  }
+
+  
+  function updateChallenges(side, delta) {
+    const field = side === "away" ? "awayChallenges" : "homeChallenges";
+    const currentValue = side === "away" ? (currentGame.awayChallenges || 0) : (currentGame.homeChallenges || 0);
+    updateCurrentGame(field, Math.max(0, Math.min(2, currentValue + delta)));
   }
 
   function goToPage(nextPage) {
@@ -1073,96 +1094,6 @@ export default function App() {
     setData((prev) => ({ ...prev, dailyResultsRows: [...prev.dailyResultsRows, ...Array.from({ length: count }, emptyDailyRow)] }));
   }
 
-  function applyBulkResultsInput() {
-    const lines = bulkResultsInput.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) return;
-
-    const warnings = [];
-    const parsedRows = [];
-    const usedTeamIds = new Set(
-      data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
-    );
-
-    lines.forEach((line, index) => {
-      const parts = line.split(/\s+/).filter(Boolean);
-      if (parts.length !== 4) {
-        warnings.push(`Line ${index + 1} skipped: use format "away score home score".`);
-        return;
-      }
-
-      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
-      const awayKey = awayToken.toUpperCase();
-      const homeKey = homeToken.toUpperCase();
-      const awayTeamId = teamNumberLookup[awayToken] || teamAbbrLookup[awayKey];
-      const homeTeamId = teamNumberLookup[homeToken] || teamAbbrLookup[homeKey];
-      const awayScore = Number(awayScoreRaw);
-      const homeScore = Number(homeScoreRaw);
-
-      if (!awayTeamId || !homeTeamId) {
-        warnings.push(`Line ${index + 1} skipped: team not recognized.`);
-        return;
-      }
-      if (awayTeamId === homeTeamId) {
-        warnings.push(`Line ${index + 1} skipped: same team used twice.`);
-        return;
-      }
-      if (Number.isNaN(awayScore) || Number.isNaN(homeScore)) {
-        warnings.push(`Line ${index + 1} skipped: scores must be numbers.`);
-        return;
-      }
-      if (awayScore === homeScore) {
-        warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
-        return;
-      }
-      if (usedTeamIds.has(awayTeamId)) {
-        const team = teams.find((t) => t.id === awayTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || awayToken} already used earlier.`);
-        return;
-      }
-      if (usedTeamIds.has(homeTeamId)) {
-        const team = teams.find((t) => t.id === homeTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || homeToken} already used earlier.`);
-        return;
-      }
-
-      usedTeamIds.add(awayTeamId);
-      usedTeamIds.add(homeTeamId);
-      parsedRows.push({
-        id: crypto.randomUUID(),
-        awayTeamId,
-        homeTeamId,
-        awayScore: String(awayScore),
-        homeScore: String(homeScore),
-        applied: false,
-      });
-    });
-
-    setBulkWarnings(warnings);
-    if (!parsedRows.length) return;
-
-    setData((prev) => {
-      const updatedRows = [...prev.dailyResultsRows];
-      let parsedIndex = 0;
-
-      for (let i = 0; i < updatedRows.length && parsedIndex < parsedRows.length; i += 1) {
-        const row = updatedRows[i];
-        const isEmpty = !row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "";
-        if (isEmpty) {
-          updatedRows[i] = { ...parsedRows[parsedIndex], id: row.id };
-          parsedIndex += 1;
-        }
-      }
-
-      while (parsedIndex < parsedRows.length) {
-        updatedRows.push(parsedRows[parsedIndex]);
-        parsedIndex += 1;
-      }
-
-      return { ...prev, dailyResultsRows: updatedRows };
-    });
-
-    setBulkResultsInput("");
-  }
 
   function getDailyRowIssue(row, allRows) {
     if (!row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "") return "empty";
@@ -1177,6 +1108,105 @@ export default function App() {
 
   function isValidDailyRow(row, allRows) {
     return getDailyRowIssue(row, allRows) === "ready";
+  }
+
+  function applyQuickEntryInput() {
+    const lines = quickEntryInput
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (!lines.length) return;
+
+    const warnings = [];
+    const parsedRows = [];
+    const usedTeamIds = new Set(
+      data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
+    );
+
+    lines.forEach((line, index) => {
+      const parts = line.split(/\s+/).filter(Boolean);
+      if (parts.length !== 4) {
+        warnings.push(`Line ${index + 1} skipped: use format "SF 5 SD 2".`);
+        return;
+      }
+
+      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
+      const awayTeamId = teamAbbrLookup[awayToken.toUpperCase()];
+      const homeTeamId = teamAbbrLookup[homeToken.toUpperCase()];
+      const awayScore = Number(awayScoreRaw);
+      const homeScore = Number(homeScoreRaw);
+
+      if (!awayTeamId || !homeTeamId) {
+        warnings.push(`Line ${index + 1} skipped: team abbreviation not recognized.`);
+        return;
+      }
+      if (awayTeamId === homeTeamId) {
+        warnings.push(`Line ${index + 1} skipped: same team used twice.`);
+        return;
+      }
+      if (Number.isNaN(awayScore) || Number.isNaN(homeScore)) {
+        warnings.push(`Line ${index + 1} skipped: scores must be numbers.`);
+        return;
+      }
+      if (awayScore === homeScore) {
+        warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
+        return;
+      }
+      if (usedTeamIds.has(awayTeamId) || usedTeamIds.has(homeTeamId)) {
+        warnings.push(`Line ${index + 1} skipped: one of those teams is already added today.`);
+        return;
+      }
+
+      usedTeamIds.add(awayTeamId);
+      usedTeamIds.add(homeTeamId);
+
+      parsedRows.push({
+        id: crypto.randomUUID(),
+        awayTeamId,
+        homeTeamId,
+        awayScore: String(awayScore),
+        homeScore: String(homeScore),
+        applied: false,
+      });
+    });
+
+    if (!parsedRows.length) {
+      setBulkWarnings(warnings);
+      return;
+    }
+
+    setData((prev) => {
+      const existingRows = [...prev.dailyResultsRows];
+      let parseIndex = 0;
+
+      const updatedRows = existingRows.map((row) => {
+        const isEmpty =
+          !row.awayTeamId &&
+          !row.homeTeamId &&
+          row.awayScore === "" &&
+          row.homeScore === "";
+        if (isEmpty && parseIndex < parsedRows.length) {
+          const nextRow = parsedRows[parseIndex];
+          parseIndex += 1;
+          return nextRow;
+        }
+        return row;
+      });
+
+      while (parseIndex < parsedRows.length) {
+        updatedRows.push(parsedRows[parseIndex]);
+        parseIndex += 1;
+      }
+
+      return {
+        ...prev,
+        dailyResultsRows: updatedRows,
+      };
+    });
+
+    setBulkWarnings(warnings);
+    setQuickEntryInput("");
   }
 
   function applyDailyResults() {
@@ -1335,6 +1365,7 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                          <ChallengeBars count={currentGame.awayChallenges || 0} />
                         </div>
 
                         <div className="score-center">
@@ -1353,6 +1384,7 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <ChallengeBars count={currentGame.homeChallenges || 0} />
                         </div>
                       </div>
 
@@ -1419,8 +1451,8 @@ export default function App() {
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
 
             <div className="live-top-setup">
-              <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
-              <div><label>Home Team</label><select value={currentGame.homeTeamId} onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}><option value="">Select home team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
+              <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
+              <div><label>Home Team</label><select value={currentGame.homeTeamId} onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}><option value="">Select home team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
               <div><label>Date</label><input type="date" value={currentGame.date} onChange={(e) => updateCurrentGame("date", e.target.value)} /></div>
               <div><label>Status</label><select value={currentGame.status} onChange={(e) => updateCurrentGame("status", e.target.value)}><option>Not Started</option><option>Live</option><option>Mid-Inning</option><option>Final</option></select></div>
             </div>
@@ -1432,6 +1464,12 @@ export default function App() {
                     <div className="team-look-column">
                       <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
                         {awayTeam ? awayTeam.abbr : "AWY"}
+                      </div>
+                      <ChallengeBars count={currentGame.awayChallenges || 0} />
+                      <div className="challenge-controls">
+                        <button onClick={() => updateChallenges("away",-1)}>-</button>
+                        <span>Challenges</span>
+                        <button onClick={() => updateChallenges("away",1)}>+</button>
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
                     </div>
@@ -1445,6 +1483,12 @@ export default function App() {
                     <div className="team-look-column">
                       <div className="team-pill" style={{ background: homeColors.gradient ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})` : homeColors.main, borderColor: homeColors.border, color: homeColors.text }}>
                         {homeTeam ? homeTeam.abbr : "HME"}
+                      </div>
+                      <ChallengeBars count={currentGame.homeChallenges || 0} />
+                      <div className="challenge-controls">
+                        <button onClick={() => updateChallenges("home",-1)}>-</button>
+                        <span>Challenges</span>
+                        <button onClick={() => updateChallenges("home",1)}>+</button>
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
                     </div>
@@ -1618,19 +1662,9 @@ export default function App() {
                 const issue = getDailyRowIssue(row, data.dailyResultsRows);
                 return (
                   <div className="daily-results-row" key={row.id}>
-                    <div>
-                      <select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}>
-                        <option value="">Away team</option>
-                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
-                      </select>
-                    </div>
+                    <div><select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}><option value="">Away team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
                     <div><input type="number" value={row.awayScore} onChange={(e) => updateDailyRow(row.id, "awayScore", e.target.value)} placeholder="0" /></div>
-                    <div>
-                      <select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}>
-                        <option value="">Home team</option>
-                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
-                      </select>
-                    </div>
+                    <div><select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}><option value="">Home team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
                     <div><input type="number" value={row.homeScore} onChange={(e) => updateDailyRow(row.id, "homeScore", e.target.value)} placeholder="0" /></div>
                     <div className="daily-status-cell">
                       {issue === "applied" && <span className="status-pill applied">Applied</span>}
@@ -1648,35 +1682,47 @@ export default function App() {
             </div>
           </div>
 
-          <div className="card daily-bulk-card">
-            <h3>Team Number Key</h3>
-            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
-            <div className="team-key-grid compact-abbr-grid">
-              {numberedTeams.map((team) => (
-                <div className="team-key-item" key={team.id}>
-                  <span className="team-key-number">{team.listNumber}</span>
-                  <span className="team-key-text">{team.abbr}</span>
-                </div>
-              ))}
-            </div>
+          <div className="card daily-helper-card">
+            <h3>Quick Add</h3>
+            <p className="muted">Enter one matchup at a time like <strong>SF 5 SD 2</strong>. Duplicate teams are skipped automatically.</p>
 
-            <h3>Bulk Results Entry</h3>
-            <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
             {bulkWarnings.length > 0 && (
               <div className="bulk-warning-box">
-                <strong>Skipped lines</strong>
-                {bulkWarnings.map((warning, index) => <div key={`${warning}-${index}`}>{warning}</div>)}
+                {bulkWarnings.map((warning, index) => (
+                  <div key={`${warning}-${index}`}>{warning}</div>
+                ))}
               </div>
             )}
-            <textarea
-              className="bulk-results-input"
-              value={bulkResultsInput}
-              onChange={(e) => setBulkResultsInput(e.target.value)}
-              placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
-              rows={8}
-            />
-            <div className="inline-buttons">
-              <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
+
+            <div className="quick-entry-row">
+              <input
+                className="quick-entry-input"
+                value={quickEntryInput}
+                onChange={(e) => setQuickEntryInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyQuickEntryInput();
+                  }
+                }}
+                placeholder="SF 5 SD 2"
+              />
+              <button onClick={applyQuickEntryInput}>Add Entry</button>
+            </div>
+
+            <h3>Teams Added Today</h3>
+            <p className="muted">Red means already added somewhere in today’s results. Gray means not added yet.</p>
+
+            <div className="team-status-grid">
+              {sortedTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className={`team-status-chip ${dailyUsedTeamIds.has(team.id) ? "is-added" : "is-open"}`}
+                >
+                  <span className="team-status-abbr">{team.abbr}</span>
+                  <span className="team-status-name">{team.name}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
