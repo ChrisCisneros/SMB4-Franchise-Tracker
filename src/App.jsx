@@ -1158,6 +1158,11 @@ export default function App() {
   }
 
   function addTeam() {
+    debugFirebase("ADD TEAM clicked", {
+      city: newTeam.city,
+      name: newTeam.name,
+      abbr: newTeam.abbr,
+    });
     if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
     const teamId = crypto.randomUUID();
     setData((prev) => ({
@@ -1460,16 +1465,58 @@ export default function App() {
   }
 
 
+
+  function debugFirebase(label, payload) {
+    try {
+      console.log(`[Firebase Debug] ${label}`, payload);
+    } catch (error) {
+      // ignore
+    }
+  }
+
   function syncTeamsToFirebase(nextTeams) {
-    set(ref(db, "teams"), nextTeams).catch(() => {
-      // ignore for now
+    debugFirebase("WRITE teams -> Firebase", {
+      count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
+      firstTeam: Array.isArray(nextTeams) && nextTeams[0] ? {
+        id: nextTeams[0].id,
+        abbr: nextTeams[0].abbr,
+        name: nextTeams[0].name,
+      } : null,
     });
+
+    set(ref(db, "teams"), nextTeams)
+      .then(() => {
+        debugFirebase("WRITE teams success", {
+          count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
+        });
+      })
+      .catch((error) => {
+        console.error("[Firebase Debug] WRITE teams failed", error);
+      });
   }
 
   function syncPlayersToFirebase(nextPlayers) {
-    set(ref(db, "players"), nextPlayers).catch(() => {
-      // ignore for now
+    debugFirebase("WRITE players -> Firebase", {
+      count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
+      lastPlayer: Array.isArray(nextPlayers) && nextPlayers.length
+        ? {
+            id: nextPlayers[nextPlayers.length - 1].id,
+            teamId: nextPlayers[nextPlayers.length - 1].teamId,
+            name: nextPlayers[nextPlayers.length - 1].name,
+            number: nextPlayers[nextPlayers.length - 1].number,
+          }
+        : null,
     });
+
+    set(ref(db, "players"), nextPlayers)
+      .then(() => {
+        debugFirebase("WRITE players success", {
+          count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
+        });
+      })
+      .catch((error) => {
+        console.error("[Firebase Debug] WRITE players failed", error);
+      });
   }
 
   function resetLeague() {
