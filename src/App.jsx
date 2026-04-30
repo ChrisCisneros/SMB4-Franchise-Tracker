@@ -1195,13 +1195,22 @@ export default function App() {
   }
 
   function addPlayer() {
+  alert("addPlayer fired");
   console.log("[Firebase Debug] addPlayer fired", {
     teamId: newPlayer.teamId,
     name: newPlayer.name,
     number: newPlayer.number,
   });
 
-  if (!newPlayer.teamId || !newPlayer.name) return;
+  if (!newPlayer.teamId || !newPlayer.name) {
+    alert("guard blocked addPlayer");
+    console.log("[Firebase Debug] guard blocked addPlayer", {
+      teamId: newPlayer.teamId,
+      name: newPlayer.name,
+      number: newPlayer.number,
+    });
+    return;
+  }
 
   setData((prev) => {
     const nextPlayers = [
@@ -1214,6 +1223,7 @@ export default function App() {
       },
     ];
 
+    alert("about to write players");
     console.log("[Firebase Debug] writing players", {
       count: nextPlayers.length,
       lastPlayer: nextPlayers[nextPlayers.length - 1],
@@ -1229,6 +1239,7 @@ export default function App() {
 
   setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
   setTimeout(() => playerNameInputRef.current?.focus(), 0);
+}
 }
 
   function deletePlayer(playerId) {
@@ -1542,17 +1553,25 @@ export default function App() {
   }
 
   function syncPlayersToFirebase(nextPlayers) {
-    debugFirebase("WRITE players -> Firebase", {
-      count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
-      lastPlayer: Array.isArray(nextPlayers) && nextPlayers.length
-        ? {
-            id: nextPlayers[nextPlayers.length - 1].id,
-            teamId: nextPlayers[nextPlayers.length - 1].teamId,
-            name: nextPlayers[nextPlayers.length - 1].name,
-            number: nextPlayers[nextPlayers.length - 1].number,
-          }
+  alert("syncPlayersToFirebase called");
+  console.log("[Firebase Debug] syncPlayersToFirebase called", {
+    count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
+    lastPlayer:
+      Array.isArray(nextPlayers) && nextPlayers.length
+        ? nextPlayers[nextPlayers.length - 1]
         : null,
+  });
+
+  set(ref(db, "players"), nextPlayers)
+    .then(() => {
+      alert("players write success");
+      console.log("[Firebase Debug] WRITE players success");
+    })
+    .catch((error) => {
+      alert("players write failed");
+      console.error("[Firebase Debug] WRITE players failed", error);
     });
+}
 
     set(ref(db, "players"), nextPlayers)
       .then(() => {
