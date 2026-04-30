@@ -1,6 +1,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
+import { db } from "./firebase";
+import { onValue, ref, set } from "firebase/database";
 
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
 const CONTROL_PASSWORD = "changeme";
@@ -76,7 +78,7 @@ TEAM_COLORS.SF = {
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }
   ],
-  cityConnect: { main: "#FD5A1E", alt: "#852cde", border: "#FD5a1e", text: "#FFFFFF", gradient:true },
+  cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
   extras: [],
 };
 TEAM_COLORS.SD = {
@@ -85,6 +87,42 @@ TEAM_COLORS.SD = {
     { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" }
   ],
   cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.NYM = {
+  primary: {main: "#0d0d6e", alt: "#ed5f07", border: "#ed5f07", text: "#FFFFFF", gradient:false},
+  alternates: [
+    { name: "White Alt", main: "#ffffff", alt: "#ed5f07", text: "#0d0d6e" }
+  ],
+  cityConnect: { main: "#454545", alt: "#ba4404", border: "#000000", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.PHI = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#a60000", text: "#a60000", gradient:false},
+  alternates: [
+    { name: "Powder Blue", main: "#388dc2", alt: "#a60000", text: "#ffffff" },
+    {name: "Red", main: "#a60000", alt: "#110982", text: "#ffffff"}
+  ],
+  cityConnect: { main: "#0782ab", alt: "#020a4d", border: "#e6d437", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.CIN = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#c40404", text: "#c40404", gradient:false},
+  alternates: [
+    { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#262626", alt: "#ba4404", border: "#c40404", text: "#590101", gradient:false},
+};
+TEAM_COLORS.WSH = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#44679e", alt: "#ba4404", border: "#162133", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.LAD = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#001994", text: "#001994", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#3952cc", alt: "#021059", border: "#6b83fa", text: "#ffffff", gradient:true},
 };
 
 
@@ -179,6 +217,8 @@ const defaultCurrentGame = () => ({
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
+  awayChallenges: 2,
+  homeChallenges: 2,
   awayLineup: Array(9).fill(""),
   homeLineup: Array(9).fill(""),
   awayPositions: ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"],
@@ -410,6 +450,17 @@ function CountControls({ currentGame, updateCount, incrementPitchCount }) {
   );
 }
 
+
+function ChallengeBars({ count = 0, max = 2 }) {
+  return (
+    <div className="challenge-bars">
+      {Array.from({ length: max }).map((_, i) => (
+        <div key={i} className={`challenge-bar ${i < count ? "is-active" : ""}`} />
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [data, setData] = useState(getInitialData);
   const [page, setPage] = useState("dashboard");
@@ -420,25 +471,15 @@ export default function App() {
   const [selectedAdminTeamId, setSelectedAdminTeamId] = useState("");
   const [selectedDeletePlayerId, setSelectedDeletePlayerId] = useState("");
   const [playMode, setPlayMode] = useState("hits");
-  const [bulkResultsInput, setBulkResultsInput] = useState("");
+  const [quickEntryInput, setQuickEntryInput] = useState("");
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
+  const importFileRef = useRef(null);
+  const hasLoadedFirebaseGame = useRef(false);
   const [controlPasswordInput, setControlPasswordInput] = useState("");
   const [controlsUnlocked, setControlsUnlocked] = useState(false);
   const playerNameInputRef = useRef(null);
   const channelRef = useRef(null);
-
-function syncTeamsToFirebase(nextTeams) {
-  set(ref(db, "teams"), nextTeams).catch((error) => {
-    console.error("[Firebase Debug] WRITE teams failed", error);
-  });
-}
-
-function syncPlayersToFirebase(nextPlayers) {
-  set(ref(db, "players"), nextPlayers).catch((error) => {
-    console.error("[Firebase Debug] WRITE players failed", error);
-  });
-}
 
   useEffect(() => {
     const safeData = {
@@ -540,6 +581,49 @@ function syncPlayersToFirebase(nextPlayers) {
   }, [selectedAdminTeamId]);
 
   useEffect(() => {
+    const firebaseGameRef = ref(db, "currentGame");
+    const unsubscribe = onValue(firebaseGameRef, (snapshot) => {
+      const value = snapshot.val();
+      if (!value) {
+        hasLoadedFirebaseGame.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        currentGame: makeSafeGame(value),
+      }));
+      hasLoadedFirebaseGame.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const firebaseTeamsRef = ref(db, "teams");
+    const unsubscribe = onValue(firebaseTeamsRef, (snapshot) => {
+      const value = snapshot.val();
+      if (!Array.isArray(value)) return;
+
+      setData((prev) => ({
+        ...prev,
+        teams: value,
+      }));
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedFirebaseGame.current) return;
+    const firebaseGameRef = ref(db, "currentGame");
+    set(firebaseGameRef, makeSafeGame(data.currentGame)).catch(() => {
+      // ignore for now
+    });
+  }, [data.currentGame]);
+
+
+  useEffect(() => {
     const saved = sessionStorage.getItem("franchise_controls_unlocked");
     if (saved === "true") setControlsUnlocked(true);
   }, []);
@@ -557,10 +641,11 @@ function syncPlayersToFirebase(nextPlayers) {
   const teams = data.teams;
   const players = data.players;
   const sortedTeams = [...teams].sort((a, b) => a.abbr.localeCompare(b.abbr) || a.name.localeCompare(b.name));
-  const numberedTeams = sortedTeams.map((team, index) => ({ ...team, listNumber: index + 1 }));
-  const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
-  const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
+  const teamAbbrLookup = Object.fromEntries(sortedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
+  const dailyUsedTeamIds = new Set(
+    data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
+  );
   const protectedPages = ["live", "daily", "quick", "admin"];
 
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
@@ -630,6 +715,13 @@ function syncPlayersToFirebase(nextPlayers) {
     updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
   }
 
+  
+  function updateChallenges(side, delta) {
+    const field = side === "away" ? "awayChallenges" : "homeChallenges";
+    const currentValue = side === "away" ? (currentGame.awayChallenges || 0) : (currentGame.homeChallenges || 0);
+    updateCurrentGame(field, Math.max(0, Math.min(2, currentValue + delta)));
+  }
+
   function goToPage(nextPage) {
     if (!controlsUnlocked && protectedPages.includes(nextPage)) {
       setPage("dashboard");
@@ -650,6 +742,64 @@ function syncPlayersToFirebase(nextPlayers) {
   function lockControls() {
     setControlsUnlocked(false);
     setPage("dashboard");
+  }
+
+
+  function exportLeagueData() {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        storageKey: STORAGE_KEY,
+        data,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `franchise-tracker-export-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      window.alert("Could not export league data.");
+    }
+  }
+
+  function triggerImportLeagueData() {
+    importFileRef.current?.click();
+  }
+
+  async function importLeagueData(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const importedData = parsed?.data ?? parsed;
+
+      if (!importedData || typeof importedData !== "object") {
+        throw new Error("Invalid file");
+      }
+
+      setData((prev) => ({
+        ...prev,
+        teams: Array.isArray(importedData.teams) ? importedData.teams : prev.teams,
+        players: Array.isArray(importedData.players) ? importedData.players : prev.players,
+        currentGame: importedData.currentGame ? makeSafeGame(importedData.currentGame) : prev.currentGame,
+        dailyResultsRows: Array.isArray(importedData.dailyResultsRows) ? importedData.dailyResultsRows : prev.dailyResultsRows,
+        dailyResultsDate: importedData.dailyResultsDate || prev.dailyResultsDate,
+      }));
+
+      setPage("dashboard");
+      window.alert("League data imported successfully.");
+    } catch (error) {
+      window.alert("That file could not be imported.");
+    } finally {
+      event.target.value = "";
+    }
   }
 
   const standings = useMemo(() => {
@@ -1007,119 +1157,105 @@ function syncPlayersToFirebase(nextPlayers) {
     setFielderName("");
   }
 
-  
-
   function addTeam() {
-    if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
+  if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
 
-    const nextAbbr = newTeam.abbr.trim().toUpperCase();
+  const nextTeam = {
+    id: crypto.randomUUID(),
+    city: newTeam.city.trim(),
+    name: newTeam.name.trim(),
+    abbr: newTeam.abbr.trim().toUpperCase(),
+    league: newTeam.league,
+    division: newTeam.division,
+    wins: Number(newTeam.wins) || 0,
+    losses: Number(newTeam.losses) || 0,
+    runDiff: Number(newTeam.runDiff) || 0,
+  };
 
-    setData((prev) => {
-      if (prev.teams.some((team) => team.id === nextAbbr || (team.abbr || "").toUpperCase() === nextAbbr)) {
-        window.alert(`Team ${nextAbbr} already exists.`);
-        return prev;
-      }
+  setData((prev) => {
+    const nextTeams = [...prev.teams, nextTeam];
+    syncTeamsToFirebase(nextTeams);
+    return { ...prev, teams: nextTeams };
+  });
 
-      const nextTeam = {
-        id: nextAbbr,
-        city: newTeam.city.trim(),
-        name: newTeam.name.trim(),
-        abbr: nextAbbr,
-        league: newTeam.league,
-        division: newTeam.division,
-        wins: 0,
-        losses: 0,
-        runDiff: 0,
-      };
-
-      const nextTeams = [...prev.teams, nextTeam];
-      syncTeamsToFirebase(nextTeams);
-
-      return {
-        ...prev,
-        teams: nextTeams,
-      };
-    });
-
-    setSelectedAdminTeamId(nextAbbr);
-    setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East" });
-  }
+  setNewTeam({ city: "", name: "", abbr: "", league: "AL", division: "East", wins: 0, losses: 0, runDiff: 0 });
+}
 
   function deleteTeam(teamId) {
-    setData((prev) => {
-      const nextTeams = prev.teams.filter((team) => team.id !== teamId);
-      const nextPlayers = prev.players.filter((player) => player.teamId !== teamId);
-      const nextDailyResultsRows = prev.dailyResultsRows.map((row) => ({
-        ...row,
-        awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId,
-        homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId,
-      }));
-
-      syncTeamsToFirebase(nextTeams);
-      syncPlayersToFirebase(nextPlayers);
-
-      return {
-        ...prev,
-        teams: nextTeams,
-        players: nextPlayers,
-        dailyResultsRows: nextDailyResultsRows,
-      };
-    });
+    setData((prev) => ({
+      ...prev,
+      teams: prev.teams.filter((team) => team.id !== teamId),
+      players: prev.players.filter((player) => player.teamId !== teamId),
+      dailyResultsRows: prev.dailyResultsRows.map((row) => ({ ...row, awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId, homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId })),
+    }));
   }
 
   function editTeam(teamId, field, value) {
-    setData((prev) => {
-      const nextTeams = prev.teams.map((team) =>
-        team.id === teamId ? { ...team, [field]: value } : team
-      );
-
-      syncTeamsToFirebase(nextTeams);
-
-      return {
-        ...prev,
-        teams: nextTeams,
-      };
-    });
+    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: value } : team) }));
   }
 
   function addPlayer() {
-    if (!newPlayer.teamId || !newPlayer.name) return;
+  alert("addPlayer fired");
+  console.log("[Firebase Debug] addPlayer fired", {
+    teamId: newPlayer.teamId,
+    name: newPlayer.name,
+    number: newPlayer.number,
+  });
 
-    setData((prev) => {
-      const nextPlayers = [
-        ...prev.players,
-        {
-          id: crypto.randomUUID(),
-          teamId: newPlayer.teamId,
-          name: newPlayer.name,
-          number: newPlayer.number,
-        },
-      ];
+  if (!newPlayer.teamId || !newPlayer.name) {
+    alert("guard blocked addPlayer");
+    console.log("[Firebase Debug] guard blocked addPlayer", {
+      teamId: newPlayer.teamId,
+      name: newPlayer.name,
+      number: newPlayer.number,
+    });
+    return;
+  }
 
-      syncPlayersToFirebase(nextPlayers);
+  setData((prev) => {
+    const nextPlayers = [
+      ...prev.players,
+      {
+        id: crypto.randomUUID(),
+        teamId: newPlayer.teamId,
+        name: newPlayer.name,
+        number: newPlayer.number,
+      },
+    ];
 
-      return {
-        ...prev,
-        players: nextPlayers,
-      };
+    alert("about to write players");
+    console.log("[Firebase Debug] writing players", {
+      count: nextPlayers.length,
+      lastPlayer: nextPlayers[nextPlayers.length - 1],
     });
 
-    setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
-    setTimeout(() => playerNameInputRef.current?.focus(), 0);
-  }
+    syncPlayersToFirebase(nextPlayers);
+
+    return {
+      ...prev,
+      players: nextPlayers,
+    };
+  });
+
+  setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
+  setTimeout(() => playerNameInputRef.current?.focus(), 0);
+}
+}
 
   function deletePlayer(playerId) {
-    setData((prev) => {
-      const nextPlayers = prev.players.filter((player) => player.id !== playerId);
-
-      syncPlayersToFirebase(nextPlayers);
-
-      return {
-        ...prev,
-        players: nextPlayers,
-      };
+  setData((prev) => {
+    const nextPlayers = prev.players.filter((player) => player.id !== playerId);
+    console.log("[Firebase Debug] deleting player", {
+      playerId,
+      remaining: nextPlayers.length,
     });
-  }
+    syncPlayersToFirebase(nextPlayers);
+    return {
+      ...prev,
+      players: nextPlayers,
+    };
+  });
+}
 
   function updateRecord(teamId, field, value) {
     setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
@@ -1161,96 +1297,6 @@ function syncPlayersToFirebase(nextPlayers) {
     setData((prev) => ({ ...prev, dailyResultsRows: [...prev.dailyResultsRows, ...Array.from({ length: count }, emptyDailyRow)] }));
   }
 
-  function applyBulkResultsInput() {
-    const lines = bulkResultsInput.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) return;
-
-    const warnings = [];
-    const parsedRows = [];
-    const usedTeamIds = new Set(
-      data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
-    );
-
-    lines.forEach((line, index) => {
-      const parts = line.split(/\s+/).filter(Boolean);
-      if (parts.length !== 4) {
-        warnings.push(`Line ${index + 1} skipped: use format "away score home score".`);
-        return;
-      }
-
-      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
-      const awayKey = awayToken.toUpperCase();
-      const homeKey = homeToken.toUpperCase();
-      const awayTeamId = teamNumberLookup[awayToken] || teamAbbrLookup[awayKey];
-      const homeTeamId = teamNumberLookup[homeToken] || teamAbbrLookup[homeKey];
-      const awayScore = Number(awayScoreRaw);
-      const homeScore = Number(homeScoreRaw);
-
-      if (!awayTeamId || !homeTeamId) {
-        warnings.push(`Line ${index + 1} skipped: team not recognized.`);
-        return;
-      }
-      if (awayTeamId === homeTeamId) {
-        warnings.push(`Line ${index + 1} skipped: same team used twice.`);
-        return;
-      }
-      if (Number.isNaN(awayScore) || Number.isNaN(homeScore)) {
-        warnings.push(`Line ${index + 1} skipped: scores must be numbers.`);
-        return;
-      }
-      if (awayScore === homeScore) {
-        warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
-        return;
-      }
-      if (usedTeamIds.has(awayTeamId)) {
-        const team = teams.find((t) => t.id === awayTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || awayToken} already used earlier.`);
-        return;
-      }
-      if (usedTeamIds.has(homeTeamId)) {
-        const team = teams.find((t) => t.id === homeTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || homeToken} already used earlier.`);
-        return;
-      }
-
-      usedTeamIds.add(awayTeamId);
-      usedTeamIds.add(homeTeamId);
-      parsedRows.push({
-        id: crypto.randomUUID(),
-        awayTeamId,
-        homeTeamId,
-        awayScore: String(awayScore),
-        homeScore: String(homeScore),
-        applied: false,
-      });
-    });
-
-    setBulkWarnings(warnings);
-    if (!parsedRows.length) return;
-
-    setData((prev) => {
-      const updatedRows = [...prev.dailyResultsRows];
-      let parsedIndex = 0;
-
-      for (let i = 0; i < updatedRows.length && parsedIndex < parsedRows.length; i += 1) {
-        const row = updatedRows[i];
-        const isEmpty = !row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "";
-        if (isEmpty) {
-          updatedRows[i] = { ...parsedRows[parsedIndex], id: row.id };
-          parsedIndex += 1;
-        }
-      }
-
-      while (parsedIndex < parsedRows.length) {
-        updatedRows.push(parsedRows[parsedIndex]);
-        parsedIndex += 1;
-      }
-
-      return { ...prev, dailyResultsRows: updatedRows };
-    });
-
-    setBulkResultsInput("");
-  }
 
   function getDailyRowIssue(row, allRows) {
     if (!row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "") return "empty";
@@ -1265,6 +1311,105 @@ function syncPlayersToFirebase(nextPlayers) {
 
   function isValidDailyRow(row, allRows) {
     return getDailyRowIssue(row, allRows) === "ready";
+  }
+
+  function applyQuickEntryInput() {
+    const lines = quickEntryInput
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (!lines.length) return;
+
+    const warnings = [];
+    const parsedRows = [];
+    const usedTeamIds = new Set(
+      data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
+    );
+
+    lines.forEach((line, index) => {
+      const parts = line.split(/\s+/).filter(Boolean);
+      if (parts.length !== 4) {
+        warnings.push(`Line ${index + 1} skipped: use format "SF 5 SD 2".`);
+        return;
+      }
+
+      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
+      const awayTeamId = teamAbbrLookup[awayToken.toUpperCase()];
+      const homeTeamId = teamAbbrLookup[homeToken.toUpperCase()];
+      const awayScore = Number(awayScoreRaw);
+      const homeScore = Number(homeScoreRaw);
+
+      if (!awayTeamId || !homeTeamId) {
+        warnings.push(`Line ${index + 1} skipped: team abbreviation not recognized.`);
+        return;
+      }
+      if (awayTeamId === homeTeamId) {
+        warnings.push(`Line ${index + 1} skipped: same team used twice.`);
+        return;
+      }
+      if (Number.isNaN(awayScore) || Number.isNaN(homeScore)) {
+        warnings.push(`Line ${index + 1} skipped: scores must be numbers.`);
+        return;
+      }
+      if (awayScore === homeScore) {
+        warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
+        return;
+      }
+      if (usedTeamIds.has(awayTeamId) || usedTeamIds.has(homeTeamId)) {
+        warnings.push(`Line ${index + 1} skipped: one of those teams is already added today.`);
+        return;
+      }
+
+      usedTeamIds.add(awayTeamId);
+      usedTeamIds.add(homeTeamId);
+
+      parsedRows.push({
+        id: crypto.randomUUID(),
+        awayTeamId,
+        homeTeamId,
+        awayScore: String(awayScore),
+        homeScore: String(homeScore),
+        applied: false,
+      });
+    });
+
+    if (!parsedRows.length) {
+      setBulkWarnings(warnings);
+      return;
+    }
+
+    setData((prev) => {
+      const existingRows = [...prev.dailyResultsRows];
+      let parseIndex = 0;
+
+      const updatedRows = existingRows.map((row) => {
+        const isEmpty =
+          !row.awayTeamId &&
+          !row.homeTeamId &&
+          row.awayScore === "" &&
+          row.homeScore === "";
+        if (isEmpty && parseIndex < parsedRows.length) {
+          const nextRow = parsedRows[parseIndex];
+          parseIndex += 1;
+          return nextRow;
+        }
+        return row;
+      });
+
+      while (parseIndex < parsedRows.length) {
+        updatedRows.push(parsedRows[parseIndex]);
+        parseIndex += 1;
+      }
+
+      return {
+        ...prev,
+        dailyResultsRows: updatedRows,
+      };
+    });
+
+    setBulkWarnings(warnings);
+    setQuickEntryInput("");
   }
 
   function applyDailyResults() {
@@ -1322,6 +1467,113 @@ function syncPlayersToFirebase(nextPlayers) {
     setPage("dashboard");
   }
 
+
+  function setLiveInningHalf(nextHalf) {
+    clearBanner();
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...makeSafeGame(prev.currentGame),
+        inningStatus: "",
+        half: nextHalf,
+        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
+      },
+    }));
+  }
+
+  function changeLiveInning(delta) {
+    clearBanner();
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...makeSafeGame(prev.currentGame),
+        inningStatus: "",
+        inning: Math.max(1, (Number(prev.currentGame.inning) || 1) + delta),
+        status: prev.currentGame.status === "Not Started" ? "Live" : prev.currentGame.status,
+      },
+    }));
+  }
+
+  function resetCurrentGame() {
+    if (!window.confirm("Reset this live game back to a fresh start?")) return;
+
+    setData((prev) => {
+      const current = makeSafeGame(prev.currentGame);
+      const fresh = defaultCurrentGame();
+
+      return {
+        ...prev,
+        currentGame: {
+          ...fresh,
+          date: current.date || fresh.date,
+          awayTeamId: current.awayTeamId,
+          homeTeamId: current.homeTeamId,
+          awayLineup: current.awayLineup,
+          homeLineup: current.homeLineup,
+          awayPitcherId: current.awayPitcherId,
+          homePitcherId: current.homePitcherId,
+          awayLook: current.awayLook || fresh.awayLook,
+          homeLook: current.homeLook || fresh.homeLook,
+        },
+      };
+    });
+
+    setInningBanner("");
+  }
+
+
+
+  function debugFirebase(label, payload) {
+    try {
+      console.log(`[Firebase Debug] ${label}`, payload);
+    } catch (error) {
+      // ignore
+    }
+  }
+
+  function syncTeamsToFirebase(nextTeams) {
+    debugFirebase("WRITE teams -> Firebase", {
+      count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
+      firstTeam: Array.isArray(nextTeams) && nextTeams[0]
+        ? {
+            id: nextTeams[0].id,
+            abbr: nextTeams[0].abbr,
+            name: nextTeams[0].name,
+          }
+        : null,
+    });
+
+    set(ref(db, "teams"), nextTeams)
+      .then(() => {
+        debugFirebase("WRITE teams success", {
+          count: Array.isArray(nextTeams) ? nextTeams.length : "not-array",
+        });
+      })
+      .catch((error) => {
+        console.error("[Firebase Debug] WRITE teams failed", error);
+      });
+  }
+
+  function syncPlayersToFirebase(nextPlayers) {
+    debugFirebase("WRITE players -> Firebase", {
+      count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
+      lastPlayer:
+        Array.isArray(nextPlayers) && nextPlayers.length
+          ? nextPlayers[nextPlayers.length - 1]
+          : null,
+    });
+
+    set(ref(db, "players"), nextPlayers)
+      .then(() => {
+        debugFirebase("WRITE players success", {
+          count: Array.isArray(nextPlayers) ? nextPlayers.length : "not-array",
+        });
+      })
+      .catch((error) => {
+        console.error("[Firebase Debug] WRITE players failed", error);
+      });
+  }
+
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
     setData({ ...defaultData, currentGame: defaultCurrentGame(), dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow) });
@@ -1360,7 +1612,16 @@ function syncPlayersToFirebase(nextPlayers) {
           <p>MLB The Show 26 commissioner dashboard</p>
         </div>
         <div className="topbar-actions">
+          <button onClick={exportLeagueData}>Export Data</button>
+          <button onClick={triggerImportLeagueData}>Import Data</button>
           <button className="danger" onClick={resetLeague}>Reset All Data</button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json"
+            className="hidden-file-input"
+            onChange={importLeagueData}
+          />
         </div>
       </div>
       <div className="nav">
@@ -1423,6 +1684,7 @@ function syncPlayersToFirebase(nextPlayers) {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                          <ChallengeBars count={currentGame.awayChallenges || 0} />
                         </div>
 
                         <div className="score-center">
@@ -1441,6 +1703,7 @@ function syncPlayersToFirebase(nextPlayers) {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <ChallengeBars count={currentGame.homeChallenges || 0} />
                         </div>
                       </div>
 
@@ -1450,8 +1713,8 @@ function syncPlayersToFirebase(nextPlayers) {
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
-                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
+                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
@@ -1507,10 +1770,31 @@ function syncPlayersToFirebase(nextPlayers) {
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
 
             <div className="live-top-setup">
-              <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
-              <div><label>Home Team</label><select value={currentGame.homeTeamId} onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}><option value="">Select home team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
+              <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
+              <div><label>Home Team</label><select value={currentGame.homeTeamId} onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}><option value="">Select home team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
               <div><label>Date</label><input type="date" value={currentGame.date} onChange={(e) => updateCurrentGame("date", e.target.value)} /></div>
               <div><label>Status</label><select value={currentGame.status} onChange={(e) => updateCurrentGame("status", e.target.value)}><option>Not Started</option><option>Live</option><option>Mid-Inning</option><option>Final</option></select></div>
+            </div>
+
+            <div className="live-correction-row">
+              <div className="live-correction-group">
+                <span className="live-correction-label">Inning</span>
+                <button onClick={() => changeLiveInning(-1)}>-</button>
+                <span className="live-correction-value">{currentGame.inning}</span>
+                <button onClick={() => changeLiveInning(1)}>+</button>
+              </div>
+
+              <div className="live-correction-group">
+                <span className="live-correction-label">Half</span>
+                <button onClick={() => setLiveInningHalf("Top")}>Top</button>
+                <button onClick={() => setLiveInningHalf("Bottom")}>Bot</button>
+                <button onClick={() => setLiveInningHalf("Mid")}>Mid</button>
+                <button onClick={() => setLiveInningHalf("End")}>End</button>
+              </div>
+
+              <div className="live-correction-group">
+                <button className="danger-lite" onClick={resetCurrentGame}>Reset This Game</button>
+              </div>
             </div>
 
             <div className="mlb-live-layout">
@@ -1520,6 +1804,12 @@ function syncPlayersToFirebase(nextPlayers) {
                     <div className="team-look-column">
                       <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
                         {awayTeam ? awayTeam.abbr : "AWY"}
+                      </div>
+                      <ChallengeBars count={currentGame.awayChallenges || 0} />
+                      <div className="challenge-controls">
+                        <button onClick={() => updateChallenges("away",-1)}>-</button>
+                        <span>Challenges</span>
+                        <button onClick={() => updateChallenges("away",1)}>+</button>
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
                     </div>
@@ -1533,6 +1823,12 @@ function syncPlayersToFirebase(nextPlayers) {
                     <div className="team-look-column">
                       <div className="team-pill" style={{ background: homeColors.gradient ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})` : homeColors.main, borderColor: homeColors.border, color: homeColors.text }}>
                         {homeTeam ? homeTeam.abbr : "HME"}
+                      </div>
+                      <ChallengeBars count={currentGame.homeChallenges || 0} />
+                      <div className="challenge-controls">
+                        <button onClick={() => updateChallenges("home",-1)}>-</button>
+                        <span>Challenges</span>
+                        <button onClick={() => updateChallenges("home",1)}>+</button>
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
                     </div>
@@ -1555,9 +1851,9 @@ function syncPlayersToFirebase(nextPlayers) {
                     {combinedCountText}
                   </div>
 
-                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : (currentGame.liveBatterName ? `#${currentGame.liveBatterNumber || "--"} ${currentGame.liveBatterName}` : "Set lineup")}</div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : (currentGame.livePitcherName ? `#${currentGame.livePitcherNumber || "--"} ${currentGame.livePitcherName}` : "Set pitcher")}</div>
 
                   <BaseDiamond bases={currentGame.bases} />
                 </div>
@@ -1706,19 +2002,9 @@ function syncPlayersToFirebase(nextPlayers) {
                 const issue = getDailyRowIssue(row, data.dailyResultsRows);
                 return (
                   <div className="daily-results-row" key={row.id}>
-                    <div>
-                      <select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}>
-                        <option value="">Away team</option>
-                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
-                      </select>
-                    </div>
+                    <div><select value={row.awayTeamId} onChange={(e) => updateDailyRow(row.id, "awayTeamId", e.target.value)}><option value="">Away team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
                     <div><input type="number" value={row.awayScore} onChange={(e) => updateDailyRow(row.id, "awayScore", e.target.value)} placeholder="0" /></div>
-                    <div>
-                      <select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}>
-                        <option value="">Home team</option>
-                        {numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
-                      </select>
-                    </div>
+                    <div><select value={row.homeTeamId} onChange={(e) => updateDailyRow(row.id, "homeTeamId", e.target.value)}><option value="">Home team</option>{sortedTeams.map((team) => <option value={team.id} key={team.id}>{teamOptionLabel(team)}</option>)}</select></div>
                     <div><input type="number" value={row.homeScore} onChange={(e) => updateDailyRow(row.id, "homeScore", e.target.value)} placeholder="0" /></div>
                     <div className="daily-status-cell">
                       {issue === "applied" && <span className="status-pill applied">Applied</span>}
@@ -1736,35 +2022,47 @@ function syncPlayersToFirebase(nextPlayers) {
             </div>
           </div>
 
-          <div className="card daily-bulk-card">
-            <h3>Team Number Key</h3>
-            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
-            <div className="team-key-grid compact-abbr-grid">
-              {numberedTeams.map((team) => (
-                <div className="team-key-item" key={team.id}>
-                  <span className="team-key-number">{team.listNumber}</span>
-                  <span className="team-key-text">{team.abbr}</span>
-                </div>
-              ))}
-            </div>
+          <div className="card daily-helper-card">
+            <h3>Quick Add</h3>
+            <p className="muted">Enter one matchup at a time like <strong>SF 5 SD 2</strong>. Duplicate teams are skipped automatically.</p>
 
-            <h3>Bulk Results Entry</h3>
-            <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
             {bulkWarnings.length > 0 && (
               <div className="bulk-warning-box">
-                <strong>Skipped lines</strong>
-                {bulkWarnings.map((warning, index) => <div key={`${warning}-${index}`}>{warning}</div>)}
+                {bulkWarnings.map((warning, index) => (
+                  <div key={`${warning}-${index}`}>{warning}</div>
+                ))}
               </div>
             )}
-            <textarea
-              className="bulk-results-input"
-              value={bulkResultsInput}
-              onChange={(e) => setBulkResultsInput(e.target.value)}
-              placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
-              rows={8}
-            />
-            <div className="inline-buttons">
-              <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
+
+            <div className="quick-entry-row">
+              <input
+                className="quick-entry-input"
+                value={quickEntryInput}
+                onChange={(e) => setQuickEntryInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applyQuickEntryInput();
+                  }
+                }}
+                placeholder="SF 5 SD 2"
+              />
+              <button onClick={applyQuickEntryInput}>Add Entry</button>
+            </div>
+
+            <h3>Teams Added Today</h3>
+            <p className="muted">Red means already added somewhere in today’s results. Gray means not added yet.</p>
+
+            <div className="team-status-grid">
+              {sortedTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className={`team-status-chip ${dailyUsedTeamIds.has(team.id) ? "is-added" : "is-open"}`}
+                >
+                  <span className="team-status-abbr">{team.abbr}</span>
+                  <span className="team-status-name">{team.name}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1905,7 +2203,7 @@ function syncPlayersToFirebase(nextPlayers) {
               <label>Edit Existing Team</label>
               <select value={selectedAdminTeamId} onChange={(e) => setSelectedAdminTeamId(e.target.value)}>
                 <option value="">Select team</option>
-                {numberedTeams.map((team) => <option key={team.id} value={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}
+                {sortedTeams.map((team) => <option key={team.id} value={team.id}>{teamOptionLabel(team)}</option>)}
               </select>
             </div>
           </div>
