@@ -674,8 +674,7 @@ export default function App() {
   const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
   const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
-  const protectedPages = ["live", "daily", "quick", "admin"];
-
+const protectedPages = ["live", "admin", "daily", "quick"];
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
   const homeTeam = teams.find((t) => t.id === currentGame.homeTeamId);
   const liveAwayLooks = getAvailableLooks(awayTeam?.abbr);
@@ -1546,6 +1545,7 @@ export default function App() {
         {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
         {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
         {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
+        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
       </div>
 
 
