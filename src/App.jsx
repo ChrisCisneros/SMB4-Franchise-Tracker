@@ -1274,19 +1274,27 @@ const protectedPages = ["live", "admin", "daily", "quick"];
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => {
-      const nextTeams = prev.teams.map((team) =>
-        team.id === teamId ? { ...team, [field]: Number(value) } : team
-      );
+  setData((prev) => {
+    const nextTeams = prev.teams.map((team) =>
+      team.id === teamId
+        ? {
+            ...team,
+            [field]:
+              value === "" || value === "-"
+                ? value
+                : Number(value),
+          }
+        : team
+    );
 
-      syncTeamsToFirebase(nextTeams);
+    syncTeamsToFirebase(nextTeams);
 
-      return {
-        ...prev,
-        teams: nextTeams,
-      };
-    });
-  }
+    return {
+      ...prev,
+      teams: nextTeams,
+    };
+  });
+}
 
   function setLineup(side, index, playerId) {
     const key = side === "away" ? "awayLineup" : "homeLineup";
