@@ -564,6 +564,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const firebaseTeamsRef = ref(db, "teams");
+    const unsubscribe = onValue(firebaseTeamsRef, (snapshot) => {
+      const value = snapshot.val();
+      if (!Array.isArray(value)) return;
+
+      setData((prev) => ({
+        ...prev,
+        teams: value,
+      }));
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (!hasLoadedFirebaseGame.current) return;
     const firebaseGameRef = ref(db, "currentGame");
     set(firebaseGameRef, makeSafeGame(data.currentGame)).catch(() => {
