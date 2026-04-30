@@ -1629,6 +1629,7 @@ export default function App() {
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
                       <ChallengeBars count={currentGame.awayChallenges} />
+                      <ChallengeBars count={currentGame.awayChallenges} />
                     </div>
 
                     <div className="score-center">
@@ -1642,6 +1643,7 @@ export default function App() {
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
+                      <ChallengeBars count={currentGame.homeChallenges} />
                       <ChallengeBars count={currentGame.homeChallenges} />
                     </div>
                   </div>
