@@ -1126,6 +1126,37 @@ export default function App() {
         }
       }
 
+      const lastABMap = {
+        single: "1B",
+        double: "2B",
+        triple: "3B",
+        homerun: "HR",
+        flyout: "Fly Out",
+        groundout: "Ground Out",
+        lineout: "Line Out",
+        popup: "Pop Up",
+        fielderschoice: "FC",
+        doubleplay: "DP",
+        caughtstealing: "CS",
+        walk: "BB",
+        hitbypitch: "HBP",
+        error: "ROE",
+        sacfly: "SF",
+      };
+
+      const shouldTrackLastAB =
+        category === "hit" ||
+        category === "out" ||
+        type === "walk" ||
+        type === "hitbypitch" ||
+        type === "error" ||
+        type === "sacfly";
+
+      if (shouldTrackLastAB) {
+        const lastABResult = lastABMap[type] || type;
+        setCurrentBatterLastAB(lastABResult);
+      }
+
       next.latestPlay = text;
       next.playLog = [text, ...next.playLog];
       if (category !== "out" || !text.includes("Score update")) {
@@ -1217,6 +1248,7 @@ export default function App() {
           teamId: newPlayer.teamId,
           name: newPlayer.name,
           number: newPlayer.number,
+          lastAB: "",
         },
       ];
 
@@ -1237,7 +1269,18 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) =>
+        team.id === teamId ? { ...team, [field]: Number(value) } : team
+      );
+
+      syncTeamsToFirebase(nextTeams);
+
+      return {
+        ...prev,
+        teams: nextTeams,
+      };
+    });
   }
 
   function setLineup(side, index, playerId) {
@@ -1252,6 +1295,23 @@ export default function App() {
     const positions = [...currentGame[key]];
     positions[index] = position;
     updateCurrentGame(key, positions);
+  }
+
+  function setCurrentBatterLastAB(result) {
+    if (!currentBatter?.id) return;
+
+    setData((prev) => {
+      const nextPlayers = prev.players.map((player) =>
+        player.id === currentBatter.id ? { ...player, lastAB: result } : player
+      );
+
+      syncPlayersToFirebase(nextPlayers);
+
+      return {
+        ...prev,
+        players: nextPlayers,
+      };
+    });
   }
 
   function addPlayLog() {
@@ -1558,8 +1618,14 @@ export default function App() {
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                      <div className="active-batter-banner">
+                        At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}
+                        {currentBatter?.lastAB && (
+                          <div className="small-text muted">Last AB: {currentBatter.lastAB}</div>
+                        )}
+                      </div>
                       <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                      <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "Set lineup"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>

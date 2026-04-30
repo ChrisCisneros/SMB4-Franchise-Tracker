@@ -1470,3 +1470,8 @@ label {
 .dashboard-scoreboard-card .challenge-bars {
   margin-top: 6px;
 }
+
+
+.active-batter-banner .small-text {
+  margin-top: 4px;
+}
