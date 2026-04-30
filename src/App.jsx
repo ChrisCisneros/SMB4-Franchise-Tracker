@@ -607,23 +607,19 @@ useEffect(() => {
   }, [selectedAdminTeamId]);
 
   useEffect(() => {
-    const firebaseGameRef = ref(db, "currentGame");
-    const unsubscribe = onValue(firebaseGameRef, (snapshot) => {
-      const value = snapshot.val();
-      if (!value) {
-        hasLoadedFirebaseGame.current = true;
-        return;
-      }
+  const gameRef = ref(db, "currentGame");
+  const unsubscribe = onValue(gameRef, (snapshot) => {
+    const value = snapshot.val();
+    if (!value) return;
 
-      setData((prev) => ({
-        ...prev,
-        currentGame: makeSafeGame(value),
-      }));
-      hasLoadedFirebaseGame.current = true;
-    });
+    setData((prev) => ({
+      ...prev,
+      currentGame: makeSafeGame(value),
+    }));
+  });
 
-    return () => unsubscribe();
-  }, []);
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     if (!hasLoadedFirebaseGame.current) return;
