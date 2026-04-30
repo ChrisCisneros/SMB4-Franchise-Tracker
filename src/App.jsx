@@ -1187,6 +1187,8 @@ export default function App() {
   }
 
   function addPlayer() {
+      alert("addPlayer fired");
+
     if (!newPlayer.teamId || !newPlayer.name) return;
     setData((prev) => ({
       ...prev,
