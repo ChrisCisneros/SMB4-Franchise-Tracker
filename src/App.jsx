@@ -203,6 +203,8 @@ const defaultCurrentGame = () => ({
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
+  awayChallenges: 2,
+  homeChallenges: 2,
   awayLineup: Array(9).fill(""),
   homeLineup: Array(9).fill(""),
   awayPositions: ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"],
@@ -389,6 +391,18 @@ function BaseDiamond({ bases }) {
   );
 }
 
+function ChallengeBars({ count }) {
+  const safe = Math.max(0, Math.min(2, Number(count) || 0));
+
+  return (
+    <div className="challenge-bars">
+      <span className={`challenge-bar ${safe >= 1 ? "is-on" : "is-off"}`}></span>
+      <span className={`challenge-bar ${safe >= 2 ? "is-on" : "is-off"}`}></span>
+    </div>
+  );
+}
+
+
 
 function CountControls({ currentGame, updateCount, incrementPitchCount }) {
   const activePitchCount = currentGame.half === "Top" ? currentGame.homePitchCount : currentGame.awayPitchCount;
@@ -403,6 +417,8 @@ function CountControls({ currentGame, updateCount, incrementPitchCount }) {
           <button onClick={() => updateCount("balls", -1)}>-</button>
         </div>
       </div>
+
+      
 
       <div className="compact-count-card strike-card">
         <div className="count-card-title">Strikes</div>
@@ -953,6 +969,23 @@ export default function App() {
     });
   }
 
+  function updateChallenges(side, delta) {
+    setData((prev) => {
+      const next = makeSafeGame(prev.currentGame);
+
+      if (side === "away") {
+        next.awayChallenges = Math.max(0, Math.min(2, (next.awayChallenges || 0) + delta));
+      } else {
+        next.homeChallenges = Math.max(0, Math.min(2, (next.homeChallenges || 0) + delta));
+      }
+
+      return {
+        ...prev,
+        currentGame: next,
+      };
+    });
+  }
+
   function changeScore(side, amount) {
     clearBanner();
     commitGameUpdate((next) => {
@@ -1447,17 +1480,33 @@ export default function App() {
       </div>
 
       <div className="nav">
-        <button onClick={() => goToPage("dashboard")}>Dashboard</button>
-        <button onClick={() => goToPage("standings")}>Standings</button>
-        {controlsUnlocked && (
-          <>
-            <button onClick={() => goToPage("live")}>Live Game</button>
-            <button onClick={() => goToPage("daily")}>Daily Results</button>
-            <button onClick={() => goToPage("quick")}>Quick Update</button>
-            <button onClick={() => goToPage("admin")}>Admin</button>
-          </>
-        )}
+        <button onClick={() => setPage("dashboard")}>Dashboard</button>
+        <button onClick={() => setPage("standings")}>Standings</button>
+        {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
+        {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
+        {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
       </div>
+
+
+      {!controlsUnlocked && (
+        <div className="control-warning-wrap">
+          <div className="control-warning">DONT TOUCH ME! AUTHORIZED PERSONNEL ONLY</div>
+          <div className="control-unlock-row">
+            <input
+              type="password"
+              placeholder="Enter control password"
+              value={controlPasswordInput}
+              onChange={(e) => setControlPasswordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") unlockControls();
+              }}
+            />
+            <button onClick={unlockControls}>Unlock Controls</button>
+          </div>
+        </div>
+      )}
+
+
 
 
       {page === "dashboard" && (
@@ -1557,7 +1606,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "live" && (
+      {page === "live" && controlsUnlocked && (
         <div className="live-layout">
           <div className="card live-main-card">
             <h2>Live Scoring</h2>
@@ -1579,6 +1628,7 @@ export default function App() {
                         {awayTeam ? awayTeam.abbr : "AWY"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
+                      <ChallengeBars count={currentGame.awayChallenges} />
                     </div>
 
                     <div className="score-center">
@@ -1592,6 +1642,7 @@ export default function App() {
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
+                      <ChallengeBars count={currentGame.homeChallenges} />
                     </div>
                   </div>
 
@@ -1603,6 +1654,17 @@ export default function App() {
                     <div className="inline-buttons score-adjust-buttons">
                       <button onClick={() => changeScore("home", -1)}>-1</button>
                       <button onClick={() => changeScore("home", 1)}>+1</button>
+                    </div>
+                  </div>
+
+                  <div className="score-adjust-row challenge-adjust-row">
+                    <div className="inline-buttons score-adjust-buttons">
+                      <button onClick={() => updateChallenges("away", -1)}>- Challenge</button>
+                      <button onClick={() => updateChallenges("away", 1)}>+ Challenge</button>
+                    </div>
+                    <div className="inline-buttons score-adjust-buttons">
+                      <button onClick={() => updateChallenges("home", -1)}>- Challenge</button>
+                      <button onClick={() => updateChallenges("home", 1)}>+ Challenge</button>
                     </div>
                   </div>
 
@@ -1738,7 +1800,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "daily" && (
+      {page === "daily" && controlsUnlocked && (
         <div className="daily-page-wrap">
           <div className="card">
             <div className="daily-header-row">
@@ -1945,7 +2007,7 @@ export default function App() {
         </div>
       )}
 
-      {page === "admin" && (
+      {page === "admin" && controlsUnlocked && (
         <div className="grid two admin-picker-layout">
           <div className="card">
             <h2>Create Team</h2>
