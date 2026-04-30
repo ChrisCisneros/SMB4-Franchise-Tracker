@@ -428,6 +428,18 @@ export default function App() {
   const playerNameInputRef = useRef(null);
   const channelRef = useRef(null);
 
+function syncTeamsToFirebase(nextTeams) {
+  set(ref(db, "teams"), nextTeams).catch((error) => {
+    console.error("[Firebase Debug] WRITE teams failed", error);
+  });
+}
+
+function syncPlayersToFirebase(nextPlayers) {
+  set(ref(db, "players"), nextPlayers).catch((error) => {
+    console.error("[Firebase Debug] WRITE players failed", error);
+  });
+}
+
   useEffect(() => {
     const safeData = {
       ...data,
@@ -994,6 +1006,8 @@ export default function App() {
     setPlayInput("");
     setFielderName("");
   }
+
+  
 
   function addTeam() {
     if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
