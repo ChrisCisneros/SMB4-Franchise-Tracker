@@ -2,9 +2,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { db } from "./firebase";
-import { onValue, ref, set } from "firebase/database";
+import { ref, set } from "firebase/database";
 
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
+const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [];
 
 
@@ -57,6 +58,7 @@ const TEAM_COLORS = Object.fromEntries(
   ])
 );
 
+// Put your team-specific overrides directly below, like this:
 // Put your team-specific overrides directly below, like this:
 TEAM_COLORS.SF = {
   primary: { main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false},
@@ -197,6 +199,8 @@ const defaultCurrentGame = () => ({
   strikes: 0,
   bases: { first: false, second: false, third: false },
   status: "Not Started",
+  awayLook: { mode: "primary", index: 0 },
+  homeLook: { mode: "primary", index: 0 },
   inningStatus: "",
   awayPitchCount: 0,
   homePitchCount: 0,
@@ -401,6 +405,26 @@ function CountControls({ currentGame, updateCount, incrementPitchCount }) {
         </div>
       </div>
 
+      <div className="access-card">
+        <div>
+          <strong>{controlsUnlocked ? "Controls unlocked" : "Viewer mode"}</strong>
+          <div className="muted">{controlsUnlocked ? "All pages are available." : "Only Dashboard and Standings are available until unlocked."}</div>
+        </div>
+        {controlsUnlocked ? (
+          <button onClick={lockControls}>Lock Controls</button>
+        ) : (
+          <div className="access-form">
+            <input
+              type="password"
+              value={controlPasswordInput}
+              onChange={(e) => setControlPasswordInput(e.target.value)}
+              placeholder="Enter control password"
+            />
+            <button onClick={unlockControls}>Unlock Controls</button>
+          </div>
+        )}
+      </div>
+
       <div className="compact-count-card strike-card">
         <div className="count-card-title">Strikes</div>
         <div className="strike-action-grid">
@@ -444,14 +468,13 @@ export default function App() {
   const [bulkResultsInput, setBulkResultsInput] = useState("");
   const [bulkWarnings, setBulkWarnings] = useState([]);
   const [inningBanner, setInningBanner] = useState("");
-  const [liveAwayLook, setLiveAwayLook] = useState({ mode: "primary", index: 0 });
-  const [liveHomeLook, setLiveHomeLook] = useState({ mode: "primary", index: 0 });
+  const [controlPasswordInput, setControlPasswordInput] = useState("");
+  const [controlsUnlocked, setControlsUnlocked] = useState(false);
   const playerNameInputRef = useRef(null);
   const channelRef = useRef(null);
   const hasLoadedFirebaseGame = useRef(false);
-
-const hasLoadedFirebaseTeams = useRef(false);
-const hasLoadedFirebasePlayers = useRef(false);
+  const hasLoadedFirebaseTeams = useRef(false);
+  const hasLoadedFirebasePlayers = useRef(false);
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -465,47 +488,6 @@ const hasLoadedFirebasePlayers = useRef(false);
     });
   }
 
-useEffect(() => {
-  const firebaseTeamsRef = ref(db, "teams");
-  const unsubscribe = onValue(firebaseTeamsRef, (snapshot) => {
-    const value = snapshot.val();
-
-    if (!Array.isArray(value)) {
-      hasLoadedFirebaseTeams.current = true;
-      return;
-    }
-
-    setData((prev) => ({
-      ...prev,
-      teams: value,
-    }));
-
-    hasLoadedFirebaseTeams.current = true;
-  });
-
-  return () => unsubscribe();
-}, []);
-
-useEffect(() => {
-  const firebasePlayersRef = ref(db, "players");
-  const unsubscribe = onValue(firebasePlayersRef, (snapshot) => {
-    const value = snapshot.val();
-
-    if (!Array.isArray(value)) {
-      hasLoadedFirebasePlayers.current = true;
-      return;
-    }
-
-    setData((prev) => ({
-      ...prev,
-      players: value,
-    }));
-
-    hasLoadedFirebasePlayers.current = true;
-  });
-
-  return () => unsubscribe();
-}, []);
 
   useEffect(() => {
     const safeData = {
@@ -607,28 +589,88 @@ useEffect(() => {
   }, [selectedAdminTeamId]);
 
   useEffect(() => {
-  const gameRef = ref(db, "currentGame");
-  const unsubscribe = onValue(gameRef, (snapshot) => {
-    const value = snapshot.val();
-    if (!value) return;
+    const teamsRef = ref(db, "teams");
+    const unsubscribe = onValue(teamsRef, (snapshot) => {
+      const value = snapshot.val();
 
-    setData((prev) => ({
-      ...prev,
-      currentGame: makeSafeGame(value),
-    }));
-  });
+      if (!Array.isArray(value)) {
+        hasLoadedFirebaseTeams.current = true;
+        return;
+      }
 
-  return () => unsubscribe();
-}, []);
+      setData((prev) => ({
+        ...prev,
+        teams: value,
+      }));
+      hasLoadedFirebaseTeams.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const playersRef = ref(db, "players");
+    const unsubscribe = onValue(playersRef, (snapshot) => {
+      const value = snapshot.val();
+
+      if (!Array.isArray(value)) {
+        hasLoadedFirebasePlayers.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        players: value,
+      }));
+      hasLoadedFirebasePlayers.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const gameRef = ref(db, "currentGame");
+    const unsubscribe = onValue(gameRef, (snapshot) => {
+      const value = snapshot.val();
+
+      if (!value) {
+        hasLoadedFirebaseGame.current = true;
+        return;
+      }
+
+      setData((prev) => ({
+        ...prev,
+        currentGame: makeSafeGame(value),
+      }));
+      hasLoadedFirebaseGame.current = true;
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!hasLoadedFirebaseGame.current) return;
-    const firebaseGameRef = ref(db, "currentGame");
-    set(firebaseGameRef, makeSafeGame(data.currentGame)).catch((error) => {
+    const gameRef = ref(db, "currentGame");
+    set(gameRef, makeSafeGame(data.currentGame)).catch((error) => {
       console.error("[Firebase Debug] WRITE currentGame failed", error);
     });
   }, [data.currentGame]);
 
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("franchise_controls_unlocked");
+    if (saved === "true") setControlsUnlocked(true);
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem("franchise_controls_unlocked", controlsUnlocked ? "true" : "false");
+  }, [controlsUnlocked]);
+
+  useEffect(() => {
+    if (!controlsUnlocked && protectedPages.includes(page)) {
+      setPage("dashboard");
+    }
+  }, [controlsUnlocked, page]);
 
   const teams = data.teams;
   const players = data.players;
@@ -637,15 +679,34 @@ useEffect(() => {
   const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
   const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
+  const protectedPages = ["live", "daily", "quick", "admin"];
 
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
   const homeTeam = teams.find((t) => t.id === currentGame.homeTeamId);
   const liveAwayLooks = getAvailableLooks(awayTeam?.abbr);
   const liveHomeLooks = getAvailableLooks(homeTeam?.abbr);
-  const awayColors = getTeamColorsByAbbr(awayTeam?.abbr, liveAwayLook.mode, liveAwayLook.index);
-  const homeColors = getTeamColorsByAbbr(homeTeam?.abbr, liveHomeLook.mode, liveHomeLook.index);
-  const liveAwayLookLabel = liveAwayLooks.find((look) => look.mode === liveAwayLook.mode && look.index === liveAwayLook.index)?.label || "Primary";
-  const liveHomeLookLabel = liveHomeLooks.find((look) => look.mode === liveHomeLook.mode && look.index === liveHomeLook.index)?.label || "Primary";
+  const awayColors = getTeamColorsByAbbr(
+    awayTeam?.abbr,
+    currentGame.awayLook?.mode || "primary",
+    currentGame.awayLook?.index || 0
+  );
+  const homeColors = getTeamColorsByAbbr(
+    homeTeam?.abbr,
+    currentGame.homeLook?.mode || "primary",
+    currentGame.homeLook?.index || 0
+  );
+  const liveAwayLookLabel =
+    liveAwayLooks.find(
+      (look) =>
+        look.mode === (currentGame.awayLook?.mode || "primary") &&
+        look.index === (currentGame.awayLook?.index || 0)
+    )?.label || "Primary";
+  const liveHomeLookLabel =
+    liveHomeLooks.find(
+      (look) =>
+        look.mode === (currentGame.homeLook?.mode || "primary") &&
+        look.index === (currentGame.homeLook?.index || 0)
+    )?.label || "Primary";
   const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
   const homeRoster = [...players.filter((p) => p.teamId === currentGame.homeTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
   const selectedAdminTeam = teams.find((t) => t.id === selectedAdminTeamId);
@@ -667,20 +728,46 @@ useEffect(() => {
   function cycleLiveLook(side) {
     if (side === "away") {
       const looks = getAvailableLooks(awayTeam?.abbr);
-      setLiveAwayLook((prev) => {
-        const currentIndex = looks.findIndex((look) => look.mode === prev.mode && look.index === prev.index);
-        const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
-        return { mode: nextLook.mode, index: nextLook.index };
-      });
+      const currentIndex = looks.findIndex(
+        (look) =>
+          look.mode === (currentGame.awayLook?.mode || "primary") &&
+          look.index === (currentGame.awayLook?.index || 0)
+      );
+      const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
+      updateCurrentGame("awayLook", { mode: nextLook.mode, index: nextLook.index });
       return;
     }
 
     const looks = getAvailableLooks(homeTeam?.abbr);
-    setLiveHomeLook((prev) => {
-      const currentIndex = looks.findIndex((look) => look.mode === prev.mode && look.index === prev.index);
-      const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
-      return { mode: nextLook.mode, index: nextLook.index };
-    });
+    const currentIndex = looks.findIndex(
+      (look) =>
+        look.mode === (currentGame.homeLook?.mode || "primary") &&
+        look.index === (currentGame.homeLook?.index || 0)
+    );
+    const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
+    updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
+  }
+
+  function goToPage(nextPage) {
+    if (!controlsUnlocked && protectedPages.includes(nextPage)) {
+      setPage("dashboard");
+      return;
+    }
+    setPage(nextPage);
+  }
+
+  function unlockControls() {
+    if (controlPasswordInput === CONTROL_PASSWORD) {
+      setControlsUnlocked(true);
+      setControlPasswordInput("");
+      return;
+    }
+    window.alert("Incorrect password.");
+  }
+
+  function lockControls() {
+    setControlsUnlocked(false);
+    setPage("dashboard");
   }
 
   const standings = useMemo(() => {
@@ -780,7 +867,16 @@ useEffect(() => {
 
   function updateCurrentGame(field, value) {
     clearBanner();
-    setData((prev) => ({ ...prev, currentGame: { ...prev.currentGame, inningStatus: "", [field]: value } }));
+    setData((prev) => {
+      const nextGame = { ...prev.currentGame, inningStatus: "", [field]: value };
+      if (field === "awayTeamId") {
+        nextGame.awayLook = { mode: "primary", index: 0 };
+      }
+      if (field === "homeTeamId") {
+        nextGame.homeLook = { mode: "primary", index: 0 };
+      }
+      return { ...prev, currentGame: nextGame };
+    });
   }
 
   function changePitcher(side, pitcherId) {
@@ -1054,7 +1150,11 @@ useEffect(() => {
 
       const nextTeams = [...prev.teams, nextTeam];
       syncTeamsToFirebase(nextTeams);
-      return { ...prev, teams: nextTeams };
+
+      return {
+        ...prev,
+        teams: nextTeams,
+      };
     });
 
     setSelectedAdminTeamId(nextAbbr);
@@ -1062,30 +1162,66 @@ useEffect(() => {
   }
 
   function deleteTeam(teamId) {
-    setData((prev) => ({
-      ...prev,
-      teams: prev.teams.filter((team) => team.id !== teamId),
-      players: prev.players.filter((player) => player.teamId !== teamId),
-      dailyResultsRows: prev.dailyResultsRows.map((row) => ({ ...row, awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId, homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId })),
-    }));
+    setData((prev) => {
+      const nextTeams = prev.teams.filter((team) => team.id !== teamId);
+      const nextPlayers = prev.players.filter((player) => player.teamId !== teamId);
+      const nextDailyResultsRows = prev.dailyResultsRows.map((row) => ({
+        ...row,
+        awayTeamId: row.awayTeamId === teamId ? "" : row.awayTeamId,
+        homeTeamId: row.homeTeamId === teamId ? "" : row.homeTeamId,
+      }));
+
+      syncTeamsToFirebase(nextTeams);
+      syncPlayersToFirebase(nextPlayers);
+
+      return {
+        ...prev,
+        teams: nextTeams,
+        players: nextPlayers,
+        dailyResultsRows: nextDailyResultsRows,
+      };
+    });
   }
 
   function editTeam(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: value } : team) }));
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) =>
+        team.id === teamId ? { ...team, [field]: value } : team
+      );
+
+      syncTeamsToFirebase(nextTeams);
+      return { ...prev, teams: nextTeams };
+    });
   }
 
   function addPlayer() {
     if (!newPlayer.teamId || !newPlayer.name) return;
-    setData((prev) => ({
-      ...prev,
-      players: [...prev.players, { id: crypto.randomUUID(), teamId: newPlayer.teamId, name: newPlayer.name, number: newPlayer.number }],
-    }));
+
+    setData((prev) => {
+      const nextPlayers = [
+        ...prev.players,
+        {
+          id: crypto.randomUUID(),
+          teamId: newPlayer.teamId,
+          name: newPlayer.name,
+          number: newPlayer.number,
+        },
+      ];
+
+      syncPlayersToFirebase(nextPlayers);
+      return { ...prev, players: nextPlayers };
+    });
+
     setNewPlayer({ teamId: newPlayer.teamId, name: "", number: "" });
     setTimeout(() => playerNameInputRef.current?.focus(), 0);
   }
 
   function deletePlayer(playerId) {
-    setData((prev) => ({ ...prev, players: prev.players.filter((player) => player.id !== playerId) }));
+    setData((prev) => {
+      const nextPlayers = prev.players.filter((player) => player.id !== playerId);
+      syncPlayersToFirebase(nextPlayers);
+      return { ...prev, players: nextPlayers };
+    });
   }
 
   function updateRecord(teamId, field, value) {
@@ -1332,12 +1468,16 @@ useEffect(() => {
       </div>
 
       <div className="nav">
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("live")}>Live Game</button>
-        <button onClick={() => setPage("daily")}>Daily Results</button>
-        <button onClick={() => setPage("standings")}>Standings</button>
-        <button onClick={() => setPage("quick")}>Quick Update</button>
-        <button onClick={() => setPage("admin")}>Admin</button>
+        <button onClick={() => goToPage("dashboard")}>Dashboard</button>
+        <button onClick={() => goToPage("standings")}>Standings</button>
+        {controlsUnlocked && (
+          <>
+            <button onClick={() => goToPage("live")}>Live Game</button>
+            <button onClick={() => goToPage("daily")}>Daily Results</button>
+            <button onClick={() => goToPage("quick")}>Quick Update</button>
+            <button onClick={() => goToPage("admin")}>Admin</button>
+          </>
+        )}
       </div>
 
 
