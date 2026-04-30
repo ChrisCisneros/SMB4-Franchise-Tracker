@@ -1160,11 +1160,13 @@ export default function App() {
   function addTeam() {
   if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
 
+  const nextAbbr = newTeam.abbr.trim().toUpperCase();
+
   const nextTeam = {
-    id: crypto.randomUUID(),
+    id: nextAbbr,
     city: newTeam.city.trim(),
     name: newTeam.name.trim(),
-    abbr: newTeam.abbr.trim().toUpperCase(),
+    abbr: nextAbbr,
     league: newTeam.league,
     division: newTeam.division,
     wins: Number(newTeam.wins) || 0,
@@ -1173,6 +1175,11 @@ export default function App() {
   };
 
   setData((prev) => {
+    if (prev.teams.some((team) => (team.abbr || "").toUpperCase() === nextAbbr || team.id === nextAbbr)) {
+      window.alert(`Team ${nextAbbr} already exists.`);
+      return prev;
+    }
+
     const nextTeams = [...prev.teams, nextTeam];
     syncTeamsToFirebase(nextTeams);
     return { ...prev, teams: nextTeams };
