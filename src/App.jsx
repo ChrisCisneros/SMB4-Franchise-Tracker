@@ -361,6 +361,9 @@ function getDisplayGameState(currentGame, inningBanner) {
   if (currentGame.status === "Final") {
     return `F/${currentGame.inning}`;
   }
+  if (currentGame.status === "Not Started") {
+    return "Warmup";
+  }
   if (currentGame.inningStatus) {
     return currentGame.inningStatus;
   }
@@ -1108,25 +1111,42 @@ export default function App() {
       }
 
       if (category === "other") {
-        const map = {
-          walk: `${batterName} walked.`,
-          hitbypitch: `${batterName} was hit by pitch.`,
-          error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
-          sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
-          pickoff1: "Pickoff attempt at 1B.",
-          pickoff2: "Pickoff attempt at 2B.",
-          pickoff3: "Pickoff attempt at 3B.",
-          awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`,
-          awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`,
-          awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`,
-          awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
-          homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`,
-          homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`,
-          homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`,
-          homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
-        };
-        text = custom || map[type] || text;
-        clearCount(next);
+  const map = {
+    walk: `${batterName} walked.`,
+    hitbypitch: `${batterName} was hit by pitch.`,
+    error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
+    sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
+    pickoff1: "Pickoff attempt at 1B.",
+    pickoff2: "Pickoff attempt at 2B.",
+    pickoff3: "Pickoff attempt at 3B.",
+    awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`,
+    awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`,
+    awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`,
+    awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
+    homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`,
+    homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`,
+    homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`,
+    homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
+  };
+  text = custom || map[type] || text;
+
+  const infoOnlyTypes = new Set([
+    "pickoff1",
+    "pickoff2",
+    "pickoff3",
+    "awayballupheld",
+    "awayballoverturned",
+    "awaystrikeupheld",
+    "awaystrikeoverturned",
+    "homeballupheld",
+    "homeballoverturned",
+    "homestrikeupheld",
+    "homestrikeoverturned",
+  ]);
+
+  if (!infoOnlyTypes.has(type)) {
+    clearCount(next);
+  }
 
         if (type === "walk" || type === "hitbypitch" || type === "error") {
           if (type === "error") recordError(next);
@@ -1265,8 +1285,27 @@ export default function App() {
     });
   }
 
-  function updateRecord(teamId, field, value) {
-  setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: (value === "" || value === "-") ? value : Number(value) } : team) }));
+ function updateRecord(teamId, field, value) {
+  setData((prev) => {
+    const nextTeams = prev.teams.map((team) =>
+      team.id === teamId
+        ? {
+            ...team,
+            [field]:
+              value === "" || value === "-"
+                ? value
+                : Number(value),
+          }
+        : team
+    );
+
+    syncTeamsToFirebase(nextTeams);
+
+    return {
+      ...prev,
+      teams: nextTeams,
+    };
+  });
 }
 
   function setLineup(side, index, playerId) {
