@@ -1030,6 +1030,20 @@ export default function App() {
           homerun: `${batterName} hit a home run${fielderName ? ` to ${fielderName}` : ""}.`,
         };
         text = custom || map[type] || text;
+
+        const infoOnlyTypes = new Set([
+          "pickoff1",
+          "pickoff2",
+          "pickoff3",
+          "awayballupheld",
+          "awayballoverturned",
+          "awaystrikeupheld",
+          "awaystrikeoverturned",
+          "homeballupheld",
+          "homeballoverturned",
+          "homestrikeupheld",
+          "homestrikeoverturned",
+        ]);
         recordHit(next);
 
         if (type === "single") {
@@ -1056,7 +1070,9 @@ export default function App() {
         }
 
         scoreRuns(next, runs);
-        clearCount(next);
+        if (!infoOnlyTypes.has(type)) {
+          clearCount(next);
+        }
         stepBatter(next);
       }
 
@@ -1102,6 +1118,17 @@ export default function App() {
           hitbypitch: `${batterName} was hit by pitch.`,
           error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
           sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
+          pickoff1: "Pickoff attempt at 1B.",
+          pickoff2: "Pickoff attempt at 2B.",
+          pickoff3: "Pickoff attempt at 3B.",
+          awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`,
+          awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`,
+          awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`,
+          awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
+          homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`,
+          homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`,
+          homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`,
+          homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
         };
         text = custom || map[type] || text;
         clearCount(next);
@@ -1126,8 +1153,26 @@ export default function App() {
         }
       }
 
-      next.latestPlay = text;
-      next.playLog = [text, ...next.playLog];
+      const noLatestPlayTypes = new Set([
+        "swinging",
+        "called",
+        "foul",
+        "pickoff1",
+        "pickoff2",
+        "pickoff3",
+        "awayballupheld",
+        "awayballoverturned",
+        "awaystrikeupheld",
+        "awaystrikeoverturned",
+        "homeballupheld",
+        "homeballoverturned",
+        "homestrikeupheld",
+        "homestrikeoverturned",
+      ]);
+      if (!noLatestPlayTypes.has(type)) {
+        next.latestPlay = text;
+        next.playLog = [text, ...next.playLog];
+      }
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
       }
@@ -1437,6 +1482,22 @@ export default function App() {
     setPage("dashboard");
   }
 
+  function resetCurrentMatch() {
+    clearBanner();
+    if (!window.confirm("Reset the current live game back to a fresh matchup?")) return;
+
+    setData((prev) => ({
+      ...prev,
+      currentGame: {
+        ...defaultCurrentGame(),
+        date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
+        awayTeamId: prev.currentGame?.awayTeamId || "",
+        homeTeamId: prev.currentGame?.homeTeamId || "",
+        status: "Not Started",
+      },
+    }));
+  }
+
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
     setData({ ...defaultData, currentGame: defaultCurrentGame(), dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow) });
@@ -1541,7 +1602,7 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
-                          <ChallengeBars count={currentGame.awayChallenges || 0} />
+                          <ChallengeBars count={currentGame.awayChallenges} />
                         </div>
 
                         <div className="score-center">
@@ -1560,7 +1621,7 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
-                          <ChallengeBars count={currentGame.homeChallenges || 0} />
+                          <ChallengeBars count={currentGame.homeChallenges} />
                         </div>
                       </div>
 
@@ -1625,6 +1686,10 @@ export default function App() {
           <div className="card live-main-card">
             <h2>Live Scoring</h2>
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
+
+            <div className="inline-buttons" style={{ marginBottom: "12px" }}>
+              <button className="danger-lite" onClick={resetCurrentMatch}>Reset Full Game</button>
+            </div>
 
             <div className="live-top-setup">
               <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
@@ -1870,16 +1935,27 @@ export default function App() {
           </div>
 
           <div className="card daily-bulk-card">
-            <h3>Team Number Key</h3>
-            <p className="muted">Teams are numbered alphabetically by abbreviation. Bulk entry accepts either numbers or abbreviations.</p>
-            <div className="team-key-grid compact-abbr-grid">
-              {numberedTeams.map((team) => (
-                <div className="team-key-item" key={team.id}>
-                  <span className="team-key-number">{team.listNumber}</span>
-                  <span className="team-key-text">{team.abbr}</span>
-                </div>
-              ))}
+          <div className="card daily-helper-card">
+            <h3>Teams Added In These Rows</h3>
+            <p className="muted">Filled rows light up the teams currently included in Daily Results so you can spot duplicates fast.</p>
+            <div className="team-status-grid">
+              {numberedTeams.map((team) => {
+                const relatedRows = data.dailyResultsRows.filter((row) => row.awayTeamId === team.id || row.homeTeamId === team.id);
+                const isAdded = relatedRows.some((row) => row.awayTeamId && row.homeTeamId && row.awayScore !== "" && row.homeScore !== "");
+                const isOpen = relatedRows.length > 0;
+
+                return (
+                  <div
+                    key={`daily-status-${team.id}`}
+                    className={`team-status-chip ${isAdded ? "is-added" : isOpen ? "is-open" : ""}`}
+                  >
+                    <span className="team-status-abbr">{team.abbr}</span>
+                    <span className="team-status-name">{team.city} {team.name}</span>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
             <h3>Bulk Results Entry</h3>
             <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
@@ -1893,6 +1969,12 @@ export default function App() {
               className="bulk-results-input"
               value={bulkResultsInput}
               onChange={(e) => setBulkResultsInput(e.target.value)}
+               onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      applyBulkResultsInput();
+    }
+  }}
               placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
               rows={8}
             />
