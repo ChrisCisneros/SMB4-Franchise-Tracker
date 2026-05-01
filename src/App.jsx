@@ -1266,8 +1266,8 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
-  }
+  setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: (value === "" || value === "-") ? value : Number(value) } : team) }));
+}
 
   function setLineup(side, index, playerId) {
     const key = side === "away" ? "awayLineup" : "homeLineup";
@@ -2078,10 +2078,16 @@ export default function App() {
                           <div>
                             <label>Run Diff</label>
                             <input
-                              type="number"
-                              value={team.runDiff || 0}
-                              onChange={(e) => updateRecord(team.id, "runDiff", e.target.value)}
-                            />
+  type="text"
+  inputMode="numeric"
+  value={team.runDiff ?? ""}
+  onChange={(e) => {
+    const val = e.target.value;
+    if (/^-?\d*$/.test(val)) {
+      updateRecord(team.id, "runDiff", val);
+    }
+  }}
+/>
                           </div>
 
                           <div className="muted">{pct(team.wins, team.losses)}</div>
