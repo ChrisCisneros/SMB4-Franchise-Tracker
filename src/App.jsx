@@ -60,7 +60,7 @@ const TEAM_COLORS = Object.fromEntries(
 // Put your team-specific overrides directly below, like this:
 // Put your team-specific overrides directly below, like this:
 TEAM_COLORS.SF = {
-  primary: { main: "#fceed9", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
+  primary: { main: "#fcf5eb", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }, { name: "Orange Alt", main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false }
   ],
@@ -355,6 +355,10 @@ function getTeamColors(team) {
     WSH: { primary: "#AB0003", accent: "#14225A" },
   };
   return map[team.abbr] || defaults;
+}
+
+function getLastNameSortValue(name) {
+  return String(name || "").trim().split(/\s+/).slice(-1)[0]?.toLowerCase() || "";
 }
 
 function getDisplayGameState(currentGame, inningBanner) {
@@ -705,10 +709,10 @@ export default function App() {
         look.mode === (currentGame.homeLook?.mode || "primary") &&
         look.index === (currentGame.homeLook?.index || 0)
     )?.label || "Primary";
-  const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
-  const homeRoster = [...players.filter((p) => p.teamId === currentGame.homeTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
+const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId)].sort((a, b) => getLastNameSortValue(a.name).localeCompare(getLastNameSortValue(b.name)) || a.name.localeCompare(b.name)); 
+ const homeRoster = [...players.filter((p) => p.teamId === currentGame.homeTeamId)].sort((a, b) => getLastNameSortValue(a.name).localeCompare(getLastNameSortValue(b.name)) || a.name.localeCompare(b.name));
   const selectedAdminTeam = teams.find((t) => t.id === selectedAdminTeamId);
-  const selectedAdminRoster = [...players.filter((p) => p.teamId === selectedAdminTeamId)].sort((a, b) => Number(a.number || 999) - Number(b.number || 999) || a.name.localeCompare(b.name));
+  const selectedAdminRoster = [...players.filter((p) => p.teamId === selectedAdminTeamId)].sort((a, b) => getLastNameSortValue(a.name).localeCompare(getLastNameSortValue(b.name)) || a.name.localeCompare(b.name));
 
   const currentAwayBatter = awayRoster.find((p) => p.id === currentGame.awayLineup[currentGame.awayBatterIndex]);
   const currentHomeBatter = homeRoster.find((p) => p.id === currentGame.homeLineup[currentGame.homeBatterIndex]);
