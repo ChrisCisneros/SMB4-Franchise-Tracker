@@ -1282,7 +1282,26 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) =>
+        team.id === teamId
+          ? {
+              ...team,
+              [field]:
+                value === "" || value === "-"
+                  ? value
+                  : Number(value),
+            }
+          : team
+      );
+
+      syncTeamsToFirebase(nextTeams);
+
+      return {
+        ...prev,
+        teams: nextTeams,
+      };
+    });
   }
 
   function setLineup(side, index, playerId) {
@@ -1969,12 +1988,6 @@ export default function App() {
               className="bulk-results-input"
               value={bulkResultsInput}
               onChange={(e) => setBulkResultsInput(e.target.value)}
-               onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      applyBulkResultsInput();
-    }
-  }}
               placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
               rows={8}
             />
