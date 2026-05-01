@@ -361,6 +361,9 @@ function getDisplayGameState(currentGame, inningBanner) {
   if (currentGame.status === "Final") {
     return `F/${currentGame.inning}`;
   }
+  if (currentGame.status === "Not Started") {
+    return "Warmup";
+  }
   if (currentGame.inningStatus) {
     return currentGame.inningStatus;
   }
@@ -1652,6 +1655,7 @@ export default function App() {
 
                       <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
                       <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                      <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
