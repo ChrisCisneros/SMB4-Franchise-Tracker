@@ -197,7 +197,7 @@ const defaultCurrentGame = () => ({
   balls: 0,
   strikes: 0,
   bases: { first: false, second: false, third: false },
-  status: "Not Started",
+  status: "Warmup",
   awayLook: { mode: "primary", index: 0 },
   homeLook: { mode: "primary", index: 0 },
   inningStatus: "",
@@ -674,7 +674,8 @@ export default function App() {
   const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
   const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
-const protectedPages = ["live", "admin", "daily", "quick"];
+  const protectedPages = ["live", "daily", "quick", "admin"];
+
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
   const homeTeam = teams.find((t) => t.id === currentGame.homeTeamId);
   const liveAwayLooks = getAvailableLooks(awayTeam?.abbr);
@@ -1101,44 +1102,9 @@ const protectedPages = ["live", "admin", "daily", "quick"];
           hitbypitch: `${batterName} was hit by pitch.`,
           error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
           sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
-          pickoff1: "Pickoff attempt at 1B.",
-          pickoff2: "Pickoff attempt at 2B.",
-          pickoff3: "Pickoff attempt at 3B.",
-          awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call — overturned.`,
-  awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call — upheld.`,
-  awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call — overturned.`,
-  awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call — upheld.`,
-
-  homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call — overturned.`,
-  homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call — upheld.`,
-  homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call — overturned.`,
-  homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call — upheld.`,
         };
         text = custom || map[type] || text;
-
-        const infoOnlyTypes = new Set([
-          "pickoff1",
-          "pickoff2",
-          "pickoff3",
-          "awaychallengeball",
-          "awaychallengestrike",
-          "homechallengeball",
-          "homechallengestrike",
-          "callupheld",
-          "calloverturned",
-          "awayballoverturned",
-"awayballupheld",
-"awaystrikeoverturned",
-"awaystrikeupheld",
-"homeballoverturned",
-"homeballupheld",
-"homestrikeoverturned",
-"homestrikeupheld",
-        ]);
-
-        if (!infoOnlyTypes.has(type)) {
-          clearCount(next);
-        }
+        clearCount(next);
 
         if (type === "walk" || type === "hitbypitch" || type === "error") {
           if (type === "error") recordError(next);
@@ -1160,10 +1126,7 @@ const protectedPages = ["live", "admin", "daily", "quick"];
         }
       }
 
-      const noLatestPlayTypes = new Set(["swinging", "called", "foul"]);
-      if (!noLatestPlayTypes.has(type)) {
-        next.latestPlay = text;
-      }
+      next.latestPlay = text;
       next.playLog = [text, ...next.playLog];
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
@@ -1274,27 +1237,8 @@ const protectedPages = ["live", "admin", "daily", "quick"];
   }
 
   function updateRecord(teamId, field, value) {
-  setData((prev) => {
-    const nextTeams = prev.teams.map((team) =>
-      team.id === teamId
-        ? {
-            ...team,
-            [field]:
-              value === "" || value === "-"
-                ? value
-                : Number(value),
-          }
-        : team
-    );
-
-    syncTeamsToFirebase(nextTeams);
-
-    return {
-      ...prev,
-      teams: nextTeams,
-    };
-  });
-}
+    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
+  }
 
   function setLineup(side, index, playerId) {
     const key = side === "away" ? "awayLineup" : "homeLineup";
@@ -1521,18 +1465,6 @@ const protectedPages = ["live", "admin", "daily", "quick"];
           { label: "HBP", category: "other", type: "hitbypitch" },
           { label: "Error", category: "other", type: "error" },
           { label: "Sac Fly", category: "other", type: "sacfly" },
-          { label: "Pickoff 1B", category: "other", type: "pickoff1" },
-          { label: "Pickoff 2B", category: "other", type: "pickoff2" },
-          { label: "Pickoff 3B", category: "other", type: "pickoff3" },
-          { label: "Away Ball → Overturned", category: "other", type: "awayballoverturned" },
-{ label: "Away Ball → Upheld", category: "other", type: "awayballupheld" },
-{ label: "Away Strike → Overturned", category: "other", type: "awaystrikeoverturned" },
-{ label: "Away Strike → Upheld", category: "other", type: "awaystrikeupheld" },
-
-{ label: "Home Ball → Overturned", category: "other", type: "homeballoverturned" },
-{ label: "Home Ball → Upheld", category: "other", type: "homeballupheld" },
-{ label: "Home Strike → Overturned", category: "other", type: "homestrikeoverturned" },
-{ label: "Home Strike → Upheld", category: "other", type: "homestrikeupheld" },
         ];
 
   return (
@@ -1553,7 +1485,6 @@ const protectedPages = ["live", "admin", "daily", "quick"];
         {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
         {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
         {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
-        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
       </div>
 
 
@@ -1697,7 +1628,7 @@ const protectedPages = ["live", "admin", "daily", "quick"];
                         {awayTeam ? awayTeam.abbr : "AWY"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
-                      <ChallengeBars count={currentGame.awayChallenges} />
+                      <ChallengeBars count={currentGame.awayChallenges || 0} />
                     </div>
 
                     <div className="score-center">
@@ -1711,7 +1642,7 @@ const protectedPages = ["live", "admin", "daily", "quick"];
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
-                      <ChallengeBars count={currentGame.homeChallenges} />
+                      <ChallengeBars count={currentGame.homeChallenges || 0} />
                     </div>
                   </div>
 
@@ -2056,20 +1987,10 @@ const protectedPages = ["live", "admin", "daily", "quick"];
                           <div>
                             <label>Run Diff</label>
                             <input
-  type="number"
-  value={team.runDiff ?? ""}
-  onChange={(e) => {
-    const val = e.target.value;
-
-    // allow empty or just "-"
-    if (val === "" || val === "-") {
-      updateRecord(team.id, "runDiff", val);
-      return;
-    }
-
-    updateRecord(team.id, "runDiff", Number(val));
-  }}
-/>
+                              type="number"
+                              value={team.runDiff || 0}
+                              onChange={(e) => updateRecord(team.id, "runDiff", e.target.value)}
+                            />
                           </div>
 
                           <div className="muted">{pct(team.wins, team.losses)}</div>
