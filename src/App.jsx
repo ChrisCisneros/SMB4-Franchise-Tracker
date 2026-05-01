@@ -197,7 +197,7 @@ const defaultCurrentGame = () => ({
   balls: 0,
   strikes: 0,
   bases: { first: false, second: false, third: false },
-  status: "Warmup",
+  status: "Not Started",
   awayLook: { mode: "primary", index: 0 },
   homeLook: { mode: "primary", index: 0 },
   inningStatus: "",
@@ -1485,6 +1485,7 @@ export default function App() {
         {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
         {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
         {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
+        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
       </div>
 
 
@@ -1529,6 +1530,7 @@ export default function App() {
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                          <ChallengeBars count={currentGame.awayChallenges || 0} />
                         </div>
 
                         <div className="score-center">
@@ -1547,6 +1549,7 @@ export default function App() {
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <ChallengeBars count={currentGame.homeChallenges || 0} />
                         </div>
                       </div>
 
@@ -1628,7 +1631,7 @@ export default function App() {
                         {awayTeam ? awayTeam.abbr : "AWY"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
-                      <ChallengeBars count={currentGame.awayChallenges || 0} />
+                      <ChallengeBars count={currentGame.awayChallenges} />
                     </div>
 
                     <div className="score-center">
@@ -1642,7 +1645,7 @@ export default function App() {
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
-                      <ChallengeBars count={currentGame.homeChallenges || 0} />
+                      <ChallengeBars count={currentGame.homeChallenges} />
                     </div>
                   </div>
 
