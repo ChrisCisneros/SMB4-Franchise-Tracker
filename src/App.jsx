@@ -361,9 +361,6 @@ function getDisplayGameState(currentGame, inningBanner) {
   if (currentGame.status === "Final") {
     return `F/${currentGame.inning}`;
   }
-  if (currentGame.status === "Not Started") {
-    return "Warmup";
-  }
   if (currentGame.inningStatus) {
     return currentGame.inningStatus;
   }
@@ -939,13 +936,10 @@ export default function App() {
 
       if (action === "foul") {
         if (next.strikes < 2) next.strikes += 1;
-        next.latestPlay = "Foul ball.";
-        next.playLog = ["Foul ball.", ...next.playLog];
         return;
       }
 
       if (action === "swinging" || action === "called") {
-        const strikeText = action === "swinging" ? "Strike swinging." : "Called strike.";
         if (next.strikes >= 2) {
           next.latestPlay = action === "swinging" ? `${currentBatter ? currentBatter.name : "Batter"} struck out swinging.` : `${currentBatter ? currentBatter.name : "Batter"} struck out looking.`;
           next.playLog = [next.latestPlay, ...next.playLog];
@@ -955,8 +949,6 @@ export default function App() {
           maybeAdvanceHalfInning(next);
         } else {
           next.strikes += 1;
-          next.latestPlay = strikeText;
-          next.playLog = [strikeText, ...next.playLog];
         }
       }
     });
@@ -1160,17 +1152,6 @@ export default function App() {
         "swinging",
         "called",
         "foul",
-        "pickoff1",
-        "pickoff2",
-        "pickoff3",
-        "awayballupheld",
-        "awayballoverturned",
-        "awaystrikeupheld",
-        "awaystrikeoverturned",
-        "homeballupheld",
-        "homeballoverturned",
-        "homestrikeupheld",
-        "homestrikeoverturned",
       ]);
       if (!noLatestPlayTypes.has(type)) {
         next.latestPlay = text;
@@ -1285,26 +1266,7 @@ export default function App() {
   }
 
   function updateRecord(teamId, field, value) {
-    setData((prev) => {
-      const nextTeams = prev.teams.map((team) =>
-        team.id === teamId
-          ? {
-              ...team,
-              [field]:
-                value === "" || value === "-"
-                  ? value
-                  : Number(value),
-            }
-          : team
-      );
-
-      syncTeamsToFirebase(nextTeams);
-
-      return {
-        ...prev,
-        teams: nextTeams,
-      };
-    });
+    setData((prev) => ({ ...prev, teams: prev.teams.map((team) => team.id === teamId ? { ...team, [field]: Number(value) } : team) }));
   }
 
   function setLineup(side, index, playerId) {
@@ -1408,7 +1370,10 @@ export default function App() {
     });
 
     setBulkWarnings(warnings);
-    if (!parsedRows.length) return;
+    if (!parsedRows.length) {
+      setBulkResultsInput("");
+      return;
+    }
 
     setData((prev) => {
       const updatedRows = [...prev.dailyResultsRows];
@@ -1472,6 +1437,8 @@ export default function App() {
         newGames.unshift({ id: crypto.randomUUID(), date: prev.dailyResultsDate, awayTeamId: row.awayTeamId, homeTeamId: row.homeTeamId, awayScore, homeScore, status: "Final", quickEntry: true });
       });
 
+      syncTeamsToFirebase(updatedTeams);
+
       return {
         ...prev,
         teams: updatedTeams,
@@ -1491,16 +1458,22 @@ export default function App() {
     const awayWon = currentGame.awayScore > currentGame.homeScore;
     const margin = currentGame.homeScore - currentGame.awayScore;
     const finishedGame = { ...currentGame, id: crypto.randomUUID(), status: "Final" };
-    setData((prev) => ({
-      ...prev,
-      games: [finishedGame, ...prev.games],
-      teams: prev.teams.map((team) => {
+    setData((prev) => {
+      const nextTeams = prev.teams.map((team) => {
         if (team.id === currentGame.homeTeamId) return { ...team, wins: team.wins + (homeWon ? 1 : 0), losses: team.losses + (awayWon ? 1 : 0), runDiff: (team.runDiff || 0) + margin };
         if (team.id === currentGame.awayTeamId) return { ...team, wins: team.wins + (awayWon ? 1 : 0), losses: team.losses + (homeWon ? 1 : 0), runDiff: (team.runDiff || 0) - margin };
         return team;
-      }),
-      currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
-    }));
+      });
+
+      syncTeamsToFirebase(nextTeams);
+
+      return {
+        ...prev,
+        games: [finishedGame, ...prev.games],
+        teams: nextTeams,
+        currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
+      };
+    });
     setPage("dashboard");
   }
 
@@ -1655,7 +1628,6 @@ export default function App() {
 
                       <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
                       <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
-                      <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
                     </div>
@@ -1992,6 +1964,12 @@ export default function App() {
               className="bulk-results-input"
               value={bulkResultsInput}
               onChange={(e) => setBulkResultsInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  applyBulkResultsInput();
+                }
+              }}
               placeholder={"1 3 2 4\nsf 5 sd 2\n7 1 12 6"}
               rows={8}
             />
