@@ -60,9 +60,9 @@ const TEAM_COLORS = Object.fromEntries(
 // Put your team-specific overrides directly below, like this:
 // Put your team-specific overrides directly below, like this:
 TEAM_COLORS.SF = {
-  primary: { main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false},
+  primary: { main: "#fceed9", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
   alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }
+    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }, { name: "Orange Alt", main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false }
   ],
   cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
   extras: [],
