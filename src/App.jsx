@@ -1465,6 +1465,17 @@ export default function App() {
           { label: "HBP", category: "other", type: "hitbypitch" },
           { label: "Error", category: "other", type: "error" },
           { label: "Sac Fly", category: "other", type: "sacfly" },
+          { label: "Pickoff 1B", category: "other", type: "pickoff1" },
+          { label: "Pickoff 2B", category: "other", type: "pickoff2" },
+          { label: "Pickoff 3B", category: "other", type: "pickoff3" },
+          { label: "Away Ball Upheld", category: "other", type: "awayballupheld" },
+          { label: "Away Ball Overturned", category: "other", type: "awayballoverturned" },
+          { label: "Away Strike Upheld", category: "other", type: "awaystrikeupheld" },
+          { label: "Away Strike Overturned", category: "other", type: "awaystrikeoverturned" },
+          { label: "Home Ball Upheld", category: "other", type: "homeballupheld" },
+          { label: "Home Ball Overturned", category: "other", type: "homeballoverturned" },
+          { label: "Home Strike Upheld", category: "other", type: "homestrikeupheld" },
+          { label: "Home Strike Overturned", category: "other", type: "homestrikeoverturned" },
         ];
 
   return (
