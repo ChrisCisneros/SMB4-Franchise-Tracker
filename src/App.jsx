@@ -64,13 +64,7 @@ const TEAM_COLORS = Object.fromEntries(
 
 
 
-TEAM_COLORS.WSH = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
-  ],
-  cityConnect: { main: "#44679e", alt: "#ba4404", border: "#162133", text: "#ffffff", gradient:false},
-};
+
 
 
 TEAM_COLORS.ATH = {
@@ -242,6 +236,45 @@ TEAM_COLORS.SF = {
   ],
   cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
   extras: [],
+};
+TEAM_COLORS.STL = {
+  primary: { main: "#ffffff", alt: "#000000", border:"#d60000", text: "#d60000" , gradient: false},
+  alternates: [
+    { name: "Cream Alt", main: "#fffbf5", alt: "#d60000", text: "#d60000" }, { name: "Powder Alt", main: "#38a1d1", alt: "#d60000", border:"#d60000", text: "#d60000" , gradient: false }
+  ],
+  cityConnect: { main: "#d60000", alt: "#29097a", border: "#740101", text: "#FFFFFF", gradient:false },
+  extras: [],
+};
+TEAM_COLORS.TB = {
+  primary: { main: "#ffffff", alt: "#000000", border:"#0077d8", text: "#040041" , gradient: false},
+  alternates: [
+    { name: "Powder Alt", main: "#0077d8", alt: "#f1da09", text: "#FFFFFF" }, { name: "Devil Alt", main: "#0077d8", alt: "#f1da09", border:"#040041", text: "#FFFFFF" , gradient: true }
+  ],
+  cityConnect: { main: "#52f36d", alt: "#0077d8", border: "#040041", text: "#FFFFFF", gradient:true },
+  extras: [],
+};
+TEAM_COLORS.TEX = {
+  primary: { main: "#ffffff", alt: "#000c42", border:"#db0000", text: "#000c42" , gradient: false},
+  alternates: [
+    { name: "Powder Alt", main: "#55bcec", alt: "#000c42", text: "#FFFFFF" }, { name: "Blue Alt", main: "#000c42", alt: "#000000", border:"#db0000", text: "#FFFFFF" , gradient: false }
+  ],
+  cityConnect: { main: "#fff5d8", alt: "#29097a", border: "#000c42", text: "#db0000", gradient:false },
+  extras: [],
+};
+TEAM_COLORS.TOR = {
+  primary: { main: "#ffffff", alt: "#000000", border:"#0026ff", text: "#0026ff" , gradient: false},
+  alternates: [
+    { name: "Blue Alt", main: "#0026ff", alt: "#ffffff", text: "#FFFFFF" }, { name: "Powder Alt", main: "#4bace4", alt: "#000000", border:"#0026ff", text: "#FFFFFF" , gradient: false }
+  ],
+  cityConnect: { main: "#f50303", alt: "#0026ff", border: "#f50303", text: "#FFFFFF", gradient:true },
+  extras: [],
+};
+TEAM_COLORS.WSH = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#44679e", alt: "#ba04b1", border: "#162133", text: "#ffffff", gradient:false},
 };
 
 
@@ -1773,6 +1806,9 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
 }}>
                             {awayTeam ? awayTeam.abbr : "AWY"}
                           </div>
+                           <div className="small-text muted">
+    {awayTeam ? `${awayTeam.wins}-${awayTeam.losses}` : ""}
+  </div>
                           <ChallengeBars count={currentGame.awayChallenges} />
                         </div>
 
@@ -1792,6 +1828,9 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
 }}>
                             {homeTeam ? homeTeam.abbr : "HME"}
                           </div>
+                          <div className="small-text muted">
+    {homeTeam ? `${homeTeam.wins}-${homeTeam.losses}` : ""}
+  </div>
                           <ChallengeBars count={currentGame.homeChallenges} />
                         </div>
                       </div>
@@ -1877,6 +1916,9 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                       <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
                         {awayTeam ? awayTeam.abbr : "AWY"}
                       </div>
+                      <div className="small-text muted">
+    {awayTeam ? `${awayTeam.wins}-${awayTeam.losses}` : ""}
+  </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
                       <ChallengeBars count={currentGame.awayChallenges} />
                     </div>
@@ -1891,6 +1933,9 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                       <div className="team-pill" style={{ background: homeColors.gradient ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})` : homeColors.main, borderColor: homeColors.border, color: homeColors.text }}>
                         {homeTeam ? homeTeam.abbr : "HME"}
                       </div>
+                       <div className="small-text muted">
+    {homeTeam ? `${homeTeam.wins}-${homeTeam.losses}` : ""}
+  </div>
                       <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
                       <ChallengeBars count={currentGame.homeChallenges} />
                     </div>
