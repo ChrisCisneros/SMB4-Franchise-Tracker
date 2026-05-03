@@ -59,20 +59,141 @@ const TEAM_COLORS = Object.fromEntries(
 
 // Put your team-specific overrides directly below, like this:
 // Put your team-specific overrides directly below, like this:
-TEAM_COLORS.SF = {
-  primary: { main: "#fcf5eb", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
+
+
+
+
+
+TEAM_COLORS.WSH = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
   alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }, { name: "Orange Alt", main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false }
+    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
   ],
-  cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
-  extras: [],
+  cityConnect: { main: "#44679e", alt: "#ba4404", border: "#162133", text: "#ffffff", gradient:false},
 };
-TEAM_COLORS.SD = {
-  primary: {main: "#302505", alt: "#e3ac17", border: "#e3ac17", text: "#FFFFFF", gradient:false},
+
+
+TEAM_COLORS.ATH = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#f5d01b", text: "#2e700f", gradient:false},
   alternates: [
-    { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" }
+    { name: "Yellow Alt", main: "#f5d01b", alt: "#ffffff", text: "#2e700f" }
+  ]
+};
+TEAM_COLORS.ATL = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#8c1204", text: "#01105c", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#01105c", alt: "#8c1204", text: "#ffffff" }
   ],
-  cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
+  cityConnect: { main: "#0349a3", alt: "#01105c", border: "#8c1204", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.AZ = {
+  primary: {main: "#ffffff", alt: "#730606", border: "#02ebeb", text: "#730606", gradient:false},
+  alternates: [
+    { name: "Black Alt", main: "#000000", alt: "#02ebeb", text: "#730606" },{ name: "Red Alt", main: "#730606", alt: "#02ebeb", text: "#02ebeb" }
+  ],
+  cityConnect: { main: "#25026b", alt: "#000000", border: "#02ebeb", text: "#02ebeb", gradient:true},
+};
+TEAM_COLORS.BAL = {
+  primary: {main: "#d94804", alt: "#e3ac17", border: "#000000", text: "#ffffff", gradient:false},
+  alternates: [
+    { name: "Black Alt", main: "#000000", alt: "#d94804", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#fcf4e3", alt: "#021059", border: "#294d2d", text: "#d94804", gradient:false},
+};
+TEAM_COLORS.BOS = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#b0110e", text: "#010238", gradient:false},
+  alternates: [
+    { name: "Red Alt", main: "#b0110e", alt: "#010238", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#2c5443", alt: "#021059", border: "#dbc70d", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.CHC = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#0442b5", text: "#c40404", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#0442b5", alt: "#c40404", text: "#ffffff" },{ name: "Powder Alt", main: "#6dc1f2", alt: "#c40404", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#000324", alt: "#021059", border: "#6dc1f2", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.CIN = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#c40404", text: "#c40404", gradient:false},
+  alternates: [
+    { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#262626", alt: "#ba4404", border: "#c40404", text: "#590101", gradient:false},
+};
+TEAM_COLORS.CLE = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#b0110e", text: "#000324", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#000324", alt: "#ffffff", text: "#b0110e" }, { name: "Red Alt", main: "#b0110e", alt: "#ffffff", text: "#000324" }
+  ],
+  cityConnect: { main: "#1a1c36", alt: "#021059", border: "#b0110e", text: "#c2b8ab", gradient:false},
+};
+TEAM_COLORS.COL = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#220154", text: "#000000", gradient:false},
+  alternates: [
+    { name: "Purple Alt", main: "#220154", alt: "#000000", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#387bba", alt: "#021059", border: "#ed1cb2", text: "#cf9a0a", gradient:false},
+};
+TEAM_COLORS.CWS = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#000000", text: "#000000", gradient:false},
+  alternates: [
+    { name: "Black Alt", main: "#000000", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#8a0601", alt: "#021059", border: "#000000", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.DET = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#010017", text: "#cf5804", gradient:false},
+  
+  cityConnect: { main: "#020133", alt: "#082aa3", border: "#FFFFFF", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.HOU = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#010440", text: "#cf6802", gradient:false},
+  alternates: [
+    { name: "Orange Alt", main: "#cf6802", alt: "#ffffff", text: "#010440" }, { name: "Blue Alt", main: "#010440", alt: "#ffffff", text: "#cf6802" }
+  ],
+  cityConnect: { main: "#cf6802", alt: "#eba967", border: "#ffffff", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.KC = {
+  primary: {main: "#ffffff", alt: "#001b85", border: "#001b85", text: "#001b85", gradient:false},
+  alternates: [
+    { name: "Powder Alt", main: "#59b3eb", alt: "#ffffff", text: "#ffffff" }, { name: "Blue Alt", main: "#001b85", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#a904c9", alt: "#023eb5", border: "#ffffff", text: "#ffffff", gradient:true},
+};TEAM_COLORS.LAA = {
+  primary: {main: "#ffffff", alt: "#a30303", border: "#000679", text: "#a30303", gradient:false},
+  alternates: [
+    { name: "Red Alt", main: "#a30303", alt: "#000679", text: "#ffffff" },
+  ],
+  cityConnect: { main: "#fdfaf2", alt: "#a30303", border: "#a30303", text: "#a30303", gradient:false},
+};
+TEAM_COLORS.LAD = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#001994", text: "#001994", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#3952cc", alt: "#021059", border: "#6b83fa", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.MIA = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#0e80cc", text: "#000000", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#0e80cc", alt: "#c201c2", text: "#ffffff" }, { name: "Black Alt", main: "#000000", alt: "#0e80cc", text: "#ffffff" }
+  ],
+  cityConnect: { main: "#0e80cc", alt: "#c201c2", border: "#7429bb", text: "#ffffff", gradient:true},
+};
+TEAM_COLORS.MIL = {
+  primary: {main: "#fcf0e3", alt: "#e3ac17", border: "#fffb1d", text: "#010041", gradient:false},
+  alternates: [
+    { name: "White Alt", main: "#ffffff", alt: "#fffb1d", text: "#010041" }, { name: "Blue  Alt", main: "#010041", alt: "#fffb1d", text: "#fffb1d" }
+  ],
+  cityConnect: { main: "#268bce", alt: "#fffb1d", border: "#fffb1d", text: "#fffb1d", gradient:false},
+};
+TEAM_COLORS.MIN = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#00063b", text: "#d30000", gradient:false},
+  alternates: [
+    { name: "Blue Alt", main: "#00063b", alt: "#d30000", text: "##ffffff" }, { name: "Cream Alt", main: "#fff9f3", alt: "#00063b", text: "#00063b" }
+  ],
+  cityConnect: { main: "#0044d8", alt: "#00012e", border: "#f0d800", text: "#ffffff", gradient:true},
 };
 TEAM_COLORS.NYM = {
   primary: {main: "#0d0d6e", alt: "#ed5f07", border: "#ed5f07", text: "#FFFFFF", gradient:false},
@@ -80,6 +201,10 @@ TEAM_COLORS.NYM = {
     { name: "White Alt", main: "#ffffff", alt: "#ed5f07", text: "#0d0d6e" }
   ],
   cityConnect: { main: "#454545", alt: "#ba4404", border: "#000000", text: "#ffffff", gradient:false},
+};
+TEAM_COLORS.NYY = {
+  primary: {main: "#ffffff", alt: "#00093a", border: "#00093a", text: "#00093a", gradient:false},
+  
 };
 TEAM_COLORS.PHI = {
   primary: {main: "#ffffff", alt: "#e3ac17", border: "#a60000", text: "#a60000", gradient:false},
@@ -89,26 +214,34 @@ TEAM_COLORS.PHI = {
   ],
   cityConnect: { main: "#0782ab", alt: "#020a4d", border: "#e6d437", text: "#ffffff", gradient:true},
 };
-TEAM_COLORS.CIN = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#c40404", text: "#c40404", gradient:false},
+TEAM_COLORS.PIT = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#e3ac17", text: "#000000", gradient:false},
   alternates: [
-    { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" }
+    { name: "Black Alt", main: "#000000", alt: "#e3ac17", text: "#e3ac17" }
   ],
-  cityConnect: { main: "#262626", alt: "#ba4404", border: "#c40404", text: "#590101", gradient:false},
+  cityConnect: { main: "#e3ac17", alt: "#000000", border: "#000000", text: "#000000", gradient:false},
 };
-TEAM_COLORS.WSH = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#cf0c0c", text: "#04003b", gradient:false},
+TEAM_COLORS.SD = {
+  primary: {main: "#302505", alt: "#e3ac17", border: "#e3ac17", text: "#FFFFFF", gradient:false},
   alternates: [
-    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" }
+    { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" }
   ],
-  cityConnect: { main: "#44679e", alt: "#ba4404", border: "#162133", text: "#ffffff", gradient:false},
+  cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
 };
-TEAM_COLORS.LAD = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#001994", text: "#001994", gradient:false},
+TEAM_COLORS.SEA = {
+  primary: {main: "#ffffff", alt: "#e3ac17", border: "#106b4a", text: "#010046", gradient:false},
   alternates: [
-    { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" }
+    { name: "Cream  Alt", main: "#fffdfa", alt: "#e6e200", text: "#010046" }, { name: "Teal  Alt", main: "#106b4a", alt: "#010046", text: "#fffdfa" }
   ],
-  cityConnect: { main: "#3952cc", alt: "#021059", border: "#6b83fa", text: "#ffffff", gradient:true},
+  cityConnect: { main: "#001c8b", alt: "#ba4404", border: "#e6e200", text: "#e6e200", gradient:false},
+};
+TEAM_COLORS.SF = {
+  primary: { main: "#fcf5eb", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
+  alternates: [
+    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }, { name: "Orange Alt", main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false }
+  ],
+  cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
+  extras: [],
 };
 
 
