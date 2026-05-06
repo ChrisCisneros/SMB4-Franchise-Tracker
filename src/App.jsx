@@ -8,6 +8,8 @@ const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [];
 
 
+
+
 const TEAM_COLOR_BASE_MAP = {
   ARI: { primary: "#A71930", accent: "#E3D4AD" },
   ATL: { primary: "#CE1141", accent: "#13274F" },
@@ -456,6 +458,8 @@ function getInitialData() {
   }
 }
 
+
+
 function pct(wins, losses) {
   const total = wins + losses;
   if (!total) return ".000";
@@ -643,6 +647,9 @@ export default function App() {
   const hasLoadedFirebaseGame = useRef(false);
   const hasLoadedFirebaseTeams = useRef(false);
   const hasLoadedFirebasePlayers = useRef(false);
+const [prevScore, setPrevScore] = useState({ away: 0, home: 0 });
+const [justScored, setJustScored] = useState(false);
+
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -656,6 +663,8 @@ export default function App() {
     });
   }
 
+
+  
 
   useEffect(() => {
     const safeData = {
@@ -753,8 +762,8 @@ export default function App() {
   }, [data.teams, selectedAdminTeamId]);
 
   useEffect(() => {
-    setSelectedDeletePlayerId("");
-  }, [selectedAdminTeamId]);
+  setSelectedDeletePlayerId((current) => (current ? "" : current));
+}, [selectedAdminTeamId]);
 
   useEffect(() => {
     const teamsRef = ref(db, "teams");
@@ -915,6 +924,22 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
     const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
     updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
   }
+
+useEffect(() => {
+  if (
+    currentGame.awayScore !== prevScore.away ||
+    currentGame.homeScore !== prevScore.home
+  ) {
+    setJustScored(true);
+
+    setTimeout(() => setJustScored(false), 400);
+
+    setPrevScore({
+      away: currentGame.awayScore,
+      home: currentGame.homeScore,
+    });
+  }
+}, [currentGame.awayScore, currentGame.homeScore]);
 
   function goToPage(nextPage) {
     if (!controlsUnlocked && protectedPages.includes(nextPage)) {
@@ -1179,6 +1204,7 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
 
   function applyQuickPlay(category, type) {
     clearBanner();
+    const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
       next.inningStatus = "";
       const custom = playInput.trim();
@@ -1186,6 +1212,25 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
       let text = custom || type;
 
       if (category === "hit") {
+        setData((prev) => {
+  const nextPlayers = prev.players.map((p) => {
+    if (p.id !== batterId) return p;
+
+    return {
+      ...p,
+      ab: (p.ab || 0) + 1,
+      hits: (p.hits || 0) + 1,
+      lastAB:
+        type === "single" ? "1B" :
+        type === "double" ? "2B" :
+        type === "triple" ? "3B" :
+        type === "homerun" ? "HR" :
+        ""
+    };
+  });
+
+  return { ...prev, players: nextPlayers };
+});
         const hadFirst = next.bases.first;
         const hadSecond = next.bases.second;
         const hadThird = next.bases.third;
@@ -1245,6 +1290,26 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
       }
 
       if (category === "out") {
+
+        setData((prev) => {
+  const nextPlayers = prev.players.map((p) => {
+    if (p.id !== batterId) return p;
+
+    return {
+      ...p,
+      ab: (p.ab || 0) + 1,
+      lastAB:
+        type === "flyout" ? "FO" :
+        type === "groundout" ? "GO" :
+        type === "lineout" ? "LO" :
+        type === "popup" ? "POP" :
+        type === "strikeout" || type === "calledstrikeout" ? "K" :
+        "OUT"
+    };
+  });
+
+  return { ...prev, players: nextPlayers };
+});
         const map = {
           flyout: `${batterName} flied out${fielderName ? ` to ${fielderName}` : ""}.`,
           groundout: `${batterName} grounded out${fielderName ? ` to ${fielderName}` : ""}.`,
@@ -1436,6 +1501,11 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
           teamId: newPlayer.teamId,
           name: newPlayer.name,
           number: newPlayer.number,
+
+           // 👇 add these
+  ab: 0,
+  hits: 0,
+  lastAB: ""
         },
       ];
 
@@ -1690,16 +1760,26 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
     clearBanner();
     if (!window.confirm("Reset the current live game back to a fresh matchup?")) return;
 
-    setData((prev) => ({
-      ...prev,
-      currentGame: {
-        ...defaultCurrentGame(),
-        date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
-        awayTeamId: prev.currentGame?.awayTeamId || "",
-        homeTeamId: prev.currentGame?.homeTeamId || "",
-        status: "Not Started",
-      },
-    }));
+    setData((prev) => {
+  const resetPlayers = prev.players.map((p) => ({
+    ...p,
+    ab: 0,
+    hits: 0,
+    lastAB: ""
+  }));
+
+  return {
+    ...prev,
+    players: resetPlayers,
+    currentGame: {
+      ...defaultCurrentGame(),
+      date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
+      awayTeamId: prev.currentGame?.awayTeamId || "",
+      homeTeamId: prev.currentGame?.homeTeamId || "",
+      status: "Not Started",
+    },
+  };
+});
   }
 
   function resetLeague() {
@@ -1813,9 +1893,13 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                         </div>
 
                         <div className="score-center">
-                          <span className="score-number">{currentGame.awayScore}</span>
+                          <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  {currentGame.awayScore}
+</span>
                           <span className="score-dash">-</span>
-                          <span className="score-number">{currentGame.homeScore}</span>
+                          <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  {currentGame.homeScore}
+</span>
                         </div>
 
                         <div className="team-look-column">
@@ -1841,7 +1925,19 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                         {combinedCountText}
                       </div>
 
-                      <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                      <div className="active-batter-banner"><div>
+  At Bat: #{currentBatter?.number || "--"} {currentBatter?.name}
+
+  <div className="small-text muted">
+    {currentBatter ? `${currentBatter.hits || 0}-${currentBatter.ab || 0}` : ""}
+  </div>
+
+  <div className="small-text muted">
+    Last AB: {currentBatter?.lastAB || "-"}
+  </div>
+</div></div>
+                  <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
+
                       <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
 
                       <BaseDiamond bases={currentGame.bases} />
@@ -1924,9 +2020,13 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                     </div>
 
                     <div className="score-center">
-                      <span className="score-number">{currentGame.awayScore}</span>
+                      <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  {currentGame.awayScore}
+</span>
                       <span className="score-dash">-</span>
-                      <span className="score-number">{currentGame.homeScore}</span>
+                      <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  {currentGame.homeScore}
+</span>
                     </div>
 
                     <div className="team-look-column">
@@ -1969,7 +2069,17 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
                     {combinedCountText}
                   </div>
 
-                  <div className="active-batter-banner">At Bat: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</div>
+                  <div className="active-batter-banner"><div>
+  At Bat: #{currentBatter?.number || "--"} {currentBatter?.name}
+
+  <div className="small-text muted">
+    {currentBatter ? `${currentBatter.hits || 0}-${currentBatter.ab || 0}` : ""}
+  </div>
+
+  <div className="small-text muted">
+    Last AB: {currentBatter?.lastAB || "-"}
+  </div>
+</div></div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
                   <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
 
