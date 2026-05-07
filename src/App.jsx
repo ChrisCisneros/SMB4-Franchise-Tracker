@@ -399,7 +399,10 @@ const defaultData = {
   games: [],
   dailyResultsDate: new Date().toISOString().slice(0, 10),
   dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow),
+  runsScored: 0,
+runsAllowed: 0,
   currentGame: defaultCurrentGame(),
+  
 };
 
 function safeCloneSnapshot(game) {
@@ -1525,19 +1528,31 @@ useEffect(() => {
     });
   }
 
- function updateRecord(teamId, field, value) {
+function updateRecord(teamId, field, value) {
   setData((prev) => {
-    const nextTeams = prev.teams.map((team) =>
-      team.id === teamId
-        ? {
-            ...team,
-            [field]:
-              value === "" || value === "-"
-                ? value
-                : Number(value),
-          }
-        : team
-    );
+    const nextTeams = prev.teams.map((team) => {
+      if (team.id !== teamId) return team;
+
+      const nextValue =
+        field === "streak"
+          ? value.toUpperCase()
+          : value === "" || value === "-"
+            ? value
+            : Number(value);
+
+      const updated = {
+        ...team,
+        [field]: nextValue,
+      };
+
+      if (field === "runsScored" || field === "runsAllowed") {
+        const rs = Number(field === "runsScored" ? nextValue : updated.runsScored) || 0;
+        const ra = Number(field === "runsAllowed" ? nextValue : updated.runsAllowed) || 0;
+        updated.runDiff = rs - ra;
+      }
+
+      return updated;
+    });
 
     syncTeamsToFirebase(nextTeams);
 
@@ -1693,6 +1708,17 @@ useEffect(() => {
     return getDailyRowIssue(row, allRows) === "ready";
   }
 
+function nextStreak(result, current = "") {
+  const letter = String(current || "").slice(0, 1);
+  const count = Number(String(current || "").slice(1)) || 0;
+
+  if (letter === result) {
+    return `${result}${count + 1}`;
+  }
+
+  return `${result}1`;
+}
+
   function applyDailyResults() {
     setData((prev) => {
       const rowsToApply = prev.dailyResultsRows.filter((row) => isValidDailyRow(row, prev.dailyResultsRows));
@@ -1710,8 +1736,36 @@ useEffect(() => {
         const awayIndex = updatedTeams.findIndex((team) => team.id === row.awayTeamId);
         const homeIndex = updatedTeams.findIndex((team) => team.id === row.homeTeamId);
 
-        if (awayIndex >= 0) updatedTeams[awayIndex] = { ...updatedTeams[awayIndex], wins: updatedTeams[awayIndex].wins + (awayWon ? 1 : 0), losses: updatedTeams[awayIndex].losses + (homeWon ? 1 : 0), runDiff: (updatedTeams[awayIndex].runDiff || 0) - margin };
-        if (homeIndex >= 0) updatedTeams[homeIndex] = { ...updatedTeams[homeIndex], wins: updatedTeams[homeIndex].wins + (homeWon ? 1 : 0), losses: updatedTeams[homeIndex].losses + (awayWon ? 1 : 0), runDiff: (updatedTeams[homeIndex].runDiff || 0) + margin };
+        if (awayIndex >= 0) updatedTeams[awayIndex] = {
+  ...updatedTeams[awayIndex],
+
+  wins: updatedTeams[awayIndex].wins + (awayWon ? 1 : 0),
+  losses: updatedTeams[awayIndex].losses + (homeWon ? 1 : 0),
+
+  runsScored: (updatedTeams[awayIndex].runsScored || 0) + awayScore,
+  runsAllowed: (updatedTeams[awayIndex].runsAllowed || 0) + homeScore,
+
+  runDiff:
+    ((updatedTeams[awayIndex].runsScored || 0) + awayScore) -
+    ((updatedTeams[awayIndex].runsAllowed || 0) + homeScore),
+
+  streak: nextStreak(awayWon ? "W" : "L", updatedTeams[awayIndex].streak),
+};
+        if (homeIndex >= 0) updatedTeams[homeIndex] = {
+  ...updatedTeams[homeIndex],
+
+  wins: updatedTeams[homeIndex].wins + (homeWon ? 1 : 0),
+  losses: updatedTeams[homeIndex].losses + (awayWon ? 1 : 0),
+
+  runsScored: (updatedTeams[homeIndex].runsScored || 0) + homeScore,
+  runsAllowed: (updatedTeams[homeIndex].runsAllowed || 0) + awayScore,
+
+  runDiff:
+    ((updatedTeams[homeIndex].runsScored || 0) + homeScore) -
+    ((updatedTeams[homeIndex].runsAllowed || 0) + awayScore),
+
+  streak: nextStreak(homeWon ? "W" : "L", updatedTeams[homeIndex].streak),
+};
 
         newGames.unshift({ id: crypto.randomUUID(), date: prev.dailyResultsDate, awayTeamId: row.awayTeamId, homeTeamId: row.homeTeamId, awayScore, homeScore, status: "Final", quickEntry: true });
       });
@@ -1739,8 +1793,34 @@ useEffect(() => {
     const finishedGame = { ...currentGame, id: crypto.randomUUID(), status: "Final" };
     setData((prev) => {
       const nextTeams = prev.teams.map((team) => {
-        if (team.id === currentGame.homeTeamId) return { ...team, wins: team.wins + (homeWon ? 1 : 0), losses: team.losses + (awayWon ? 1 : 0), runDiff: (team.runDiff || 0) + margin };
-        if (team.id === currentGame.awayTeamId) return { ...team, wins: team.wins + (awayWon ? 1 : 0), losses: team.losses + (homeWon ? 1 : 0), runDiff: (team.runDiff || 0) - margin };
+        if (team.id === currentGame.homeTeamId) return {
+  ...team,
+  wins: team.wins + (homeWon ? 1 : 0),
+  losses: team.losses + (awayWon ? 1 : 0),
+
+  runsScored: (team.runsScored || 0) + currentGame.homeScore,
+  runsAllowed: (team.runsAllowed || 0) + currentGame.awayScore,
+
+  runDiff:
+    ((team.runsScored || 0) + currentGame.homeScore) -
+    ((team.runsAllowed || 0) + currentGame.awayScore),
+
+  streak: nextStreak(homeWon ? "W" : "L", team.streak),
+};
+        if (team.id === currentGame.awayTeamId) return {
+  ...team,
+  wins: team.wins + (awayWon ? 1 : 0),
+  losses: team.losses + (homeWon ? 1 : 0),
+
+  runsScored: (team.runsScored || 0) + currentGame.awayScore,
+  runsAllowed: (team.runsAllowed || 0) + currentGame.homeScore,
+
+  runDiff:
+    ((team.runsScored || 0) + currentGame.awayScore) -
+    ((team.runsAllowed || 0) + currentGame.homeScore),
+
+  streak: nextStreak(awayWon ? "W" : "L", team.streak),
+};
         return team;
       });
 
@@ -1751,6 +1831,8 @@ useEffect(() => {
         games: [finishedGame, ...prev.games],
         teams: nextTeams,
         currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
+        
+        
       };
     });
     setPage("dashboard");
@@ -2326,27 +2408,33 @@ useEffect(() => {
                       <h3>{division}</h3>
                       <div
                         className="standings-header standings-row"
-                        style={{ gridTemplateColumns: "30px 1fr 80px 80px 60px 60px" }}
+                        style={{gridTemplateColumns: "30px 1fr 70px 70px 60px 55px 55px 55px 60px" }}
                       >
                         <span>#</span>
                         <span>Team</span>
                         <span>W-L</span>
                         <span>PCT</span>
                         <span>GB</span>
+                        <span>RS</span>
+                        <span>RA</span>
                         <span>RD</span>
+                        <span>STRK</span>
                       </div>
                       {divisionTeams.map((team, index) => (
                         <div
                           className="standings-row"
                           key={team.id}
-                          style={{ gridTemplateColumns: "30px 1fr 80px 80px 60px 60px" }}
+                          style={{ gridTemplateColumns: "30px 1fr 70px 70px 60px 55px 55px 55px 60px" }}
                         >
                           <span>{index + 1}</span>
                           <span>{team.abbr}</span>
                           <span>{team.wins}-{team.losses}</span>
                           <span>{pct(team.wins, team.losses)}</span>
                           <span>{gamesBack(team, leader)}</span>
+                          <span>{team.runsScored || 0}</span>
+<span>{team.runsAllowed || 0}</span>
                           <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+                          <span>{team.streak || "-"}</span>
                         </div>
                       ))}
                       {!divisionTeams.length && (
@@ -2374,8 +2462,17 @@ useEffect(() => {
               <div className="grid three">
                 {data.divisions.map((division) => {
                   const groupTeams = [...teams]
-                    .filter((team) => team.league === league && team.division === division)
-                    .sort((a, b) => a.abbr.localeCompare(b.abbr) || a.name.localeCompare(b.name));
+  .filter((team) => team.league === league && team.division === division)
+  .sort((a, b) => {
+    const pctA = (a.wins || 0) + (a.losses || 0) > 0 ? (a.wins || 0) / ((a.wins || 0) + (a.losses || 0)) : 0;
+    const pctB = (b.wins || 0) + (b.losses || 0) > 0 ? (b.wins || 0) / ((b.wins || 0) + (b.losses || 0)) : 0;
+
+    if (pctB !== pctA) return pctB - pctA;
+    if ((b.wins || 0) !== (a.wins || 0)) return (b.wins || 0) - (a.wins || 0);
+    if ((b.runDiff || 0) !== (a.runDiff || 0)) return (b.runDiff || 0) - (a.runDiff || 0);
+
+    return a.abbr.localeCompare(b.abbr);
+  });
 
                   return (
                     <div className="card" key={`${league}-${division}-quick`}>
@@ -2405,23 +2502,41 @@ useEffect(() => {
                               onChange={(e) => updateRecord(team.id, "losses", e.target.value)}
                             />
                           </div>
-
+<div className="muted">{pct(team.wins, team.losses)}</div>
                           <div>
-                            <label>Run Diff</label>
-                            <input
-  type="text"
-  inputMode="numeric"
-  value={team.runDiff ?? ""}
-  onChange={(e) => {
-    const val = e.target.value;
-    if (/^-?\d*$/.test(val)) {
-      updateRecord(team.id, "runDiff", val);
-    }
-  }}
-/>
+                            
+                            <div>
+  <label>RS</label>
+  <input
+    type="number"
+    value={team.runsScored || 0}
+    onChange={(e) => updateRecord(team.id, "runsScored", e.target.value)}
+  />
+</div>
+
+<div>
+  <label>RA</label>
+  <input
+    type="number"
+    value={team.runsAllowed || 0}
+    onChange={(e) => updateRecord(team.id, "runsAllowed", e.target.value)}
+  />
+</div>
+
+<div className="muted">
+  {team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}
+</div>
                           </div>
 
-                          <div className="muted">{pct(team.wins, team.losses)}</div>
+                          
+                          <div>
+  <label>Streak</label>
+  <input
+    type="text"
+    value={team.streak || ""}
+    onChange={(e) => updateRecord(team.id, "streak", e.target.value)}
+  />
+</div>
                         </div>
                       ))}
 
