@@ -1482,3 +1482,126 @@ label {
   50% { box-shadow: 0 0 12px gold; }
   100% { box-shadow: 0 0 0px gold; }
 }
+
+.game-status-strip {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.game-status-strip span {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.wildcard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.wildcard-wrap h4 {
+  margin-bottom: 8px;
+  color: #cbd5e1;
+}
+
+.wildcard-row {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.division-leader-row {
+  background: rgba(37, 99, 235, 0.14);
+  border-radius: 12px;
+}
+
+.wildcard-in {
+  background: rgba(22, 101, 52, 0.16);
+  border-radius: 12px;
+}
+
+.wildcard-cutoff {
+  box-shadow: inset 0 -2px 0 rgba(250, 204, 21, 0.7);
+}
+
+.wildcard-out {
+  opacity: 0.48;
+}
+
+.playoff-race-card h2 {
+  margin-top: 0;
+}
+
+.playoff-league-card {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.playoff-league-card h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.playoff-section-label {
+  margin: 12px 0 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.playoff-race-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #1f2937;
+  font-weight: 800;
+}
+
+.playoff-race-row strong {
+  color: #dbeafe;
+}
+
+.playoff-race-row span {
+  text-align: right;
+}
+
+.playoff-race-row span:nth-child(2) {
+  text-align: left;
+}
+
+.playoff-race-chaser {
+  opacity: 0.72;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.version-pill {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #93c5fd;
+  letter-spacing: 0.04em;
+}

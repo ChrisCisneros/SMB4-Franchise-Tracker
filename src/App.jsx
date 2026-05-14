@@ -446,6 +446,13 @@ function makeSafeGame(game) {
   return merged;
 }
 
+function addPitchToCurrentPitcher(game) {
+  if (game.half === "Top") {
+    game.homePitchCount = Number(game.homePitchCount || 0) + 1;
+  } else {
+    game.awayPitchCount = Number(game.awayPitchCount || 0) + 1;
+  }
+}
 function getInitialData() {
   try {
     const keysToTry = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
@@ -495,6 +502,82 @@ function teamLabel(team) {
 
 function teamOptionLabel(team) {
   return team ? `${team.abbr} — ${team.name}` : "";
+}
+
+function winningPctValue(team) {
+  const wins = Number(team.wins || 0);
+  const losses = Number(team.losses || 0);
+  const total = wins + losses;
+  return total > 0 ? wins / total : 0;
+}
+
+function sortStandingsTeams(list) {
+  return [...list].sort((a, b) => {
+    const pctDiff = winningPctValue(b) - winningPctValue(a);
+    if (pctDiff !== 0) return pctDiff;
+
+    const winDiff = Number(b.wins || 0) - Number(a.wins || 0);
+    if (winDiff !== 0) return winDiff;
+
+    const rdDiff = Number(b.runDiff || 0) - Number(a.runDiff || 0);
+    if (rdDiff !== 0) return rdDiff;
+
+    return String(a.abbr || "").localeCompare(String(b.abbr || ""));
+  });
+}
+
+function formatHalfGame(value) {
+  const abs = Math.abs(value);
+  return Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
+}
+
+function wildCardGamesBack(team, cutoffTeam, index) {
+  if (!team || !cutoffTeam) return "—";
+
+  // 3rd wild card is the cutoff line
+  if (index === 2) return "—";
+
+  const raw =
+    ((Number(cutoffTeam.wins || 0) - Number(team.wins || 0)) +
+      (Number(team.losses || 0) - Number(cutoffTeam.losses || 0))) /
+    2;
+
+  // Top 2 WC teams are ahead of the cutoff, so show +0.5 / +1 / etc.
+  if (index < 2) {
+    return raw < 0 ? `+${formatHalfGame(raw)}` : "—";
+  }
+
+  // Teams below cutoff show how far back they are
+  return raw > 0 ? formatHalfGame(raw) : "—";
+}
+
+function gamesBackRaw(team, leader) {
+  if (!team || !leader) return 0;
+
+  const leaderWins = Number(leader.wins || 0);
+  const leaderLosses = Number(leader.losses || 0);
+  const teamWins = Number(team.wins || 0);
+  const teamLosses = Number(team.losses || 0);
+
+  return ((leaderWins - teamWins) + (teamLosses - leaderLosses)) / 2;
+}
+
+function formatGamesBack(team, leader) {
+  const gb = gamesBackRaw(team, leader);
+
+  if (gb <= 0) return "—";
+  return Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
+}
+
+function eliminationNumber(team, target, gamesPerSeason = 162) {
+  if (!team || !target) return "—";
+
+  const teamWins = Number(team.wins || 0);
+  const targetLosses = Number(target.losses || 0);
+
+  const number = gamesPerSeason + 1 - teamWins - targetLosses;
+
+  return number <= 0 ? "E" : number;
 }
 
 function getTeamColors(team) {
@@ -656,8 +739,7 @@ export default function App() {
   const hasLoadedFirebaseTeams = useRef(false);
   const hasLoadedFirebasePlayers = useRef(false);
 const [prevScore, setPrevScore] = useState({ away: 0, home: 0 });
-const [justScored, setJustScored] = useState(false);
-
+const [scoreFlashSide, setScoreFlashSide] = useState(null);
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -874,6 +956,23 @@ const [justScored, setJustScored] = useState(false);
   const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
   const protectedPages = ["live", "daily", "quick", "admin"];
+const bestRunDiff = [...teams].sort((a, b) => (b.runDiff || 0) - (a.runDiff || 0))[0];
+
+const topRunsScored = [...teams].sort((a, b) => (b.runsScored || 0) - (a.runsScored || 0))[0];
+
+const bestRunsAllowed = [...teams]
+  .filter((team) => Number(team.runsAllowed || 0) > 0)
+  .sort((a, b) => (a.runsAllowed || 0) - (b.runsAllowed || 0))[0];
+
+const longestWinStreak = [...teams]
+  .filter((team) => String(team.streak || "").startsWith("W"))
+  .sort((a, b) => Number(String(b.streak).slice(1)) - Number(String(a.streak).slice(1)))[0];
+
+const longestLossStreak = [...teams]
+  .filter((team) => String(team.streak || "").startsWith("L"))
+  .sort((a, b) => Number(String(b.streak).slice(1)) - Number(String(a.streak).slice(1)))[0];
+
+
 
   const awayTeam = teams.find((t) => t.id === currentGame.awayTeamId);
   const homeTeam = teams.find((t) => t.id === currentGame.homeTeamId);
@@ -943,20 +1042,22 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
   }
 
 useEffect(() => {
-  if (
-    currentGame.awayScore !== prevScore.away ||
-    currentGame.homeScore !== prevScore.home
-  ) {
-    setJustScored(true);
-
-    setTimeout(() => setJustScored(false), 400);
-
-    setPrevScore({
-      away: currentGame.awayScore,
-      home: currentGame.homeScore,
-    });
+  if (currentGame.awayScore !== prevScore.away) {
+    setScoreFlashSide("away");
+    setTimeout(() => setScoreFlashSide(null), 400);
   }
+
+  if (currentGame.homeScore !== prevScore.home) {
+    setScoreFlashSide("home");
+    setTimeout(() => setScoreFlashSide(null), 400);
+  }
+
+  setPrevScore({
+    away: currentGame.awayScore,
+    home: currentGame.homeScore,
+  });
 }, [currentGame.awayScore, currentGame.homeScore]);
+
 
   function goToPage(nextPage) {
     if (!controlsUnlocked && protectedPages.includes(nextPage)) {
@@ -992,6 +1093,42 @@ useEffect(() => {
     });
     return grouped;
   }, [teams]);
+
+  
+
+  const playoffPicture = data.leagues.map((league) => {
+  const leagueTeams = teams.filter((team) => team.league === league);
+
+  const divisionLeaders = data.divisions
+    .map((division) => {
+      const divisionTeams = sortStandingsTeams(
+        leagueTeams.filter((team) => team.division === division)
+      );
+
+      return divisionTeams[0]
+        ? {
+            ...divisionTeams[0],
+            division,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+  const divisionLeaderIds = new Set(divisionLeaders.map((team) => team.id));
+
+  const wildcardTeams = sortStandingsTeams(
+    leagueTeams.filter((team) => !divisionLeaderIds.has(team.id))
+  );
+
+  const cutoffTeam = wildcardTeams[2] || null;
+
+  return {
+    league,
+    divisionLeaders,
+    wildcardTeams,
+    cutoffTeam,
+  };
+});
 
   function commitGameUpdate(mutator) {
     setData((prev) => {
@@ -1090,20 +1227,30 @@ useEffect(() => {
   }
 
   function changePitcher(side, pitcherId) {
-    clearBanner();
-    setData((prev) => {
-      const next = makeSafeGame(prev.currentGame);
-      next.inningStatus = "";
-      if (side === "away") {
-        if (next.awayPitcherId && next.awayPitcherId !== pitcherId) next.awayPitcherHistory = [...next.awayPitcherHistory, next.awayPitcherId];
-        next.awayPitcherId = pitcherId;
-      } else {
-        if (next.homePitcherId && next.homePitcherId !== pitcherId) next.homePitcherHistory = [...next.homePitcherHistory, next.homePitcherId];
-        next.homePitcherId = pitcherId;
+  clearBanner();
+  setData((prev) => {
+    const next = makeSafeGame(prev.currentGame);
+    next.inningStatus = "";
+
+    if (side === "away") {
+      if (next.awayPitcherId && next.awayPitcherId !== pitcherId) {
+        next.awayPitcherHistory = [...next.awayPitcherHistory, next.awayPitcherId];
       }
-      return { ...prev, currentGame: next };
-    });
-  }
+
+      next.awayPitcherId = pitcherId;
+      next.awayPitchCount = 0;
+    } else {
+      if (next.homePitcherId && next.homePitcherId !== pitcherId) {
+        next.homePitcherHistory = [...next.homePitcherHistory, next.homePitcherId];
+      }
+
+      next.homePitcherId = pitcherId;
+      next.homePitchCount = 0;
+    }
+
+    return { ...prev, currentGame: next };
+  });
+}
 
   function updateBases(base) {
     clearBanner();
@@ -1134,11 +1281,13 @@ useEffect(() => {
       next.inningStatus = "";
       if (action === "balls") {
         next.balls = Math.max(0, Math.min(3, next.balls + delta));
+        addPitchToCurrentPitcher(next);
         return;
       }
 
       if (action === "strikes") {
         next.strikes = Math.max(0, Math.min(2, next.strikes + delta));
+        addPitchToCurrentPitcher(next);
         return;
       }
 
@@ -1151,10 +1300,12 @@ useEffect(() => {
 
       if (action === "foul") {
         if (next.strikes < 2) next.strikes += 1;
+        addPitchToCurrentPitcher(next);
         return;
       }
 
       if (action === "swinging" || action === "called") {
+        addPitchToCurrentPitcher(next);
         if (next.strikes >= 2) {
           next.latestPlay = action === "swinging" ? `${currentBatter ? currentBatter.name : "Batter"} struck out swinging.` : `${currentBatter ? currentBatter.name : "Batter"} struck out looking.`;
           next.playLog = [next.latestPlay, ...next.playLog];
@@ -1173,12 +1324,20 @@ useEffect(() => {
   function incrementPitchCount(delta) {
     clearBanner();
     commitGameUpdate((next) => {
+ 
       next.inningStatus = "";
       if (next.half === "Top") next.homePitchCount = Math.max(0, next.homePitchCount + delta);
       else next.awayPitchCount = Math.max(0, next.awayPitchCount + delta);
     });
   }
 
+  function addPitchToCurrentPitcher(next) {
+  if (next.half === "Top") {
+    next.homePitchCount = Number(next.homePitchCount || 0) + 1;
+  } else {
+    next.awayPitchCount = Number(next.awayPitchCount || 0) + 1;
+  }
+}
   function updateChallenges(side, delta) {
     setData((prev) => {
       const next = makeSafeGame(prev.currentGame);
@@ -1223,6 +1382,23 @@ useEffect(() => {
     clearBanner();
     const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
+      const pitchCountTypes = new Set([
+  "single",
+  "double",
+  "triple",
+  "homerun",
+  "flyout",
+  "groundout",
+  "lineout",
+  "popup",
+  "fielderschoice",
+  "doubleplay",
+  "sacfly",
+]);
+
+if (pitchCountTypes.has(type)) {
+  addPitchToCurrentPitcher(next);
+}
       next.inningStatus = "";
       const custom = playInput.trim();
       const batterName = currentBatter ? currentBatter.name : "Batter";
@@ -1840,14 +2016,31 @@ function nextStreak(result, current = "") {
 
       syncTeamsToFirebase(nextTeams);
 
-      return {
-        ...prev,
-        games: [finishedGame, ...prev.games],
-        teams: nextTeams,
-        currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
-        
-        
-      };
+const gameTeamIds = new Set([
+  currentGame.awayTeamId,
+  currentGame.homeTeamId,
+]);
+
+const resetPlayers = prev.players.map((player) =>
+  gameTeamIds.has(player.teamId)
+    ? {
+        ...player,
+        ab: 0,
+        hits: 0,
+        lastAB: "",
+      }
+    : player
+);
+
+syncPlayersToFirebase(resetPlayers);
+
+return {
+  ...prev,
+  games: [finishedGame, ...prev.games],
+  teams: nextTeams,
+  players: resetPlayers,
+  currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
+};
     });
     setPage("dashboard");
   }
@@ -1877,6 +2070,37 @@ function nextStreak(result, current = "") {
   };
 });
   }
+
+  function resetCurrentGamePlayerStats() {
+  if (!currentGame.awayTeamId || !currentGame.homeTeamId) return;
+
+  if (!window.confirm("Reset ABs, hits, and Last AB for players in this game?")) return;
+
+  setData((prev) => {
+    const gameTeamIds = new Set([
+      prev.currentGame?.awayTeamId,
+      prev.currentGame?.homeTeamId,
+    ]);
+
+    const resetPlayers = prev.players.map((player) =>
+      gameTeamIds.has(player.teamId)
+        ? {
+            ...player,
+            ab: 0,
+            hits: 0,
+            lastAB: "",
+          }
+        : player
+    );
+
+    syncPlayersToFirebase(resetPlayers);
+
+    return {
+      ...prev,
+      players: resetPlayers,
+    };
+  });
+}
 
   function resetLeague() {
     if (!window.confirm("Clear all franchise data?")) return;
@@ -1919,13 +2143,21 @@ function nextStreak(result, current = "") {
           { label: "Home Strike Overturned", category: "other", type: "homestrikeoverturned" },
         ];
 
+        const currentPitchCount =
+  currentGame.half === "Top"
+    ? Number(currentGame.homePitchCount || 0)
+    : Number(currentGame.awayPitchCount || 0);
+
   return (
     <div className="app-shell wide-shell">
       <div className="topbar">
-        <div>
-          <h1>Franchise Tracker</h1>
-          <p>MLB The Show 26 commissioner dashboard</p>
-        </div>
+       <div>
+  <div className="title-row">
+    <h1>The Show League Central</h1>
+    <span className="version-pill">v1.4</span>
+  </div>
+  <p>MLB The Show 26 League Hub</p>
+</div>
         <div className="topbar-actions">
           <button className="danger" onClick={resetLeague}>Reset All Data</button>
         </div>
@@ -1989,11 +2221,11 @@ function nextStreak(result, current = "") {
                         </div>
 
                         <div className="score-center">
-                          <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+                          <span className={`score-number ${scoreFlashSide === "away" ? "score-flash" : ""}`}>
   {currentGame.awayScore}
 </span>
-                          <span className="score-dash">-</span>
-                          <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  <span className="score-dash">-</span>
+<span className={`score-number ${scoreFlashSide === "home" ? "score-flash" : ""}`}>
   {currentGame.homeScore}
 </span>
                         </div>
@@ -2034,10 +2266,21 @@ function nextStreak(result, current = "") {
 </div></div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
 
-                      <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                      <div className="muted">
+  Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}
+  {" "}
+  ({currentPitchCount} pitches)
+</div>
 
                       <BaseDiamond bases={currentGame.bases} />
+                      <div className="game-status-strip">
+  <span>Batter: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</span>
+  <span>On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</span>
+  <span>Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</span>
+  <span>Count: {combinedCountText}</span>
+</div>
                     </div>
+                    
                   </div>
                   <div className="linescore-side-panel">
                     <div className="linescore-box">
@@ -2060,8 +2303,83 @@ function nextStreak(result, current = "") {
                   </div>
                 </div>
                 <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
-                                {(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}
+                <div className="grid two" style={{ marginTop: "20px" }}>
+  <div className="card">
+    <h2>League Leaders</h2>
+
+    <div className="list-row">
+      <strong>Best Run Diff</strong>
+      <span>{bestRunDiff ? `${bestRunDiff.abbr} ${bestRunDiff.runDiff > 0 ? "+" : ""}${bestRunDiff.runDiff}` : "—"}</span>
+    </div>
+
+    <div className="list-row">
+      <strong>Most Runs Scored</strong>
+      <span>{topRunsScored ? `${topRunsScored.abbr} ${topRunsScored.runsScored || 0}` : "—"}</span>
+    </div>
+
+    <div className="list-row">
+      <strong>Fewest Runs Allowed</strong>
+      <span>{bestRunsAllowed ? `${bestRunsAllowed.abbr} ${bestRunsAllowed.runsAllowed || 0}` : "—"}</span>
+    </div>
+  </div>
+
+  <div className="card">
+    <h2>Hot / Cold</h2>
+
+    <div className="list-row">
+      <strong>Hottest</strong>
+      <span>{longestWinStreak ? `${longestWinStreak.abbr} ${longestWinStreak.streak}` : "—"}</span>
+    </div>
+
+    <div className="list-row">
+      <strong>Cold Spell</strong>
+      <span>{longestLossStreak ? `${longestLossStreak.abbr} ${longestLossStreak.streak}` : "—"}</span>
+    </div>
+  </div>
+  
+  
+</div>
+  <div className="card playoff-race-card" style={{ marginTop: "20px" }}>
+  <h2>Playoff Race</h2>
+
+  <div className="grid two">
+    {playoffPicture.map((picture) => (
+      <div className="playoff-league-card" key={`${picture.league}-dashboard-race`}>
+        <h3>{picture.league} Wild Card</h3>
+
+        <div className="playoff-section-label">Current Wild Cards</div>
+
+        {picture.wildcardTeams.slice(0, 3).map((team, index) => (
+          <div className="playoff-race-row" key={`${picture.league}-dash-wc-${team.id}`}>
+            <strong>{`WC${index + 1}`}</strong>
+            <span>{team.abbr}</span>
+            <span>{team.wins}-{team.losses}</span>
+            <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
+          </div>
+        ))}
+
+        <div className="playoff-section-label">Almost In</div>
+
+        {picture.wildcardTeams.slice(3, 6).map((team, index) => (
+          <div className="playoff-race-row playoff-race-chaser" key={`${picture.league}-dash-chase-${team.id}`}>
+            <strong>{index + 1}</strong>
+            <span>{team.abbr}</span>
+            <span>{team.wins}-{team.losses}</span>
+            <span>{wildCardGamesBack(team, picture.cutoffTeam, index + 3)} GB</span>
+          </div>
+        ))}
+
+        {picture.wildcardTeams.length <= 3 && (
+          <p className="muted">No teams chasing yet.</p>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
+
+{(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}           
               </>
+              
             ) : (
               <p>No live game set up yet.</p>
             )}
@@ -2089,9 +2407,12 @@ function nextStreak(result, current = "") {
             <h2>Live Scoring</h2>
             {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
 
+  
+
             <div className="inline-buttons" style={{ marginBottom: "12px" }}>
-              <button className="danger-lite" onClick={resetCurrentMatch}>Reset Full Game</button>
-            </div>
+  <button className="danger-lite" onClick={resetCurrentMatch}>Reset Full Game</button>
+  <button onClick={resetCurrentGamePlayerStats}>Reset ABs</button>
+</div>
 
             <div className="live-top-setup">
               <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
@@ -2116,11 +2437,11 @@ function nextStreak(result, current = "") {
                     </div>
 
                     <div className="score-center">
-                      <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+                      <span className={`score-number ${scoreFlashSide === "away" ? "score-flash" : ""}`}>
   {currentGame.awayScore}
 </span>
-                      <span className="score-dash">-</span>
-                      <span className={`score-number ${justScored ? "score-flash" : ""}`}>
+  <span className="score-dash">-</span>
+<span className={`score-number ${scoreFlashSide === "home" ? "score-flash" : ""}`}>
   {currentGame.homeScore}
 </span>
                     </div>
@@ -2177,10 +2498,15 @@ function nextStreak(result, current = "") {
   </div>
 </div></div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-                  <div className="muted">Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</div>
+                  <div className="muted">
+  Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}
+  {" "}
+  ({currentPitchCount} pitches)
+</div>
 
                   <BaseDiamond bases={currentGame.bases} />
                 </div>
+                
               </div>
 
               <div className="linescore-side-panel">
@@ -2460,7 +2786,88 @@ function nextStreak(result, current = "") {
               </div>
             </div>
           ))}
+          <div className="wildcard-wrap">
+  <h2>Playoff Picture</h2>
+
+  {playoffPicture.map((picture) => (
+    <div className="card" key={`${picture.league}-playoff-picture`}>
+      <h3>{picture.league}</h3>
+
+      <h4>Division Leaders</h4>
+
+      <div
+        className="standings-header standings-row wildcard-row"
+        style={{ gridTemplateColumns: "70px 1fr 90px 70px 70px 70px" }}
+      >
+        <span>Div</span>
+        <span>Team</span>
+        <span>W-L</span>
+        <span>PCT</span>
+        <span>RD</span>
+        <span>STRK</span>
+      </div>
+
+      {picture.divisionLeaders.map((team) => (
+        <div
+          className="standings-row wildcard-row division-leader-row"
+          key={`${picture.league}-leader-${team.id}`}
+          style={{ gridTemplateColumns: "70px 1fr 90px 70px 70px 70px" }}
+        >
+          <span>{team.division}</span>
+          <span>{team.abbr}</span>
+          <span>{team.wins}-{team.losses}</span>
+          <span>{pct(team.wins, team.losses)}</span>
+          <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+          <span>{team.streak || "-"}</span>
         </div>
+      ))}
+
+      <h4 style={{ marginTop: "22px" }}>Wild Card</h4>
+
+      <div
+        className="standings-header standings-row wildcard-row"
+        style={{ gridTemplateColumns: "60px 1fr 90px 70px 70px 70px 70px" }}
+      >
+        <span>Seed</span>
+        <span>Team</span>
+        <span>W-L</span>
+        <span>PCT</span>
+        <span>WCGB</span>
+        <span>RD</span>
+        <span>STRK</span>
+      </div>
+
+      {picture.wildcardTeams.map((team, index) => {
+        const isWildCardTeam = index < 3;
+        const isCutoff = index === 2;
+
+        return (
+          <div
+            className={`standings-row wildcard-row ${
+              isWildCardTeam ? "wildcard-in" : "wildcard-out"
+            } ${isCutoff ? "wildcard-cutoff" : ""}`}
+            key={`${picture.league}-wc-${team.id}`}
+            style={{ gridTemplateColumns: "60px 1fr 90px 70px 70px 70px 70px" }}
+          >
+            <span>{isWildCardTeam ? `WC${index + 1}` : "—"}</span>
+            <span>{team.abbr}</span>
+            <span>{team.wins}-{team.losses}</span>
+            <span>{pct(team.wins, team.losses)}</span>
+            <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
+            <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+            <span>{team.streak || "-"}</span>
+          </div>
+        );
+      })}
+
+      {!picture.wildcardTeams.length && (
+        <p className="muted">No wild card teams yet.</p>
+      )}
+    </div>
+  ))}
+</div>
+        </div>
+        
       )}
 
       {page === "quick" && (
@@ -2551,6 +2958,7 @@ function nextStreak(result, current = "") {
     onChange={(e) => updateRecord(team.id, "streak", e.target.value)}
   />
 </div>
+
                         </div>
                       ))}
 
