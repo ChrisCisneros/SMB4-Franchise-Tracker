@@ -402,12 +402,12 @@ const defaultData = {
   teams: [],
   players: [],
   games: [],
+  lastFinalGame: null,
   dailyResultsDate: new Date().toISOString().slice(0, 10),
   dailyResultsRows: Array.from({ length: DAILY_ROWS }, emptyDailyRow),
   runsScored: 0,
-runsAllowed: 0,
+  runsAllowed: 0,
   currentGame: defaultCurrentGame(),
-  
 };
 
 function safeCloneSnapshot(game) {
@@ -740,6 +740,8 @@ export default function App() {
   const hasLoadedFirebasePlayers = useRef(false);
 const [prevScore, setPrevScore] = useState({ away: 0, home: 0 });
 const [scoreFlashSide, setScoreFlashSide] = useState(null);
+const [winningPitcherId, setWinningPitcherId] = useState("");
+const [losingPitcherId, setLosingPitcherId] = useState("");
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -1007,12 +1009,58 @@ const awayRoster = [...players.filter((p) => p.teamId === currentGame.awayTeamId
 
   const currentAwayBatter = awayRoster.find((p) => p.id === currentGame.awayLineup[currentGame.awayBatterIndex]);
   const currentHomeBatter = homeRoster.find((p) => p.id === currentGame.homeLineup[currentGame.homeBatterIndex]);
+  const usedAwayPitchers = [...new Set([
+  ...currentGame.awayPitcherHistory,
+  currentGame.awayPitcherId,
+])]
+  .filter(Boolean)
+  .map((id) => awayRoster.find((player) => player.id === id))
+  .filter(Boolean);
+
+const usedHomePitchers = [...new Set([
+  ...currentGame.homePitcherHistory,
+  currentGame.homePitcherId,
+])]
+  .filter(Boolean)
+  .map((id) => homeRoster.find((player) => player.id === id))
+  .filter(Boolean);
+
+const usedGamePitchers = [
+  ...usedAwayPitchers.map((player) => ({
+    ...player,
+    labelTeam: awayTeam?.abbr || "Away",
+  })),
+  ...usedHomePitchers.map((player) => ({
+    ...player,
+    labelTeam: homeTeam?.abbr || "Home",
+  })),
+];
   const currentAwayPitcher = awayRoster.find((p) => p.id === currentGame.awayPitcherId);
   const currentHomePitcher = homeRoster.find((p) => p.id === currentGame.homePitcherId);
   const currentBatter = currentGame.half === "Top" ? currentAwayBatter : currentHomeBatter;
   const onDeckBatter = currentGame.half === "Top"
+  
     ? awayRoster.find((p) => p.id === currentGame.awayLineup[(currentGame.awayBatterIndex + 1) % 9])
     : homeRoster.find((p) => p.id === currentGame.homeLineup[(currentGame.homeBatterIndex + 1) % 9]);
+    const battingSide = currentGame.half === "Top" ? "away" : "home";
+const battingTeam = battingSide === "away" ? awayTeam : homeTeam;
+const battingRoster = battingSide === "away" ? awayRoster : homeRoster;
+const battingLineup = battingSide === "away" ? currentGame.awayLineup : currentGame.homeLineup;
+const battingIndex = battingSide === "away" ? currentGame.awayBatterIndex : currentGame.homeBatterIndex;
+
+const battingLineupPlayers = battingLineup
+  .map((playerId, index) => ({
+    player: battingRoster.find((player) => player.id === playerId),
+    index,
+  }))
+  .filter((item) => item.player);
+
+const dueUpBatters = [1, 2, 3]
+  .map((offset) => {
+    const playerId = battingLineup[(battingIndex + offset) % 9];
+    return battingRoster.find((player) => player.id === playerId);
+  })
+  .filter(Boolean);
   const fieldingPitcher = currentGame.half === "Top" ? currentHomePitcher : currentAwayPitcher;
   const displayGameState = getDisplayGameState(currentGame, inningBanner);
   const combinedCountText = `${currentGame.balls}-${currentGame.strikes}, ${currentGame.outs} outs`;
@@ -1311,6 +1359,20 @@ useEffect(() => {
           next.playLog = [next.latestPlay, ...next.playLog];
           clearCount(next);
           next.outs += 1;
+          if (currentBatter?.id) {
+  setData((prev) => ({
+    ...prev,
+    players: prev.players.map((player) =>
+      player.id === currentBatter.id
+        ? {
+            ...player,
+            ab: (player.ab || 0) + 1,
+            lastAB: "K",
+          }
+        : player
+    ),
+  }));
+}
           stepBatter(next);
           maybeAdvanceHalfInning(next);
         } else {
@@ -1486,8 +1548,7 @@ if (pitchCountTypes.has(type)) {
 
         setData((prev) => {
   const nextPlayers = prev.players.map((p) => {
-    if (p.id !== batterId) return p;
-
+    if (p.id !== batterId || type === "caughtstealing") return p;
     return {
       ...p,
       ab: (p.ab || 0) + 1,
@@ -1980,7 +2041,13 @@ function nextStreak(result, current = "") {
     const homeWon = currentGame.homeScore > currentGame.awayScore;
     const awayWon = currentGame.awayScore > currentGame.homeScore;
     const margin = currentGame.homeScore - currentGame.awayScore;
-    const finishedGame = { ...currentGame, id: crypto.randomUUID(), status: "Final" };
+    const finishedGame = {
+  ...currentGame,
+  id: crypto.randomUUID(),
+  status: "Final",
+  winningPitcherId,
+  losingPitcherId,
+};
     setData((prev) => {
       const nextTeams = prev.teams.map((team) => {
         if (team.id === currentGame.homeTeamId) return {
@@ -2039,10 +2106,13 @@ return {
   games: [finishedGame, ...prev.games],
   teams: nextTeams,
   players: resetPlayers,
+  lastFinalGame: finishedGame,
   currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
 };
     });
     setPage("dashboard");
+    setWinningPitcherId("");
+setLosingPitcherId("");
   }
 
   function resetCurrentMatch() {
@@ -2147,6 +2217,15 @@ return {
   currentGame.half === "Top"
     ? Number(currentGame.homePitchCount || 0)
     : Number(currentGame.awayPitchCount || 0);
+    const lastFinalGame = data.lastFinalGame ? makeSafeGame(data.lastFinalGame) : null;
+const lastFinalAwayTeam = lastFinalGame ? teams.find((team) => team.id === lastFinalGame.awayTeamId) : null;
+const lastFinalHomeTeam = lastFinalGame ? teams.find((team) => team.id === lastFinalGame.homeTeamId) : null;
+const lastFinalWinningPitcher = lastFinalGame?.winningPitcherId
+  ? players.find((player) => player.id === lastFinalGame.winningPitcherId)
+  : null;
+const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
+  ? players.find((player) => player.id === lastFinalGame.losingPitcherId)
+  : null;
 
   return (
     <div className="app-shell wide-shell">
@@ -2154,7 +2233,7 @@ return {
        <div>
   <div className="title-row">
     <h1>The Show League Central</h1>
-    <span className="version-pill">v1.4</span>
+    <span className="version-pill">v1.5</span>
   </div>
   <p>MLB The Show 26 League Hub</p>
 </div>
@@ -2263,6 +2342,7 @@ return {
   <div className="small-text muted">
     Last AB: {currentBatter?.lastAB || "-"}
   </div>
+  
 </div></div>
                   <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
 
@@ -2303,7 +2383,104 @@ return {
                   </div>
                 </div>
                 <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
-                <div className="grid two" style={{ marginTop: "20px" }}>
+                
+<div className="card playoff-race-card" style={{ marginTop: "20px", gridColumn: "1 / -1" }}>
+  <h2>Playoff Race</h2>
+
+  
+</div>
+
+{(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}           
+              </>
+              
+            ) : lastFinalGame && lastFinalAwayTeam && lastFinalHomeTeam ? (
+  <div className="final-recap-card">
+    <h2>Last Final</h2>
+
+    <div className="unified-scoreboard-card dashboard-scoreboard-card">
+      <div className="unified-scoreboard-header">
+        <div className="team-look-column">
+          <div className="team-pill">
+            {lastFinalAwayTeam.abbr}
+          </div>
+          <div className="small-text muted">
+            {lastFinalAwayTeam.wins}-{lastFinalAwayTeam.losses}
+          </div>
+        </div>
+
+        <div className="score-center">
+          <span className="score-number">{lastFinalGame.awayScore}</span>
+          <span className="score-dash">-</span>
+          <span className="score-number">{lastFinalGame.homeScore}</span>
+        </div>
+
+        <div className="team-look-column">
+          <div className="team-pill">
+            {lastFinalHomeTeam.abbr}
+          </div>
+          <div className="small-text muted">
+            {lastFinalHomeTeam.wins}-{lastFinalHomeTeam.losses}
+          </div>
+        </div>
+      </div>
+
+      <div className="inning-text unified-inning-text">Final</div>
+
+      <div className="game-status-strip">
+        <span>WP: {lastFinalWinningPitcher ? `#${lastFinalWinningPitcher.number || "--"} ${lastFinalWinningPitcher.name}` : "—"}</span>
+        <span>LP: {lastFinalLosingPitcher ? `#${lastFinalLosingPitcher.number || "--"} ${lastFinalLosingPitcher.name}` : "—"}</span>
+      </div>
+    </div>
+  </div>
+) : (
+  <p>No live game set up yet.</p>
+)}
+</div>
+<div className="card batting-card">
+  <h2>{battingTeam ? `${battingTeam.abbr} Batting` : "Batting Team"}</h2>
+
+  {battingLineupPlayers.map(({ player, index }) => {
+    const isCurrent = player.id === currentBatter?.id;
+
+    return (
+      <div
+        className={`batting-lineup-row ${isCurrent ? "is-current-batter" : ""}`}
+        key={`dashboard-batting-${player.id}`}
+      >
+        <span className="batting-order-number">{index + 1}</span>
+
+        <div>
+          <strong>#{player.number || "--"} {player.name}</strong>
+          <div className="muted small-text">
+            {player.hits || 0}-{player.ab || 0}
+            {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
+          </div>
+        </div>
+      </div>
+    );
+  })}
+
+  {!battingLineupPlayers.length && (
+    <p className="muted">Set a lineup to show batting order.</p>
+  )}
+
+  <div className="due-up-box">
+    <h3>Due Up Next</h3>
+
+    {dueUpBatters.map((player, index) => (
+      <div className="due-up-row" key={`dashboard-due-${player.id}`}>
+        <span>{index + 1}</span>
+        <strong>#{player.number || "--"} {player.name}</strong>
+        <span className="muted">{player.hits || 0}-{player.ab || 0}</span>
+      </div>
+    ))}
+
+    {!dueUpBatters.length && (
+      <p className="muted">No due-up hitters yet.</p>
+    )}
+  </div>
+</div>
+<div className="grid three" style={{ marginTop: "20px" }}>
   <div className="card">
     <h2>League Leaders</h2>
 
@@ -2336,13 +2513,20 @@ return {
       <span>{longestLossStreak ? `${longestLossStreak.abbr} ${longestLossStreak.streak}` : "—"}</span>
     </div>
   </div>
-  
-  
-</div>
-  <div className="card playoff-race-card" style={{ marginTop: "20px" }}>
-  <h2>Playoff Race</h2>
-
-  <div className="grid two">
+  <div className="card">
+            <h2>Best Records</h2>
+            {sortTeams(teams).slice(0, 5).map((team) => (
+              <div className="list-row" key={team.id}>
+                <div>
+                  <strong>{team.city} {team.name}</strong>
+                  <div className="muted">{team.league} {team.division}</div>
+                </div>
+                <div>{team.wins}-{team.losses} ({pct(team.wins, team.losses)})</div>
+              </div>
+            ))}
+            {!teams.length && <p className="muted">No teams yet.</p>}
+          </div>
+            <div className="grid two">
     {playoffPicture.map((picture) => (
       <div className="playoff-league-card" key={`${picture.league}-dashboard-race`}>
         <h3>{picture.league} Wild Card</h3>
@@ -2375,29 +2559,9 @@ return {
       </div>
     ))}
   </div>
-</div>
-
-{(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}           
-              </>
-              
-            ) : (
-              <p>No live game set up yet.</p>
-            )}
           </div>
 
-          <div className="card">
-            <h2>Best Records</h2>
-            {sortTeams(teams).slice(0, 5).map((team) => (
-              <div className="list-row" key={team.id}>
-                <div>
-                  <strong>{team.city} {team.name}</strong>
-                  <div className="muted">{team.league} {team.division}</div>
-                </div>
-                <div>{team.wins}-{team.losses} ({pct(team.wins, team.losses)})</div>
-              </div>
-            ))}
-            {!teams.length && <p className="muted">No teams yet.</p>}
-          </div>
+          
         </div>
       )}
 
@@ -2571,6 +2735,31 @@ return {
 
             <div className="inline-buttons">
               <button onClick={finalizeGame}>Finalize Game</button>
+              <div className="form-grid" style={{ marginTop: "14px", marginBottom: "14px" }}>
+  <div>
+    <label>Winning Pitcher</label>
+    <select value={winningPitcherId} onChange={(e) => setWinningPitcherId(e.target.value)}>
+      <option value="">Select winning pitcher</option>
+      {usedGamePitchers.map((player) => (
+        <option value={player.id} key={`wp-${player.id}`}>
+          {player.labelTeam} - #{player.number || "--"} {player.name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label>Losing Pitcher</label>
+    <select value={losingPitcherId} onChange={(e) => setLosingPitcherId(e.target.value)}>
+      <option value="">Select losing pitcher</option>
+      {usedGamePitchers.map((player) => (
+        <option value={player.id} key={`lp-${player.id}`}>
+          {player.labelTeam} - #{player.number || "--"} {player.name}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
               <button onClick={() => commitGameUpdate((next) => { clearCountAndOuts(next); })}>Reset Count</button>
             </div>
           </div>
@@ -2789,6 +2978,8 @@ return {
           <div className="wildcard-wrap">
   <h2>Playoff Picture</h2>
 
+  <div className="grid two even-playoff-grid">
+
   {playoffPicture.map((picture) => (
     <div className="card" key={`${picture.league}-playoff-picture`}>
       <h3>{picture.league}</h3>
@@ -2865,6 +3056,7 @@ return {
       )}
     </div>
   ))}
+</div>
 </div>
         </div>
         

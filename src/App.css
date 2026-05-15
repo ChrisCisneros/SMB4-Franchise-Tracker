@@ -1605,3 +1605,64 @@ label {
   color: #93c5fd;
   letter-spacing: 0.04em;
 }
+
+.batting-card h2 {
+  margin-top: 0;
+}
+
+.batting-lineup-row {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-bottom: 1px solid #1f2937;
+  border-radius: 14px;
+}
+
+.batting-order-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  color: #dbeafe;
+  font-weight: 900;
+}
+
+.is-current-batter {
+  background: rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(96, 165, 250, 0.55);
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.18);
+}
+
+.due-up-box {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+}
+
+.due-up-box h3 {
+  margin-top: 0;
+}
+
+.due-up-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.even-playoff-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid.two.even-playoff-grid {
+  grid-template-columns: 1fr 1fr;
+}
