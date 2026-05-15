@@ -1042,25 +1042,32 @@ const usedGamePitchers = [
   
     ? awayRoster.find((p) => p.id === currentGame.awayLineup[(currentGame.awayBatterIndex + 1) % 9])
     : homeRoster.find((p) => p.id === currentGame.homeLineup[(currentGame.homeBatterIndex + 1) % 9]);
-    const battingSide = currentGame.half === "Top" ? "away" : "home";
+   const battingSide = currentGame.half === "Top" ? "away" : "home";
+const nextBattingSide = battingSide === "away" ? "home" : "away";
+
 const battingTeam = battingSide === "away" ? awayTeam : homeTeam;
-const battingRoster = battingSide === "away" ? awayRoster : homeRoster;
 const battingLineup = battingSide === "away" ? currentGame.awayLineup : currentGame.homeLineup;
 const battingIndex = battingSide === "away" ? currentGame.awayBatterIndex : currentGame.homeBatterIndex;
 
+const nextBattingTeam = nextBattingSide === "away" ? awayTeam : homeTeam;
+const nextBattingLineup = nextBattingSide === "away" ? currentGame.awayLineup : currentGame.homeLineup;
+const nextBattingIndex = nextBattingSide === "away" ? currentGame.awayBatterIndex : currentGame.homeBatterIndex;
+
 const battingLineupPlayers = battingLineup
   .map((playerId, index) => ({
-    player: battingRoster.find((player) => player.id === playerId),
+player: players.find((player) => player.id === playerId),
     index,
   }))
   .filter((item) => item.player);
 
-const dueUpBatters = [1, 2, 3]
+const dueUpBatters = [0, 1, 2]
   .map((offset) => {
-    const playerId = battingLineup[(battingIndex + offset) % 9];
-    return battingRoster.find((player) => player.id === playerId);
+    const playerId = nextBattingLineup[(nextBattingIndex + offset) % 9];
+    return players.find((player) => player.id === playerId);
   })
   .filter(Boolean);
+
+
   const fieldingPitcher = currentGame.half === "Top" ? currentHomePitcher : currentAwayPitcher;
   const displayGameState = getDisplayGameState(currentGame, inningBanner);
   const combinedCountText = `${currentGame.balls}-${currentGame.strikes}, ${currentGame.outs} outs`;
@@ -1440,6 +1447,49 @@ useEffect(() => {
     }));
   }
 
+function updateBatterGameStats(batterId, category, type) {
+  if (!batterId) return;
+
+  const hitLabels = {
+    single: "1B",
+    double: "2B",
+    triple: "3B",
+    homerun: "HR",
+  };
+
+  const outLabels = {
+    flyout: "FO",
+    groundout: "GO",
+    lineout: "LO",
+    popup: "POP",
+    fielderschoice: "FC",
+    doubleplay: "DP",
+    strikeout: "K",
+    calledstrikeout: "K",
+  };
+
+  const isHit = category === "hit";
+  const isOutAB =
+    category === "out" &&
+    type !== "caughtstealing";
+
+  if (!isHit && !isOutAB) return;
+
+  setData((prev) => ({
+    ...prev,
+    players: prev.players.map((player) =>
+      player.id === batterId
+        ? {
+            ...player,
+            ab: (player.ab || 0) + 1,
+            hits: isHit ? (player.hits || 0) + 1 : (player.hits || 0),
+            lastAB: isHit ? hitLabels[type] || "" : outLabels[type] || "OUT",
+          }
+        : player
+    ),
+  }));
+}
+  
   function applyQuickPlay(category, type) {
     clearBanner();
     const batterId = currentBatter?.id;
@@ -1458,6 +1508,11 @@ useEffect(() => {
   "sacfly",
 ]);
 
+    updateBatterGameStats(batterId, category, type);
+
+    setPlayInput("");
+    setFielderName("");
+
 if (pitchCountTypes.has(type)) {
   addPitchToCurrentPitcher(next);
 }
@@ -1467,25 +1522,7 @@ if (pitchCountTypes.has(type)) {
       let text = custom || type;
 
       if (category === "hit") {
-        setData((prev) => {
-  const nextPlayers = prev.players.map((p) => {
-    if (p.id !== batterId) return p;
-
-    return {
-      ...p,
-      ab: (p.ab || 0) + 1,
-      hits: (p.hits || 0) + 1,
-      lastAB:
-        type === "single" ? "1B" :
-        type === "double" ? "2B" :
-        type === "triple" ? "3B" :
-        type === "homerun" ? "HR" :
-        ""
-    };
-  });
-
-  return { ...prev, players: nextPlayers };
-});
+        
         const hadFirst = next.bases.first;
         const hadSecond = next.bases.second;
         const hadThird = next.bases.third;
@@ -1546,24 +1583,6 @@ if (pitchCountTypes.has(type)) {
 
       if (category === "out") {
 
-        setData((prev) => {
-  const nextPlayers = prev.players.map((p) => {
-    if (p.id !== batterId || type === "caughtstealing") return p;
-    return {
-      ...p,
-      ab: (p.ab || 0) + 1,
-      lastAB:
-        type === "flyout" ? "FO" :
-        type === "groundout" ? "GO" :
-        type === "lineout" ? "LO" :
-        type === "popup" ? "POP" :
-        type === "strikeout" || type === "calledstrikeout" ? "K" :
-        "OUT"
-    };
-  });
-
-  return { ...prev, players: nextPlayers };
-});
         const map = {
           flyout: `${batterName} flied out${fielderName ? ` to ${fielderName}` : ""}.`,
           groundout: `${batterName} grounded out${fielderName ? ` to ${fielderName}` : ""}.`,
@@ -2452,9 +2471,9 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
         <div>
           <strong>#{player.number || "--"} {player.name}</strong>
           <div className="muted small-text">
-            {player.hits || 0}-{player.ab || 0}
-            {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
-          </div>
+  {player.hits || 0}-{player.ab || 0}
+  {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
+</div>
         </div>
       </div>
     );
@@ -2465,14 +2484,12 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   )}
 
   <div className="due-up-box">
-    <h3>Due Up Next</h3>
-
+<h3>{nextBattingTeam ? `${nextBattingTeam.abbr} Due Up Next` : "Due Up Next"}</h3>
     {dueUpBatters.map((player, index) => (
       <div className="due-up-row" key={`dashboard-due-${player.id}`}>
         <span>{index + 1}</span>
         <strong>#{player.number || "--"} {player.name}</strong>
-        <span className="muted">{player.hits || 0}-{player.ab || 0}</span>
-      </div>
+<span className="muted">{player.hits || 0}-{player.ab || 0}</span>      </div>
     ))}
 
     {!dueUpBatters.length && (
