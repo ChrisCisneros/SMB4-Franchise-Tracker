@@ -410,6 +410,8 @@ const defaultData = {
   currentGame: defaultCurrentGame(),
 };
 
+
+
 function safeCloneSnapshot(game) {
   return {
     ...game,
@@ -755,7 +757,11 @@ const [losingPitcherId, setLosingPitcherId] = useState("");
     });
   }
 
-
+function syncLastFinalGameToFirebase(nextLastFinalGame) {
+  set(ref(db, "lastFinalGame"), nextLastFinalGame).catch((error) => {
+    console.error("[Firebase Debug] WRITE lastFinalGame failed", error);
+  });
+}
   
 
   useEffect(() => {
@@ -925,6 +931,23 @@ const [losingPitcherId, setLosingPitcherId] = useState("");
 
     return () => unsubscribe();
   }, []);
+
+useEffect(() => {
+  const lastFinalGameRef = ref(db, "lastFinalGame");
+
+  const unsubscribe = onValue(lastFinalGameRef, (snapshot) => {
+    const value = snapshot.val();
+
+    if (!value) return;
+
+    setData((prev) => ({
+      ...prev,
+      lastFinalGame: value,
+    }));
+  });
+
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     if (!hasLoadedFirebaseGame.current) return;
@@ -2107,6 +2130,7 @@ function nextStreak(result, current = "") {
       });
 
       syncTeamsToFirebase(nextTeams);
+      syncLastFinalGameToFirebase(finishedGame);
 
 const gameTeamIds = new Set([
   currentGame.awayTeamId,
@@ -2409,11 +2433,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                 </div>
                 <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
                 
-<div className="card playoff-race-card" style={{ marginTop: "20px", gridColumn: "1 / -1" }}>
-  
 
-  
-</div>
 
 {(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}           
               </>
