@@ -1494,28 +1494,23 @@ function updateBatterGameStats(batterId, category, type) {
     clearBanner();
     const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
-      const pitchCountTypes = new Set([
-  "single",
-  "double",
-  "triple",
-  "homerun",
-  "flyout",
-  "groundout",
-  "lineout",
-  "popup",
-  "fielderschoice",
-  "doubleplay",
-  "sacfly",
-]);
+  const pitchCountTypes = new Set([
+    "single",
+    "double",
+    "triple",
+    "homerun",
+    "flyout",
+    "groundout",
+    "lineout",
+    "popup",
+    "fielderschoice",
+    "doubleplay",
+    "sacfly",
+  ]);
 
-    updateBatterGameStats(batterId, category, type);
-
-    setPlayInput("");
-    setFielderName("");
-
-if (pitchCountTypes.has(type)) {
-  addPitchToCurrentPitcher(next);
-}
+  if (pitchCountTypes.has(type)) {
+    addPitchToCurrentPitcher(next);
+  }
       next.inningStatus = "";
       const custom = playInput.trim();
       const batterName = currentBatter ? currentBatter.name : "Batter";
@@ -1688,7 +1683,9 @@ if (pitchCountTypes.has(type)) {
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
       }
-    });
+        });
+
+    updateBatterGameStats(batterId, category, type);
 
     setPlayInput("");
     setFielderName("");
