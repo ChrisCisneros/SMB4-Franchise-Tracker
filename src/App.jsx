@@ -1042,32 +1042,40 @@ const usedGamePitchers = [
   
     ? awayRoster.find((p) => p.id === currentGame.awayLineup[(currentGame.awayBatterIndex + 1) % 9])
     : homeRoster.find((p) => p.id === currentGame.homeLineup[(currentGame.homeBatterIndex + 1) % 9]);
-   const battingSide = currentGame.half === "Top" ? "away" : "home";
+    const battingSide = currentGame.half === "Top" ? "away" : "home";
 const nextBattingSide = battingSide === "away" ? "home" : "away";
 
 const battingTeam = battingSide === "away" ? awayTeam : homeTeam;
+const battingRoster = battingSide === "away" ? awayRoster : homeRoster;
 const battingLineup = battingSide === "away" ? currentGame.awayLineup : currentGame.homeLineup;
 const battingIndex = battingSide === "away" ? currentGame.awayBatterIndex : currentGame.homeBatterIndex;
 
 const nextBattingTeam = nextBattingSide === "away" ? awayTeam : homeTeam;
+const nextBattingRoster = nextBattingSide === "away" ? awayRoster : homeRoster;
 const nextBattingLineup = nextBattingSide === "away" ? currentGame.awayLineup : currentGame.homeLineup;
 const nextBattingIndex = nextBattingSide === "away" ? currentGame.awayBatterIndex : currentGame.homeBatterIndex;
 
 const battingLineupPlayers = battingLineup
   .map((playerId, index) => ({
-player: players.find((player) => player.id === playerId),
+    player: battingRoster.find((player) => player.id === playerId),
     index,
   }))
   .filter((item) => item.player);
 
 const dueUpBatters = [0, 1, 2]
   .map((offset) => {
-    const playerId = nextBattingLineup[(nextBattingIndex + offset) % 9];
-    return players.find((player) => player.id === playerId);
+    const lineupIndex = (nextBattingIndex + offset) % 9;
+    const playerId = nextBattingLineup[lineupIndex];
+    const player = players.find((player) => player.id === playerId);
+
+    return player
+      ? {
+          player,
+          orderNumber: lineupIndex + 1,
+        }
+      : null;
   })
   .filter(Boolean);
-
-
   const fieldingPitcher = currentGame.half === "Top" ? currentHomePitcher : currentAwayPitcher;
   const displayGameState = getDisplayGameState(currentGame, inningBanner);
   const combinedCountText = `${currentGame.balls}-${currentGame.strikes}, ${currentGame.outs} outs`;
@@ -1367,9 +1375,8 @@ useEffect(() => {
           clearCount(next);
           next.outs += 1;
           if (currentBatter?.id) {
-  setData((prev) => ({
-    ...prev,
-    players: prev.players.map((player) =>
+  setData((prev) => {
+    const nextPlayers = prev.players.map((player) =>
       player.id === currentBatter.id
         ? {
             ...player,
@@ -1377,8 +1384,15 @@ useEffect(() => {
             lastAB: "K",
           }
         : player
-    ),
-  }));
+    );
+
+    syncPlayersToFirebase(nextPlayers);
+
+    return {
+      ...prev,
+      players: nextPlayers,
+    };
+  });
 }
           stepBatter(next);
           maybeAdvanceHalfInning(next);
@@ -1447,77 +1461,54 @@ useEffect(() => {
     }));
   }
 
-function updateBatterGameStats(batterId, category, type) {
-  if (!batterId) return;
-
-  const hitLabels = {
-    single: "1B",
-    double: "2B",
-    triple: "3B",
-    homerun: "HR",
-  };
-
-  const outLabels = {
-    flyout: "FO",
-    groundout: "GO",
-    lineout: "LO",
-    popup: "POP",
-    fielderschoice: "FC",
-    doubleplay: "DP",
-    strikeout: "K",
-    calledstrikeout: "K",
-  };
-
-  const isHit = category === "hit";
-  const isOutAB =
-    category === "out" &&
-    type !== "caughtstealing";
-
-  if (!isHit && !isOutAB) return;
-
-  setData((prev) => ({
-    ...prev,
-    players: prev.players.map((player) =>
-      player.id === batterId
-        ? {
-            ...player,
-            ab: (player.ab || 0) + 1,
-            hits: isHit ? (player.hits || 0) + 1 : (player.hits || 0),
-            lastAB: isHit ? hitLabels[type] || "" : outLabels[type] || "OUT",
-          }
-        : player
-    ),
-  }));
-}
-  
   function applyQuickPlay(category, type) {
     clearBanner();
     const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
-  const pitchCountTypes = new Set([
-    "single",
-    "double",
-    "triple",
-    "homerun",
-    "flyout",
-    "groundout",
-    "lineout",
-    "popup",
-    "fielderschoice",
-    "doubleplay",
-    "sacfly",
-  ]);
+      const pitchCountTypes = new Set([
+  "single",
+  "double",
+  "triple",
+  "homerun",
+  "flyout",
+  "groundout",
+  "lineout",
+  "popup",
+  "fielderschoice",
+  "doubleplay",
+  "sacfly",
+]);
 
-  if (pitchCountTypes.has(type)) {
-    addPitchToCurrentPitcher(next);
-  }
+if (pitchCountTypes.has(type)) {
+  addPitchToCurrentPitcher(next);
+}
       next.inningStatus = "";
       const custom = playInput.trim();
       const batterName = currentBatter ? currentBatter.name : "Batter";
       let text = custom || type;
 
       if (category === "hit") {
-        
+        setData((prev) => {
+  const nextPlayers = prev.players.map((p) => {
+    if (p.id !== batterId) return p;
+
+    return {
+      ...p,
+      ab: (p.ab || 0) + 1,
+      hits: (p.hits || 0) + 1,
+      lastAB:
+        type === "single" ? "1B" :
+        type === "double" ? "2B" :
+        type === "triple" ? "3B" :
+        type === "homerun" ? "HR" :
+        ""
+    };
+  });
+
+  syncPlayersToFirebase(nextPlayers);
+
+  return { ...prev, players: nextPlayers };
+});
         const hadFirst = next.bases.first;
         const hadSecond = next.bases.second;
         const hadThird = next.bases.third;
@@ -1578,6 +1569,26 @@ function updateBatterGameStats(batterId, category, type) {
 
       if (category === "out") {
 
+        setData((prev) => {
+  const nextPlayers = prev.players.map((p) => {
+    if (p.id !== batterId || type === "caughtstealing") return p;
+    return {
+      ...p,
+      ab: (p.ab || 0) + 1,
+      lastAB:
+        type === "flyout" ? "FO" :
+        type === "groundout" ? "GO" :
+        type === "lineout" ? "LO" :
+        type === "popup" ? "POP" :
+        type === "strikeout" || type === "calledstrikeout" ? "K" :
+        "OUT"
+    };
+  });
+
+  syncPlayersToFirebase(nextPlayers);
+
+  return { ...prev, players: nextPlayers };
+});
         const map = {
           flyout: `${batterName} flied out${fielderName ? ` to ${fielderName}` : ""}.`,
           groundout: `${batterName} grounded out${fielderName ? ` to ${fielderName}` : ""}.`,
@@ -1683,9 +1694,7 @@ function updateBatterGameStats(batterId, category, type) {
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
       }
-        });
-
-    updateBatterGameStats(batterId, category, type);
+    });
 
     setPlayInput("");
     setFielderName("");
@@ -2249,7 +2258,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
        <div>
   <div className="title-row">
     <h1>The Show League Central</h1>
-    <span className="version-pill">v1.5</span>
+    <span className="version-pill">v1.4</span>
   </div>
   <p>MLB The Show 26 League Hub</p>
 </div>
@@ -2401,7 +2410,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                 <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
                 
 <div className="card playoff-race-card" style={{ marginTop: "20px", gridColumn: "1 / -1" }}>
-  <h2>Playoff Race</h2>
+  
 
   
 </div>
@@ -2468,9 +2477,9 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
         <div>
           <strong>#{player.number || "--"} {player.name}</strong>
           <div className="muted small-text">
-  {player.hits || 0}-{player.ab || 0}
-  {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
-</div>
+            {player.hits || 0}-{player.ab || 0}
+            {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
+          </div>
         </div>
       </div>
     );
@@ -2481,13 +2490,15 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   )}
 
   <div className="due-up-box">
-<h3>{nextBattingTeam ? `${nextBattingTeam.abbr} Due Up Next` : "Due Up Next"}</h3>
-    {dueUpBatters.map((player, index) => (
-      <div className="due-up-row" key={`dashboard-due-${player.id}`}>
-        <span>{index + 1}</span>
-        <strong>#{player.number || "--"} {player.name}</strong>
-<span className="muted">{player.hits || 0}-{player.ab || 0}</span>      </div>
-    ))}
+    <h3>Due Up Next</h3>
+
+    {dueUpBatters.map(({ player, orderNumber }) => (
+  <div className="due-up-row" key={`dashboard-due-${player.id}`}>
+    <span>{orderNumber}</span>
+    <strong>#{player.number || "--"} {player.name}</strong>
+    <span className="muted">{player.hits || 0}-{player.ab || 0}</span>
+  </div>
+))}
 
     {!dueUpBatters.length && (
       <p className="muted">No due-up hitters yet.</p>
