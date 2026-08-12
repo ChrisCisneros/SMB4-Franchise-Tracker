@@ -80,10 +80,10 @@ TEAM_COLORS.ATL = {
   alternates: [
     { name: "Blue Alt", main: "#01105c", alt: "#8c1204", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#8c1204", text: "#01105c" }
   ],
-  cityConnect: { main: "#0349a3", alt: "#01105c", border: "#8c1204", text: "#ffffff", gradient:false},
+  cityConnect: { main: "#4583d3", alt: "#01105c", border: "#8c1204", text: "#ffffff", gradient:false},
 };
 TEAM_COLORS.AZ = {
-  primary: {main: "#ffffff", alt: "#730606", border: "#02ebeb", text: "#730606", gradient:false},
+  primary: {main: "#ffffff", alt: "#a70808", border: "#02ebeb", text: "#ffffff", gradient:false},
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#02ebeb", text: "#730606" },{ name: "Red Alt", main: "#730606", alt: "#02ebeb", text: "#02ebeb" },{ name: "Away", main: "#adadad", alt: "#02ebeb", text: "#730606" }
   ],
@@ -115,7 +115,7 @@ TEAM_COLORS.CIN = {
   alternates: [
     { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#c40404", text: "#c40404" }
   ],
-  cityConnect: { main: "#262626", alt: "#ba4404", border: "#c40404", text: "#590101", gradient:false},
+  cityConnect: { main: "#9b0303", alt: "#ba4404", border: "#000000", text: "#9b0303", gradient:false},
 };
 TEAM_COLORS.CLE = {
   primary: {main: "#ffffff", alt: "#e3ac17", border: "#b0110e", text: "#000324", gradient:false},
@@ -184,7 +184,7 @@ TEAM_COLORS.MIL = {
   alternates: [
     { name: "White Alt", main: "#ffffff", alt: "#fffb1d", text: "#010041" }, { name: "Blue  Alt", main: "#010041", alt: "#fffb1d", text: "#fffb1d" },{ name: "Away", main: "#adadad", alt: "#fffb1d", text: "#010041" }
   ],
-  cityConnect: { main: "#268bce", alt: "#fffb1d", border: "#fffb1d", text: "#fffb1d", gradient:false},
+  cityConnect: { main: "#023353", alt: "#fffb1d", border: "#fff5d3", text: "#fff5d3", gradient:false},
 };
 TEAM_COLORS.MIN = {
   primary: {main: "#ffffff", alt: "#e3ac17", border: "#00063b", text: "#d30000", gradient:false},
@@ -220,7 +220,7 @@ TEAM_COLORS.PIT = {
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#e3ac17", text: "#e3ac17" },{ name: "Away", main: "#adadad", alt: "#e3ac17", text: "#000000" }
   ],
-  cityConnect: { main: "#e3ac17", alt: "#000000", border: "#000000", text: "#000000", gradient:false},
+  cityConnect: { main: "#000000", alt: "#77602f", border: "#77602f", text: "#77602f", gradient:false},
 };
 TEAM_COLORS.SD = {
   primary: {main: "#302505", alt: "#e3ac17", border: "#e3ac17", text: "#FFFFFF", gradient:false},
@@ -265,7 +265,7 @@ TEAM_COLORS.TEX = {
   alternates: [
     { name: "Powder Alt", main: "#55bcec", alt: "#000c42", text: "#FFFFFF" }, { name: "Blue Alt", main: "#000c42", alt: "#000000", border:"#db0000", text: "#FFFFFF" , gradient: false },{ name: "Away", main: "#adadad", alt: "#db0000", text: "#000c42" }
   ],
-  cityConnect: { main: "#fff5d8", alt: "#29097a", border: "#000c42", text: "#db0000", gradient:false },
+  cityConnect: { main: "#460000", alt: "#29097a", border: "#9c8031", text: "#9c8031", gradient:false },
   extras: [],
 };
 TEAM_COLORS.TOR = {
@@ -800,33 +800,7 @@ function syncLastFinalGameToFirebase(nextLastFinalGame) {
   useEffect(() => {
     let channel = null;
 
-    const handleStorageSync = (event) => {
-      if (event.key === STORAGE_KEY && event.newValue) {
-        try {
-          const parsed = JSON.parse(event.newValue);
-          setData((prev) => {
-  const resetPlayers = prev.players.map((player) => ({
-    ...player,
-    ab: 0,
-    hits: 0,
-    lastAB: "",
-  }));
-
-  return {
-    ...prev,
-    players: resetPlayers,
-    currentGame: {
-      ...defaultCurrentGame(),
-      date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
-      awayTeamId: prev.currentGame?.awayTeamId || "",
-      homeTeamId: prev.currentGame?.homeTeamId || "",
-      status: "Not Started",
-    },
-  };
-});
-        } catch {}
-      }
-    };
+    const handleStorageSync = () => {};
 
     if (typeof BroadcastChannel !== "undefined") {
       channel = new BroadcastChannel("franchise_tracker_live_sync");
@@ -949,13 +923,7 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 
-  useEffect(() => {
-    if (!hasLoadedFirebaseGame.current) return;
-    const gameRef = ref(db, "currentGame");
-    set(gameRef, makeSafeGame(data.currentGame)).catch((error) => {
-      console.error("[Firebase Debug] WRITE currentGame failed", error);
-    });
-  }, [data.currentGame]);
+  
 
 
   useEffect(() => {
