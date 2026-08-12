@@ -6,6 +6,7 @@ import { onValue, ref, set } from "firebase/database";
 const STORAGE_KEY = "franchise-tracker-bugfix-v1";
 const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [];
+const SEASON_LENGTH = 40;
 
 
 
@@ -408,6 +409,29 @@ const defaultData = {
   runsScored: 0,
   runsAllowed: 0,
   currentGame: defaultCurrentGame(),
+
+  playoffBracket: {
+  al: {
+    wc1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    wc2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    ds1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    ds2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    cs: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+  },
+  nl: {
+    wc1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    wc2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    ds1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    ds2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+    cs: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
+  },
+  worldSeries: {
+    awayTeamId: "",
+    homeTeamId: "",
+    awayWins: 0,
+    homeWins: 0,
+  },
+}
 };
 
 
@@ -571,15 +595,82 @@ function formatGamesBack(team, leader) {
   return Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
 }
 
-function eliminationNumber(team, target, gamesPerSeason = 162) {
-  if (!team || !target) return "—";
+function eliminationNumber(team, target, gamesPerSeason = SEASON_LENGTH) {
+  if (!team || !target || team.id === target.id) return "—";
 
-  const teamWins = Number(team.wins || 0);
-  const targetLosses = Number(target.losses || 0);
+  const targetWins = Number(target.wins || 0);
+  const teamLosses = Number(team.losses || 0);
 
-  const number = gamesPerSeason + 1 - teamWins - targetLosses;
+  const number = gamesPerSeason + 1 - targetWins - teamLosses;
 
   return number <= 0 ? "E" : number;
+}
+
+function gamesPlayed(team) {
+  return Number(team.wins || 0) + Number(team.losses || 0);
+}
+
+function gamesRemaining(team) {
+  return Math.max(0, SEASON_LENGTH - gamesPlayed(team));
+}
+
+function isEliminatedFromTarget(team, target) {
+  if (!team || !target || team.id === target.id) return false;
+  return eliminationNumber(team, target) === "E";
+}
+
+function getPlayoffMarker(team, picture, divisionLeader) {
+  if (!team || !picture) return "";
+
+  const playoffTeamIds = new Set([
+    ...picture.divisionLeaders.map((team) => team.id),
+    ...picture.wildcardTeams.slice(0, 3).map((team) => team.id),
+  ]);
+
+  const firstTeamOut = picture.wildcardTeams[3];
+
+  if (playoffTeamIds.has(team.id) && firstTeamOut) {
+    const firstTeamOutMaxWins =
+      Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
+
+    if (Number(team.wins || 0) > firstTeamOutMaxWins) {
+      return "x";
+    }
+  }
+
+  if (divisionLeader && isEliminatedFromTarget(team, divisionLeader)) {
+    return "e";
+  }
+
+  return "";
+}
+
+function getWildcardMarker(team, picture, index) {
+  if (!team || !picture) return "";
+
+  const isWildCardTeam = index < 3;
+  const cutoffTeam = picture.cutoffTeam;
+
+  if (isWildCardTeam) {
+    const firstTeamOut = picture.wildcardTeams[3];
+
+    if (!firstTeamOut) return "";
+
+    const firstTeamOutMaxWins =
+      Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
+
+    if (Number(team.wins || 0) > firstTeamOutMaxWins) {
+      return "x";
+    }
+
+    return "";
+  }
+
+  if (cutoffTeam && isEliminatedFromTarget(team, cutoffTeam)) {
+    return "e";
+  }
+
+  return "";
 }
 
 function getTeamColors(team) {
@@ -750,6 +841,7 @@ const [losingPitcherId, setLosingPitcherId] = useState("");
       console.error("[Firebase Debug] WRITE teams failed", error);
     });
   }
+  
 
   function syncPlayersToFirebase(nextPlayers) {
     set(ref(db, "players"), nextPlayers).catch((error) => {
@@ -761,6 +853,16 @@ function syncLastFinalGameToFirebase(nextLastFinalGame) {
   set(ref(db, "lastFinalGame"), nextLastFinalGame).catch((error) => {
     console.error("[Firebase Debug] WRITE lastFinalGame failed", error);
   });
+}
+
+function syncAllDataToFirebase() {
+  syncTeamsToFirebase(data.teams);
+  syncPlayersToFirebase(data.players);
+  set(ref(db, "currentGame"), makeSafeGame(data.currentGame)).catch((error) => {
+    console.error("[Firebase Debug] WRITE currentGame failed", error);
+  });
+  syncLastFinalGameToFirebase(data.lastFinalGame || null);
+  alert("Synced local data to Firebase.");
 }
   
 
@@ -1168,20 +1270,22 @@ useEffect(() => {
     })
     .filter(Boolean);
 
-  const divisionLeaderIds = new Set(divisionLeaders.map((team) => team.id));
+  const seededDivisionLeaders = sortStandingsTeams(divisionLeaders);
 
-  const wildcardTeams = sortStandingsTeams(
-    leagueTeams.filter((team) => !divisionLeaderIds.has(team.id))
-  );
+const divisionLeaderIds = new Set(seededDivisionLeaders.map((team) => team.id));
 
-  const cutoffTeam = wildcardTeams[2] || null;
+const wildcardTeams = sortStandingsTeams(
+  leagueTeams.filter((team) => !divisionLeaderIds.has(team.id))
+);
 
-  return {
-    league,
-    divisionLeaders,
-    wildcardTeams,
-    cutoffTeam,
-  };
+const cutoffTeam = wildcardTeams[2] || null;
+
+return {
+  league,
+  divisionLeaders: seededDivisionLeaders,
+  wildcardTeams,
+  cutoffTeam,
+};
 });
 
   function commitGameUpdate(mutator) {
@@ -2255,7 +2359,10 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   <p>MLB The Show 26 League Hub</p>
 </div>
         <div className="topbar-actions">
-          <button className="danger" onClick={resetLeague}>Reset All Data</button>
+          <div className="topbar-actions">
+  
+  <button className="danger" onClick={resetLeague}>Reset All Data</button>
+</div>
         </div>
       </div>
 
@@ -2949,36 +3056,49 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                     <div className="card" key={key}>
                       <h3>{division}</h3>
                       <div
-                        className="standings-header standings-row"
-                        style={{gridTemplateColumns: "30px 1fr 70px 70px 60px 55px 55px 55px 60px" }}
-                      >
-                        <span>#</span>
-                        <span>Team</span>
-                        <span>W-L</span>
-                        <span>PCT</span>
-                        <span>GB</span>
-                        <span>RS</span>
-                        <span>RA</span>
-                        <span>RD</span>
-                        <span>STRK</span>
-                      </div>
-                      {divisionTeams.map((team, index) => (
-                        <div
-                          className="standings-row"
-                          key={team.id}
-                          style={{ gridTemplateColumns: "30px 1fr 70px 70px 60px 55px 55px 55px 60px" }}
-                        >
-                          <span>{index + 1}</span>
-                          <span>{team.abbr}</span>
-                          <span>{team.wins}-{team.losses}</span>
-                          <span>{pct(team.wins, team.losses)}</span>
-                          <span>{gamesBack(team, leader)}</span>
-                          <span>{team.runsScored || 0}</span>
-<span>{team.runsAllowed || 0}</span>
-                          <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-                          <span>{team.streak || "-"}</span>
-                        </div>
-                      ))}
+  className="standings-header standings-row"
+  style={{ gridTemplateColumns: "30px 1.2fr 70px 70px 60px 55px 55px 55px 55px 60px" }}
+>
+  <span>#</span>
+  <span>Team</span>
+  <span>W-L</span>
+  <span>PCT</span>
+  <span>GB</span>
+  <span>E#</span>
+  <span>RS</span>
+  <span>RA</span>
+  <span>RD</span>
+  <span>STRK</span>
+</div>
+
+{divisionTeams.map((team, index) => {
+  const picture = playoffPicture.find((item) => item.league === league);
+  const marker = getPlayoffMarker(team, picture, leader);
+
+  return (
+    <div
+      className="standings-row"
+      key={team.id}
+      style={{ gridTemplateColumns: "30px 1.2fr 70px 70px 60px 55px 55px 55px 55px 60px" }}
+    >
+      <span>{index + 1}</span>
+
+      <span className="team-name-cell">
+        {marker && <strong className={`playoff-marker marker-${marker}`}>{marker}</strong>}
+        <span>{team.abbr}</span>
+      </span>
+
+      <span>{team.wins}-{team.losses}</span>
+      <span>{pct(team.wins, team.losses)}</span>
+      <span>{gamesBack(team, leader)}</span>
+      <span>{index === 0 ? "—" : eliminationNumber(team, leader)}</span>
+      <span>{team.runsScored || 0}</span>
+      <span>{team.runsAllowed || 0}</span>
+      <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+      <span>{team.streak || "-"}</span>
+    </div>
+  );
+})}
                       {!divisionTeams.length && (
                         <p className="muted">No teams in this division yet.</p>
                       )}
@@ -2999,70 +3119,91 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
       <h4>Division Leaders</h4>
 
-      <div
-        className="standings-header standings-row wildcard-row"
-        style={{ gridTemplateColumns: "70px 1fr 90px 70px 70px 70px" }}
-      >
-        <span>Div</span>
-        <span>Team</span>
-        <span>W-L</span>
-        <span>PCT</span>
-        <span>RD</span>
-        <span>STRK</span>
-      </div>
+<div
+  className="standings-header standings-row wildcard-row"
+  style={{ gridTemplateColumns: "60px 70px 1.2fr 90px 70px 55px 70px 70px" }}
+>
+  <span>Seed</span>
+  <span>Div</span>
+  <span>Team</span>
+  <span>W-L</span>
+  <span>PCT</span>
+  <span>E#</span>
+  <span>RD</span>
+  <span>STRK</span>
+</div>
 
-      {picture.divisionLeaders.map((team) => (
-        <div
-          className="standings-row wildcard-row division-leader-row"
-          key={`${picture.league}-leader-${team.id}`}
-          style={{ gridTemplateColumns: "70px 1fr 90px 70px 70px 70px" }}
-        >
-          <span>{team.division}</span>
-          <span>{team.abbr}</span>
-          <span>{team.wins}-{team.losses}</span>
-          <span>{pct(team.wins, team.losses)}</span>
-          <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-          <span>{team.streak || "-"}</span>
-        </div>
-      ))}
+{picture.divisionLeaders.map((team, index) => {
+  const marker = getPlayoffMarker(team, picture, team);
+
+  return (
+    <div
+      className="standings-row wildcard-row division-leader-row"
+      key={`${picture.league}-leader-${team.id}`}
+      style={{ gridTemplateColumns: "60px 70px 1.2fr 90px 70px 55px 70px 70px" }}
+    >
+      <span>{index + 1}</span>
+      <span>{team.division}</span>
+
+      <span className="team-name-cell">
+        {marker && <strong className={`playoff-marker marker-${marker}`}>{marker}</strong>}
+        <span>{team.abbr}</span>
+      </span>
+
+      <span>{team.wins}-{team.losses}</span>
+      <span>{pct(team.wins, team.losses)}</span>
+      <span>—</span>
+      <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+      <span>{team.streak || "-"}</span>
+    </div>
+  );
+})}
 
       <h4 style={{ marginTop: "22px" }}>Wild Card</h4>
 
-      <div
-        className="standings-header standings-row wildcard-row"
-        style={{ gridTemplateColumns: "60px 1fr 90px 70px 70px 70px 70px" }}
-      >
-        <span>Seed</span>
-        <span>Team</span>
-        <span>W-L</span>
-        <span>PCT</span>
-        <span>WCGB</span>
-        <span>RD</span>
-        <span>STRK</span>
-      </div>
+<div
+  className="standings-header standings-row wildcard-row"
+  style={{ gridTemplateColumns: "60px 1.2fr 90px 70px 70px 55px 70px 70px" }}
+>
+  <span>Seed</span>
+  <span>Team</span>
+  <span>W-L</span>
+  <span>PCT</span>
+  <span>WCGB</span>
+  <span>E#</span>
+  <span>RD</span>
+  <span>STRK</span>
+</div>
 
-      {picture.wildcardTeams.map((team, index) => {
-        const isWildCardTeam = index < 3;
-        const isCutoff = index === 2;
+{picture.wildcardTeams.map((team, index) => {
+  const isWildCardTeam = index < 3;
+  const isCutoff = index === 2;
+  const marker = getWildcardMarker(team, picture, index);
 
-        return (
-          <div
-            className={`standings-row wildcard-row ${
-              isWildCardTeam ? "wildcard-in" : "wildcard-out"
-            } ${isCutoff ? "wildcard-cutoff" : ""}`}
-            key={`${picture.league}-wc-${team.id}`}
-            style={{ gridTemplateColumns: "60px 1fr 90px 70px 70px 70px 70px" }}
-          >
-            <span>{isWildCardTeam ? `WC${index + 1}` : "—"}</span>
-            <span>{team.abbr}</span>
-            <span>{team.wins}-{team.losses}</span>
-            <span>{pct(team.wins, team.losses)}</span>
-            <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
-            <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-            <span>{team.streak || "-"}</span>
-          </div>
-        );
-      })}
+  return (
+    <div
+      className={`standings-row wildcard-row ${
+        isWildCardTeam ? "wildcard-in" : "wildcard-out"
+      } ${isCutoff ? "wildcard-cutoff" : ""}`}
+      key={`${picture.league}-wc-${team.id}`}
+      style={{ gridTemplateColumns: "60px 1.2fr 90px 70px 70px 55px 70px 70px" }}
+    >
+      <span>{isWildCardTeam ? `WC${index + 1}` : "—"}</span>
+
+      <span className="team-name-cell">
+        {marker && <strong className={`playoff-marker marker-${marker}`}>{marker}</strong>}
+        <span>{team.abbr}</span>
+      </span>
+
+      <span>{team.wins}-{team.losses}</span>
+      <span>{pct(team.wins, team.losses)}</span>
+      <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
+      <span>{isWildCardTeam ? "—" : eliminationNumber(team, picture.cutoffTeam)}</span>
+      <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+      <span>{team.streak || "-"}</span>
+    </div>
+  );
+})}
 
       {!picture.wildcardTeams.length && (
         <p className="muted">No wild card teams yet.</p>
@@ -3219,9 +3360,13 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                   </div>
                 </div>
 
-                <div className="danger-zone">
-                  <button className="danger" onClick={() => deleteTeam(selectedAdminTeam.id)}>Delete Team</button>
-                </div>
+                <div className="topbar-actions">
+  {controlsUnlocked && (
+    <button className="danger" onClick={resetLeague}>
+      Reset All Data
+    </button>
+  )}
+</div>
 
                 <h3>Players</h3>
                 <div className="player-add-row">

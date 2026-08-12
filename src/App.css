@@ -1666,3 +1666,38 @@ label {
 .grid.two.even-playoff-grid {
   grid-template-columns: 1fr 1fr;
 }
+
+.playoff-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.marker-x {
+  background: #16a34a;
+  color: white;
+}
+
+.marker-e {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+.team-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.team-name-cell .playoff-marker {
+  margin-right: 0;
+  flex: 0 0 auto;
+}
