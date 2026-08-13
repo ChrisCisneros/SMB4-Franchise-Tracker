@@ -372,6 +372,8 @@ const defaultCurrentGame = () => ({
   strikes: 0,
   bases: { first: false, second: false, third: false },
   status: "Not Started",
+  gameType: "regular",
+playoffSeriesId: "",
   awayLook: { mode: "primary", index: 0 },
   homeLook: { mode: "primary", index: 0 },
   inningStatus: "",
@@ -397,6 +399,137 @@ const defaultCurrentGame = () => ({
   history: [],
 });
 
+function defaultBracketSeries() {
+  return {
+    awayTeamId: "",
+    homeTeamId: "",
+    awayWins: 0,
+    homeWins: 0,
+    winnerTeamId: "",
+    games: [],
+  };
+}
+
+function defaultPlayoffBracket() {
+  return {
+    al: {
+      wc1: defaultBracketSeries(),
+      wc2: defaultBracketSeries(),
+      ds1: defaultBracketSeries(),
+      ds2: defaultBracketSeries(),
+      cs: defaultBracketSeries(),
+    },
+    nl: {
+      wc1: defaultBracketSeries(),
+      wc2: defaultBracketSeries(),
+      ds1: defaultBracketSeries(),
+      ds2: defaultBracketSeries(),
+      cs: defaultBracketSeries(),
+    },
+    worldSeries: defaultBracketSeries(),
+  };
+}
+
+function makeSafePlayoffBracket(bracket) {
+  const defaults = defaultPlayoffBracket();
+
+  const mergeSeries = (series) => ({
+    ...defaultBracketSeries(),
+    ...(series || {}),
+    games: Array.isArray(series?.games) ? series.games : [],
+  });
+
+  return {
+    al: {
+      wc1: mergeSeries(bracket?.al?.wc1 || defaults.al.wc1),
+      wc2: mergeSeries(bracket?.al?.wc2 || defaults.al.wc2),
+      ds1: mergeSeries(bracket?.al?.ds1 || defaults.al.ds1),
+      ds2: mergeSeries(bracket?.al?.ds2 || defaults.al.ds2),
+      cs: mergeSeries(bracket?.al?.cs || defaults.al.cs),
+    },
+    nl: {
+      wc1: mergeSeries(bracket?.nl?.wc1 || defaults.nl.wc1),
+      wc2: mergeSeries(bracket?.nl?.wc2 || defaults.nl.wc2),
+      ds1: mergeSeries(bracket?.nl?.ds1 || defaults.nl.ds1),
+      ds2: mergeSeries(bracket?.nl?.ds2 || defaults.nl.ds2),
+      cs: mergeSeries(bracket?.nl?.cs || defaults.nl.cs),
+    },
+    worldSeries: mergeSeries(bracket?.worldSeries || defaults.worldSeries),
+  };
+}
+
+function getWinsNeededForSeries(seriesId) {
+  if (seriesId.includes("_wc")) return 2;
+  if (seriesId === "worldSeries") return 4;
+  return 3;
+}
+
+function getPlayoffSeries(bracket, seriesId) {
+  if (seriesId === "worldSeries") return bracket.worldSeries;
+
+  const [league, key] = seriesId.split("_");
+  return bracket?.[league]?.[key] || defaultBracketSeries();
+}
+
+function setPlayoffSeries(bracket, seriesId, nextSeries) {
+  if (seriesId === "worldSeries") {
+    return {
+      ...bracket,
+      worldSeries: nextSeries,
+    };
+  }
+
+  const [league, key] = seriesId.split("_");
+
+  return {
+    ...bracket,
+    [league]: {
+      ...bracket[league],
+      [key]: nextSeries,
+    },
+  };
+}
+
+function advancePlayoffWinner(bracket, seriesId, winnerTeamId) {
+  if (!winnerTeamId) return bracket;
+
+  const next = makeSafePlayoffBracket(bracket);
+
+  const advanceMap = {
+    al_wc1: ["al", "ds1", "homeTeamId"],
+    al_wc2: ["al", "ds2", "homeTeamId"],
+    al_ds1: ["al", "cs", "awayTeamId"],
+    al_ds2: ["al", "cs", "homeTeamId"],
+    al_cs: ["worldSeries", null, "awayTeamId"],
+
+    nl_wc1: ["nl", "ds1", "homeTeamId"],
+    nl_wc2: ["nl", "ds2", "homeTeamId"],
+    nl_ds1: ["nl", "cs", "awayTeamId"],
+    nl_ds2: ["nl", "cs", "homeTeamId"],
+    nl_cs: ["worldSeries", null, "homeTeamId"],
+  };
+
+  const target = advanceMap[seriesId];
+  if (!target) return next;
+
+  const [league, key, field] = target;
+
+  if (league === "worldSeries") {
+    next.worldSeries = {
+      ...next.worldSeries,
+      [field]: winnerTeamId,
+    };
+    return next;
+  }
+
+  next[league][key] = {
+    ...next[league][key],
+    [field]: winnerTeamId,
+  };
+
+  return next;
+}
+
 const defaultData = {
   leagues: ["AL", "NL"],
   divisions: ["East", "Central", "West"],
@@ -410,28 +543,7 @@ const defaultData = {
   runsAllowed: 0,
   currentGame: defaultCurrentGame(),
 
-  playoffBracket: {
-  al: {
-    wc1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    wc2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    ds1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    ds2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    cs: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-  },
-  nl: {
-    wc1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    wc2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    ds1: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    ds2: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-    cs: { awayTeamId: "", homeTeamId: "", awayWins: 0, homeWins: 0 },
-  },
-  worldSeries: {
-    awayTeamId: "",
-    homeTeamId: "",
-    awayWins: 0,
-    homeWins: 0,
-  },
-}
+  playoffBracket: defaultPlayoffBracket(),
 };
 
 
@@ -487,11 +599,12 @@ function getInitialData() {
       if (!saved) continue;
       const parsed = JSON.parse(saved);
       return {
-        ...defaultData,
-        ...parsed,
-        currentGame: makeSafeGame(parsed.currentGame),
-        dailyResultsRows: parsed.dailyResultsRows?.length ? parsed.dailyResultsRows : Array.from({ length: DAILY_ROWS }, emptyDailyRow),
-      };
+  ...defaultData,
+  ...parsed,
+  currentGame: makeSafeGame(parsed.currentGame),
+  playoffBracket: makeSafePlayoffBracket(parsed.playoffBracket),
+  dailyResultsRows: parsed.dailyResultsRows?.length ? parsed.dailyResultsRows : Array.from({ length: DAILY_ROWS }, emptyDailyRow),
+};
     }
     return defaultData;
   } catch {
@@ -622,19 +735,28 @@ function isEliminatedFromTarget(team, target) {
 function getPlayoffMarker(team, picture, divisionLeader) {
   if (!team || !picture) return "";
 
-  const playoffTeamIds = new Set([
-    ...picture.divisionLeaders.map((team) => team.id),
-    ...picture.wildcardTeams.slice(0, 3).map((team) => team.id),
-  ]);
+  const divisionLeaderIds = new Set(
+    picture.divisionLeaders.map((team) => team.id)
+  );
+
+  const wildCardTeamIds = new Set(
+    picture.wildcardTeams.slice(0, 3).map((team) => team.id)
+  );
 
   const firstTeamOut = picture.wildcardTeams[3];
 
-  if (playoffTeamIds.has(team.id) && firstTeamOut) {
+  if (firstTeamOut) {
     const firstTeamOutMaxWins =
       Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
 
     if (Number(team.wins || 0) > firstTeamOutMaxWins) {
-      return "x";
+      if (wildCardTeamIds.has(team.id) && !divisionLeaderIds.has(team.id)) {
+        return "w";
+      }
+
+      if (divisionLeaderIds.has(team.id)) {
+        return "x";
+      }
     }
   }
 
@@ -660,8 +782,8 @@ function getWildcardMarker(team, picture, index) {
       Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
 
     if (Number(team.wins || 0) > firstTeamOutMaxWins) {
-      return "x";
-    }
+  return "w";
+}
 
     return "";
   }
@@ -835,6 +957,11 @@ const [prevScore, setPrevScore] = useState({ away: 0, home: 0 });
 const [scoreFlashSide, setScoreFlashSide] = useState(null);
 const [winningPitcherId, setWinningPitcherId] = useState("");
 const [losingPitcherId, setLosingPitcherId] = useState("");
+const [selectedPlayoffSeriesId, setSelectedPlayoffSeriesId] = useState("al_wc1");
+const [playoffAwayScore, setPlayoffAwayScore] = useState("");
+const [playoffHomeScore, setPlayoffHomeScore] = useState("");
+
+
 
   function syncTeamsToFirebase(nextTeams) {
     set(ref(db, "teams"), nextTeams).catch((error) => {
@@ -864,7 +991,11 @@ function syncAllDataToFirebase() {
   syncLastFinalGameToFirebase(data.lastFinalGame || null);
   alert("Synced local data to Firebase.");
 }
-  
+  function syncPlayoffBracketToFirebase(nextBracket) {
+  set(ref(db, "playoffBracket"), nextBracket).catch((error) => {
+    console.error("[Firebase Debug] WRITE playoffBracket failed", error);
+  });
+}
 
   useEffect(() => {
     const safeData = {
@@ -1008,6 +1139,8 @@ function syncAllDataToFirebase() {
     return () => unsubscribe();
   }, []);
 
+  
+
 useEffect(() => {
   const lastFinalGameRef = ref(db, "lastFinalGame");
 
@@ -1025,6 +1158,22 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 
+useEffect(() => {
+  const playoffBracketRef = ref(db, "playoffBracket");
+
+  const unsubscribe = onValue(playoffBracketRef, (snapshot) => {
+    const value = snapshot.val();
+
+    if (!value) return;
+
+    setData((prev) => ({
+      ...prev,
+      playoffBracket: makeSafePlayoffBracket(value),
+    }));
+  });
+
+  return () => unsubscribe();
+}, []);
   
 
 
@@ -1050,7 +1199,7 @@ useEffect(() => {
   const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
   const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
   const currentGame = makeSafeGame(data.currentGame);
-  const protectedPages = ["live", "daily", "quick", "admin"];
+  const protectedPages = ["live", "daily", "quick", "admin", "bracketAdmin"];
 const bestRunDiff = [...teams].sort((a, b) => (b.runDiff || 0) - (a.runDiff || 0))[0];
 
 const topRunsScored = [...teams].sort((a, b) => (b.runsScored || 0) - (a.runsScored || 0))[0];
@@ -1287,6 +1436,232 @@ return {
   cutoffTeam,
 };
 });
+
+const playoffBracket = makeSafePlayoffBracket(data.playoffBracket);
+
+const playoffSeriesOptions = [
+  { id: "al_wc1", label: "AL Wild Card A — #3 seed vs WC3" },
+  { id: "al_wc2", label: "AL Wild Card B — WC1 vs WC2" },
+  { id: "al_ds1", label: "ALDS A — #1 seed vs WC A winner" },
+  { id: "al_ds2", label: "ALDS B — #2 seed vs WC B winner" },
+  { id: "al_cs", label: "ALCS" },
+
+  { id: "nl_wc1", label: "NL Wild Card A — #3 seed vs WC3" },
+  { id: "nl_wc2", label: "NL Wild Card B — WC1 vs WC2" },
+  { id: "nl_ds1", label: "NLDS A — #1 seed vs WC A winner" },
+  { id: "nl_ds2", label: "NLDS B — #2 seed vs WC B winner" },
+  { id: "nl_cs", label: "NLCS" },
+
+  { id: "worldSeries", label: "World Series" },
+];
+
+const isPlayoffGame = currentGame.gameType === "playoff";
+
+const selectedLivePlayoffSeries =
+  currentGame.playoffSeriesId
+    ? getPlayoffSeries(playoffBracket, currentGame.playoffSeriesId)
+    : null;
+
+const selectedLivePlayoffSeriesOption =
+  playoffSeriesOptions.find((series) => series.id === currentGame.playoffSeriesId);
+
+const selectedLivePlayoffSeriesLabel =
+  selectedLivePlayoffSeriesOption
+    ? playoffSeriesDropdownLabel(selectedLivePlayoffSeriesOption)
+    : "Select playoff series";
+
+function teamById(teamId) {
+  return teams.find((team) => team.id === teamId) || null;
+}
+
+function teamAbbr(teamId) {
+  return teamById(teamId)?.abbr || "TBD";
+}
+
+function playoffSeriesDropdownLabel(seriesOption) {
+  const series = getPlayoffSeries(playoffBracket, seriesOption.id);
+  const away = teamAbbr(series.awayTeamId);
+  const home = teamAbbr(series.homeTeamId);
+
+  if (away !== "TBD" || home !== "TBD") {
+    return `${seriesOption.label.split(" — ")[0]} — ${away} vs ${home}`;
+  }
+
+  return seriesOption.label;
+}
+
+function seriesStatusText(series, seriesId) {
+  const awayTeam = teamById(series.awayTeamId);
+  const homeTeam = teamById(series.homeTeamId);
+
+  if (!awayTeam || !homeTeam) return "Waiting for matchup";
+
+  const winsNeeded = getWinsNeededForSeries(seriesId);
+
+  if (series.winnerTeamId) {
+    return `${teamAbbr(series.winnerTeamId)} wins ${series.awayWins}-${series.homeWins}`;
+  }
+
+  if (!series.awayWins && !series.homeWins) {
+    return `Best of ${winsNeeded * 2 - 1}`;
+  }
+
+  if (series.awayWins === series.homeWins) {
+    return `Series tied ${series.awayWins}-${series.homeWins}`;
+  }
+
+  const leaderTeamId = series.awayWins > series.homeWins ? series.awayTeamId : series.homeTeamId;
+  return `${teamAbbr(leaderTeamId)} leads ${series.awayWins}-${series.homeWins}`;
+}
+
+function initializeBracketFromCurrentSeeds() {
+  if (!window.confirm("Initialize the playoff bracket from the current standings? This will clear existing playoff series scores.")) return;
+
+  const nextBracket = defaultPlayoffBracket();
+
+  data.leagues.forEach((league) => {
+    const leagueKey = league.toLowerCase();
+    const picture = playoffPicture.find((item) => item.league === league);
+    const leaders = picture?.divisionLeaders || [];
+    const wildcards = picture?.wildcardTeams || [];
+
+    nextBracket[leagueKey].wc1 = {
+      ...defaultBracketSeries(),
+      awayTeamId: leaders[2]?.id || "",
+      homeTeamId: wildcards[2]?.id || "",
+    };
+
+    nextBracket[leagueKey].wc2 = {
+      ...defaultBracketSeries(),
+      awayTeamId: wildcards[0]?.id || "",
+      homeTeamId: wildcards[1]?.id || "",
+    };
+
+    nextBracket[leagueKey].ds1 = {
+      ...defaultBracketSeries(),
+      awayTeamId: leaders[0]?.id || "",
+      homeTeamId: "",
+    };
+
+    nextBracket[leagueKey].ds2 = {
+      ...defaultBracketSeries(),
+      awayTeamId: leaders[1]?.id || "",
+      homeTeamId: "",
+    };
+  });
+
+  syncPlayoffBracketToFirebase(nextBracket);
+
+  setData((prev) => ({
+    ...prev,
+    playoffBracket: nextBracket,
+  }));
+}
+
+function addPlayoffGameResult() {
+  const awayScore = Number(playoffAwayScore);
+  const homeScore = Number(playoffHomeScore);
+
+  if (!selectedPlayoffSeriesId) return;
+  if (!Number.isFinite(awayScore) || !Number.isFinite(homeScore)) {
+    window.alert("Enter both playoff scores.");
+    return;
+  }
+
+  if (awayScore === homeScore) {
+    window.alert("Playoff games cannot end in a tie.");
+    return;
+  }
+
+  const currentBracket = makeSafePlayoffBracket(data.playoffBracket);
+  const series = getPlayoffSeries(currentBracket, selectedPlayoffSeriesId);
+
+  if (!series.awayTeamId || !series.homeTeamId) {
+    window.alert("This series needs both teams before you can add a result.");
+    return;
+  }
+
+  if (series.winnerTeamId) {
+    window.alert("This series already has a winner.");
+    return;
+  }
+
+  const winnerTeamId = awayScore > homeScore ? series.awayTeamId : series.homeTeamId;
+
+  const nextSeries = {
+    ...series,
+    awayWins: series.awayWins + (winnerTeamId === series.awayTeamId ? 1 : 0),
+    homeWins: series.homeWins + (winnerTeamId === series.homeTeamId ? 1 : 0),
+    games: [
+      ...(series.games || []),
+      {
+        id: crypto.randomUUID(),
+        date: new Date().toISOString().slice(0, 10),
+        awayTeamId: series.awayTeamId,
+        homeTeamId: series.homeTeamId,
+        awayScore,
+        homeScore,
+        winnerTeamId,
+      },
+    ],
+  };
+
+  const winsNeeded = getWinsNeededForSeries(selectedPlayoffSeriesId);
+
+  if (nextSeries.awayWins >= winsNeeded || nextSeries.homeWins >= winsNeeded) {
+    nextSeries.winnerTeamId = winnerTeamId;
+  }
+
+  let nextBracket = setPlayoffSeries(currentBracket, selectedPlayoffSeriesId, nextSeries);
+
+  if (nextSeries.winnerTeamId) {
+    nextBracket = advancePlayoffWinner(nextBracket, selectedPlayoffSeriesId, nextSeries.winnerTeamId);
+  }
+
+  syncPlayoffBracketToFirebase(nextBracket);
+
+  setData((prev) => ({
+    ...prev,
+    playoffBracket: nextBracket,
+  }));
+
+  setPlayoffAwayScore("");
+  setPlayoffHomeScore("");
+}
+
+function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam, extraClass = "") {
+  const series = getPlayoffSeries(playoffBracket, seriesId);
+  const awayTeam = teamById(series.awayTeamId) || fallbackAwayTeam || null;
+  const homeTeam = teamById(series.homeTeamId) || fallbackHomeTeam || null;
+
+  const displaySeries = {
+    ...series,
+    awayTeamId: awayTeam?.id || series.awayTeamId,
+    homeTeamId: homeTeam?.id || series.homeTeamId,
+  };
+
+  return (
+    <div className={`bracket-series-card bracket-slot ${extraClass}`}>
+      <div className="bracket-series-label">{label}</div>
+
+      <div className="bracket-team-row">
+        <span>{awayTeam?.abbr || "TBD"}</span>
+        <strong>{awayTeam?.abbr || "TBD"}</strong>
+        <small>{series.awayWins || 0}</small>
+      </div>
+
+      <div className="bracket-team-row">
+        <span>{homeTeam?.abbr || "TBD"}</span>
+        <strong>{homeTeam?.abbr || "TBD"}</strong>
+        <small>{series.homeWins || 0}</small>
+      </div>
+
+      <div className="bracket-series-status">
+        {seriesStatusText(displaySeries, seriesId)}
+      </div>
+    </div>
+  );
+}
 
   function commitGameUpdate(mutator) {
     setData((prev) => {
@@ -2155,6 +2530,64 @@ function nextStreak(result, current = "") {
       };
     });
   }
+  function applyPlayoffGameResult({ seriesId, awayScore, homeScore }) {
+  const currentBracket = makeSafePlayoffBracket(data.playoffBracket);
+  const series = getPlayoffSeries(currentBracket, seriesId);
+
+  if (!seriesId) {
+    window.alert("Select a playoff series.");
+    return null;
+  }
+
+  if (!series.awayTeamId || !series.homeTeamId) {
+    window.alert("This series needs both teams before you can add a result.");
+    return null;
+  }
+
+  if (series.winnerTeamId) {
+    window.alert("This series already has a winner.");
+    return null;
+  }
+
+  if (awayScore === homeScore) {
+    window.alert("Playoff games cannot end in a tie.");
+    return null;
+  }
+
+  const winnerTeamId = awayScore > homeScore ? series.awayTeamId : series.homeTeamId;
+
+  const nextSeries = {
+    ...series,
+    awayWins: Number(series.awayWins || 0) + (winnerTeamId === series.awayTeamId ? 1 : 0),
+    homeWins: Number(series.homeWins || 0) + (winnerTeamId === series.homeTeamId ? 1 : 0),
+    games: [
+      ...(series.games || []),
+      {
+        id: crypto.randomUUID(),
+        date: new Date().toISOString().slice(0, 10),
+        awayTeamId: series.awayTeamId,
+        homeTeamId: series.homeTeamId,
+        awayScore,
+        homeScore,
+        winnerTeamId,
+      },
+    ],
+  };
+
+  const winsNeeded = getWinsNeededForSeries(seriesId);
+
+  if (nextSeries.awayWins >= winsNeeded || nextSeries.homeWins >= winsNeeded) {
+    nextSeries.winnerTeamId = winnerTeamId;
+  }
+
+  let nextBracket = setPlayoffSeries(currentBracket, seriesId, nextSeries);
+
+  if (nextSeries.winnerTeamId) {
+    nextBracket = advancePlayoffWinner(nextBracket, seriesId, nextSeries.winnerTeamId);
+  }
+
+  return nextBracket;
+}
 
   function finalizeGame() {
     if (!currentGame.homeTeamId || !currentGame.awayTeamId) return;
@@ -2168,6 +2601,59 @@ function nextStreak(result, current = "") {
   winningPitcherId,
   losingPitcherId,
 };
+if (currentGame.gameType === "playoff") {
+  if (!currentGame.playoffSeriesId) {
+    window.alert("Select the playoff series before finalizing this playoff game.");
+    return;
+  }
+
+  const nextBracket = applyPlayoffGameResult({
+    seriesId: currentGame.playoffSeriesId,
+    awayScore: Number(currentGame.awayScore || 0),
+    homeScore: Number(currentGame.homeScore || 0),
+  });
+
+  if (!nextBracket) return;
+
+  setData((prev) => {
+    const gameTeamIds = new Set([
+      currentGame.awayTeamId,
+      currentGame.homeTeamId,
+    ]);
+
+    const resetPlayers = prev.players.map((player) =>
+      gameTeamIds.has(player.teamId)
+        ? {
+            ...player,
+            ab: 0,
+            hits: 0,
+            lastAB: "",
+          }
+        : player
+    );
+
+    syncPlayersToFirebase(resetPlayers);
+    syncLastFinalGameToFirebase(finishedGame);
+    syncPlayoffBracketToFirebase(nextBracket);
+
+    return {
+      ...prev,
+      games: [finishedGame, ...prev.games],
+      players: resetPlayers,
+      lastFinalGame: finishedGame,
+      playoffBracket: nextBracket,
+      currentGame: {
+        ...defaultCurrentGame(),
+        date: new Date().toISOString().slice(0, 10),
+      },
+    };
+  });
+
+  setPage("dashboard");
+  setWinningPitcherId("");
+  setLosingPitcherId("");
+  return;
+}
     setData((prev) => {
       const nextTeams = prev.teams.map((team) => {
         if (team.id === currentGame.homeTeamId) return {
@@ -2354,26 +2840,30 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
        <div>
   <div className="title-row">
     <h1>The Show League Central</h1>
-    <span className="version-pill">v1.4</span>
+    <span className="version-pill">v1.6</span>
   </div>
-  <p>MLB The Show 26 League Hub</p>
+  <p>MLB The Show 26 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
         <div className="topbar-actions">
-          <div className="topbar-actions">
-  
-  <button className="danger" onClick={resetLeague}>Reset All Data</button>
+  {controlsUnlocked && (
+    <button className="danger" onClick={resetLeague}>
+      Reset All Data
+    </button>
+  )}
 </div>
-        </div>
-      </div>
+</div>
 
-      <div className="nav">
-        <button onClick={() => setPage("dashboard")}>Dashboard</button>
-        <button onClick={() => setPage("standings")}>Standings</button>
-        {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
-        {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
-        {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
-        {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
-      </div>
+<div className="nav">
+  <button onClick={() => setPage("dashboard")}>Dashboard</button>
+  <button onClick={() => setPage("standings")}>Standings</button>
+  <button onClick={() => setPage("bracket")}>Bracket</button>
+
+  {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
+  {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
+  {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
+  {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
+  {controlsUnlocked && <button onClick={() => setPage("bracketAdmin")}>Bracket Admin</button>}
+</div>
 
 
       {!controlsUnlocked && (
@@ -2399,8 +2889,13 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
       {page === "dashboard" && (
         <div className="grid two">
-          <div className="card hero-card">
+          <div className={`card hero-card ${isPlayoffGame ? "playoff-live-card" : ""}`}>
             <h2>Featured Live Game</h2>
+            {isPlayoffGame && (
+  <div className="playoff-live-badge">
+    Playoff Game · {selectedLivePlayoffSeriesLabel}
+  </div>
+)}
             {homeTeam && awayTeam ? (
               <>
                 <div className="mlb-live-layout dashboard-live-layout">
@@ -2699,15 +3194,92 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 </div>
 
             <div className="live-top-setup">
-              <div><label>Away Team</label><select value={currentGame.awayTeamId} onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}><option value="">Select away team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
-              <div><label>Home Team</label><select value={currentGame.homeTeamId} onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}><option value="">Select home team</option>{numberedTeams.map((team) => <option value={team.id} key={team.id}>{`${team.listNumber}. ${teamOptionLabel(team)}`}</option>)}</select></div>
-              <div><label>Date</label><input type="date" value={currentGame.date} onChange={(e) => updateCurrentGame("date", e.target.value)} /></div>
-              <div><label>Status</label><select value={currentGame.status} onChange={(e) => updateCurrentGame("status", e.target.value)}><option>Not Started</option><option>Live</option><option>Mid-Inning</option><option>Final</option></select></div>
-            </div>
+  <div>
+    <label>Away Team</label>
+    <select
+      value={currentGame.awayTeamId}
+      onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}
+    >
+      <option value="">Select away team</option>
+      {numberedTeams.map((team) => (
+        <option value={team.id} key={team.id}>
+          {`${team.listNumber}. ${teamOptionLabel(team)}`}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label>Home Team</label>
+    <select
+      value={currentGame.homeTeamId}
+      onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}
+    >
+      <option value="">Select home team</option>
+      {numberedTeams.map((team) => (
+        <option value={team.id} key={team.id}>
+          {`${team.listNumber}. ${teamOptionLabel(team)}`}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label>Date</label>
+    <input
+      type="date"
+      value={currentGame.date}
+      onChange={(e) => updateCurrentGame("date", e.target.value)}
+    />
+  </div>
+
+  <div>
+    <label>Status</label>
+    <select
+      value={currentGame.status}
+      onChange={(e) => updateCurrentGame("status", e.target.value)}
+    >
+      <option>Not Started</option>
+      <option>Live</option>
+      <option>Mid-Inning</option>
+      <option>Final</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Game Type</label>
+    <select
+      value={currentGame.gameType || "regular"}
+      onChange={(e) => {
+        updateCurrentGame("gameType", e.target.value);
+        if (e.target.value === "regular") updateCurrentGame("playoffSeriesId", "");
+      }}
+    >
+      <option value="regular">Regular Season</option>
+      <option value="playoff">Playoff</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Playoff Series</label>
+    <select
+      value={currentGame.playoffSeriesId || ""}
+      disabled={(currentGame.gameType || "regular") !== "playoff"}
+      onChange={(e) => updateCurrentGame("playoffSeriesId", e.target.value)}
+    >
+      <option value="">Select series</option>
+      {playoffSeriesOptions.map((series) => (
+  <option key={series.id} value={series.id}>
+    {playoffSeriesDropdownLabel(series)}
+  </option>
+))}
+    </select>
+  </div>
+</div>
 
             <div className="mlb-live-layout">
               <div className="score-panel">
-                <div className="unified-scoreboard-card">
+                <div className={`unified-scoreboard-card ${isPlayoffGame ? "playoff-scoreboard-card" : ""}`}>
                   <div className="unified-scoreboard-header">
                     <div className="team-look-column">
                       <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
@@ -3042,6 +3614,108 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
         </div>
       )}
 
+      {page === "bracket" && (
+  <div className="bracket-page">
+    <div className="card season-format-card">
+      <h2>Playoff Bracket</h2>
+      <p className="muted">
+        40-game regular season. Seeds lock after Game 40. Playoff series update from Bracket Admin results.
+      </p>
+    </div>
+
+    <div className="true-bracket-shell">
+      {["AL", "NL"].map((league) => {
+        const picture = playoffPicture.find((item) => item.league === league);
+        const leaders = picture?.divisionLeaders || [];
+        const wildcards = picture?.wildcardTeams || [];
+
+        const seed1 = leaders[0];
+        const seed2 = leaders[1];
+        const seed3 = leaders[2];
+        const wc1 = wildcards[0];
+        const wc2 = wildcards[1];
+        const wc3 = wildcards[2];
+
+        const isAL = league === "AL";
+        const leagueKey = league.toLowerCase();
+
+        return (
+          <div
+            className={`true-bracket-league ${isAL ? "true-bracket-left" : "true-bracket-right"}`}
+            key={`${league}-true-bracket`}
+          >
+            <h3>{league}</h3>
+
+            <div className="true-bracket-grid">
+              <div className="true-bracket-column wildcard-column">
+                <div className="bracket-round-title">Wild Card</div>
+
+                {renderBracketSeries(
+                  `${leagueKey}_wc1`,
+                  "WC A — #3 vs WC3",
+                  seed3,
+                  wc3,
+                  "wc-slot-top"
+                )}
+
+                {renderBracketSeries(
+                  `${leagueKey}_wc2`,
+                  "WC B — WC1 vs WC2",
+                  wc1,
+                  wc2,
+                  "wc-slot-bottom"
+                )}
+              </div>
+
+              <div className="true-bracket-column lds-column">
+                <div className="bracket-round-title">Division Series</div>
+
+                {renderBracketSeries(
+                  `${leagueKey}_ds1`,
+                  "LDS A — #1 vs WC A Winner",
+                  seed1,
+                  null,
+                  "lds-slot-top"
+                )}
+
+                {renderBracketSeries(
+                  `${leagueKey}_ds2`,
+                  "LDS B — #2 vs WC B Winner",
+                  seed2,
+                  null,
+                  "lds-slot-bottom"
+                )}
+              </div>
+
+              <div className="true-bracket-column cs-column">
+                <div className="bracket-round-title">{league}CS</div>
+
+                {renderBracketSeries(
+                  `${leagueKey}_cs`,
+                  `${league} Championship`,
+                  null,
+                  null,
+                  "cs-slot"
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="true-world-series-center">
+        {renderBracketSeries(
+          "worldSeries",
+          "World Series",
+          null,
+          null,
+          "world-series-card"
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
       {page === "standings" && (
         <div className="standings-wrap">
           {data.leagues.map((league) => (
@@ -3317,6 +3991,90 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
           ))}
         </div>
       )}
+      {page === "bracketAdmin" && controlsUnlocked && (
+  <div className="bracket-admin-page">
+    <div className="card">
+      <h2>Bracket Admin</h2>
+      <p className="muted">
+        Initialize the bracket from current seeds, then enter playoff game scores. Series winners automatically advance.
+      </p>
+
+      <div className="inline-buttons">
+        <button onClick={initializeBracketFromCurrentSeeds}>
+          Initialize Bracket From Current Seeds
+        </button>
+      </div>
+    </div>
+
+    <div className="card">
+      <h3>Add Playoff Game Result</h3>
+
+      <div className="form-grid">
+        <div>
+          <label>Series</label>
+          <select
+            value={selectedPlayoffSeriesId}
+            onChange={(e) => setSelectedPlayoffSeriesId(e.target.value)}
+          >
+            {playoffSeriesOptions.map((series) => (
+  <option key={series.id} value={series.id}>
+    {playoffSeriesDropdownLabel(series)}
+  </option>
+))}
+          </select>
+        </div>
+
+        <div>
+          <label>Away / Top Score</label>
+          <input
+            type="number"
+            value={playoffAwayScore}
+            onChange={(e) => setPlayoffAwayScore(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>Home / Bottom Score</label>
+          <input
+            type="number"
+            value={playoffHomeScore}
+            onChange={(e) => setPlayoffHomeScore(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="inline-buttons">
+        <button onClick={addPlayoffGameResult}>Add Playoff Result</button>
+      </div>
+    </div>
+
+    <div className="card">
+      <h3>Current Series</h3>
+
+      <div className="bracket-admin-series-list">
+        {playoffSeriesOptions.map((option) => {
+          const series = getPlayoffSeries(playoffBracket, option.id);
+
+          return (
+            <div className="bracket-admin-series-row" key={`admin-${option.id}`}>
+              <div>
+                <strong>{playoffSeriesDropdownLabel(option)}</strong>
+                <div className="muted">
+                  {teamAbbr(series.awayTeamId)} vs {teamAbbr(series.homeTeamId)}
+                </div>
+              </div>
+
+              <div>
+                <strong>{series.awayWins || 0}-{series.homeWins || 0}</strong>
+                <div className="muted">{seriesStatusText(series, option.id)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+)}
 
       {page === "admin" && controlsUnlocked && (
         <div className="grid two admin-picker-layout">
