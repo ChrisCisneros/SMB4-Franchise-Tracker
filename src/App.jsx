@@ -3919,68 +3919,79 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                     <div className="card" key={`${league}-${division}-quick`}>
                       <h3>{division}</h3>
 
-                      {groupTeams.map((team) => (
-                        <div className="quick-row" key={team.id}>
-                          <div>
-                            <strong>{team.city} {team.name}</strong>
-                            <div className="muted">{team.abbr}</div>
-                          </div>
+                      {groupTeams.map((team) => {
+  const gamesPlayed = Number(team.wins || 0) + Number(team.losses || 0);
+  const gamesLeft = Math.max(0, SEASON_LENGTH - gamesPlayed);
+  const isDone = gamesLeft === 0;
 
-                          <div>
-                            <label>Wins</label>
-                            <input
-                              type="number"
-                              value={team.wins}
-                              onChange={(e) => updateRecord(team.id, "wins", e.target.value)}
-                            />
-                          </div>
+  return (
+    <div className="quick-row" key={team.id}>
+      <div className="quick-team-name">
+        <strong>{team.city} {team.name}</strong>
+        <span>{team.abbr}</span>
+      </div>
 
-                          <div>
-                            <label>Losses</label>
-                            <input
-                              type="number"
-                              value={team.losses}
-                              onChange={(e) => updateRecord(team.id, "losses", e.target.value)}
-                            />
-                          </div>
-<div className="muted">{pct(team.wins, team.losses)}</div>
-                          <div>
-                            
-                            <div>
-  <label>RS</label>
-  <input
-    type="number"
-    value={team.runsScored || 0}
-    onChange={(e) => updateRecord(team.id, "runsScored", e.target.value)}
-  />
-</div>
+      <div>
+        <span className={`quick-game-count ${isDone ? "complete" : "needs-games"}`}>
+          Game {gamesPlayed} / {SEASON_LENGTH} · {isDone ? "Done" : `Needs ${gamesLeft}`}
+        </span>
+      </div>
 
-<div>
-  <label>RA</label>
-  <input
-    type="number"
-    value={team.runsAllowed || 0}
-    onChange={(e) => updateRecord(team.id, "runsAllowed", e.target.value)}
-  />
-</div>
+      <div>
+        <label>Wins</label>
+        <input
+          type="number"
+          value={team.wins}
+          onChange={(e) => updateRecord(team.id, "wins", e.target.value)}
+        />
+      </div>
 
-<div className="muted">
-  {team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}
-</div>
-                          </div>
+      <div>
+        <label>Losses</label>
+        <input
+          type="number"
+          value={team.losses}
+          onChange={(e) => updateRecord(team.id, "losses", e.target.value)}
+        />
+      </div>
 
-                          
-                          <div>
-  <label>Streak</label>
-  <input
-    type="text"
-    value={team.streak || ""}
-    onChange={(e) => updateRecord(team.id, "streak", e.target.value)}
-  />
-</div>
+      <div className="quick-readonly-stat">
+        {pct(team.wins, team.losses)}
+      </div>
 
-                        </div>
-                      ))}
+      <div>
+        <label>RS</label>
+        <input
+          type="number"
+          value={team.runsScored || 0}
+          onChange={(e) => updateRecord(team.id, "runsScored", e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label>RA</label>
+        <input
+          type="number"
+          value={team.runsAllowed || 0}
+          onChange={(e) => updateRecord(team.id, "runsAllowed", e.target.value)}
+        />
+      </div>
+
+      <div className="quick-readonly-stat">
+        {team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}
+      </div>
+
+      <div>
+        <label>Streak</label>
+        <input
+          type="text"
+          value={team.streak || ""}
+          onChange={(e) => updateRecord(team.id, "streak", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+})}
 
                       {!groupTeams.length && <p className="muted">No teams in this division yet.</p>}
                     </div>

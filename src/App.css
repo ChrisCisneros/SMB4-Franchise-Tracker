@@ -645,21 +645,79 @@ label {
 
 .quick-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) repeat(5, minmax(76px, 0.7fr)) 70px;
-  gap: 8px;
-  align-items: end;
+  grid-template-columns: minmax(150px, 1.5fr) 120px 72px 72px 64px 80px 80px 64px 82px;
+  gap: 10px;
+  align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid #1f2937;
 }
 
+.quick-row:last-child {
+  border-bottom: none;
+}
+
+.quick-team-name {
+  min-width: 0;
+}
+
+.quick-team-name strong {
+  display: block;
+  line-height: 1.1;
+}
+
+.quick-team-name span {
+  display: block;
+  color: #93c5fd;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
 .quick-row label {
-  font-size: 11px;
+  display: block;
   margin-bottom: 4px;
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quick-game-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quick-game-count.complete {
+  background: #14532d;
+  color: #bbf7d0;
+  border: 1px solid #22c55e;
+}
+
+.quick-game-count.needs-games {
+  background: #78350f;
+  color: #fde68a;
+  border: 1px solid #f59e0b;
 }
 
 .quick-row input {
+  width: 100%;
+  max-width: none;
   padding: 8px 10px;
   font-size: 13px;
+}
+
+.quick-readonly-stat {
+  color: #e5e7eb;
+  font-weight: 800;
+  text-align: center;
 }
 
 .standings-wrap {
@@ -2028,4 +2086,27 @@ label {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.quick-game-count {
+  width: fit-content;
+  margin-top: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quick-game-count.complete {
+  background: #14532d;
+  color: #bbf7d0;
+  border: 1px solid #22c55e;
+}
+
+.quick-game-count.needs-games {
+  background: #713f12;
+  color: #fef3c7;
+  border: 1px solid #f59e0b;
 }
