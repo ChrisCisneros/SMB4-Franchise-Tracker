@@ -623,7 +623,11 @@ function pct(wins, losses) {
 
 function gamesBack(team, leader) {
   if (!leader || team.id === leader.id) return "—";
+
   const gb = ((leader.wins - team.wins) + (team.losses - leader.losses)) / 2;
+
+  if (gb <= 0) return "—";
+
   return gb.toFixed(1).replace(".0", "");
 }
 
