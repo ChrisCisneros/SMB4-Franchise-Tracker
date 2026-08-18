@@ -3813,7 +3813,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                       
   <div
   className="standings-header standings-row"
-  style={{ gridTemplateColumns: "30px 1.4fr 90px 70px 70px 60px 70px 70px" }}
+  style={{ gridTemplateColumns: "30px 1.4fr 90px 70px 70px 60px 70px" }}
 >
   <span>#</span>
   <span>Team</span>
@@ -4036,6 +4036,15 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
         <strong>{pct(Number(team.wins || 0), Number(team.losses || 0))}</strong>
       </div>
 
+      <div className="quick-readonly-stat">
+  <label>GB</label>
+  <strong>{gamesBack(team, groupTeams[0])}</strong>
+</div>
+
+<div className="quick-readonly-stat">
+  <label>E#</label>
+  <strong>{team.id === groupTeams[0]?.id ? "—" : eliminationNumber(team, groupTeams[0])}</strong>
+</div>
       <div className="quick-stepper quick-rd-stepper">
         <label>RD</label>
         <div className="stepper-controls stepper-controls-wide">
