@@ -967,7 +967,8 @@ const [losingPitcherId, setLosingPitcherId] = useState("");
 const [selectedPlayoffSeriesId, setSelectedPlayoffSeriesId] = useState("al_wc1");
 const [playoffAwayScore, setPlayoffAwayScore] = useState("");
 const [playoffHomeScore, setPlayoffHomeScore] = useState("");
-
+const [recentlyUpdatedTeamId, setRecentlyUpdatedTeamId] = useState("");
+const recentlyUpdatedTimerRef = useRef(null);
 
 
   function syncTeamsToFirebase(nextTeams) {
@@ -2317,6 +2318,16 @@ function updateRecord(teamId, field, value) {
 }
 
 function adjustTeamNumber(teamId, field, amount) {
+  setRecentlyUpdatedTeamId(teamId);
+
+  if (recentlyUpdatedTimerRef.current) {
+    clearTimeout(recentlyUpdatedTimerRef.current);
+  }
+
+  recentlyUpdatedTimerRef.current = setTimeout(() => {
+    setRecentlyUpdatedTeamId("");
+  }, 1000);
+
   setData((prev) => {
     const nextTeams = prev.teams.map((team) => {
       if (team.id !== teamId) return team;
@@ -2903,7 +2914,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill">v1.6</span>
+    <span className="version-pill">v0.2</span>
   </div>
   <p>SMB4 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
@@ -3817,7 +3828,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                       
   <div
   className="standings-header standings-row"
-  style={{ gridTemplateColumns: "34px minmax(140px, 1fr) 90px 80px 70px 70px 70px" }}
+  style={{ gridTemplateColumns: "50px 90px 70px 58px 58px 50px 55px" }}
 >
   <span>#</span>
   <span>Team</span>
@@ -3836,7 +3847,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
     <div
   className="standings-row"
   key={team.id}
-  style={{ gridTemplateColumns: "34px minmax(140px, 1fr) 90px 80px 70px 70px 70px" }}
+  style={{ gridTemplateColumns: "50px 90px 70px 58px 58px 50px 55px" }}
 >
   <span>{index + 1}</span>
 
@@ -3875,7 +3886,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
 <div
   className="standings-header standings-row wildcard-row"
-  style={{ gridTemplateColumns: "60px 70px 1.2fr 90px 70px 55px 70px 70px" }}
+  style={{ gridTemplateColumns: "50px 90px 70px 58px 58px 50px 55px" }}
 >
   <span>Seed</span>
   <span>Div</span>
@@ -3884,18 +3895,17 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   <span>PCT</span>
   <span>E#</span>
   <span>RD</span>
-  <span>STRK</span>
 </div>
 
 {picture.divisionLeaders.map((team, index) => {
   const marker = getPlayoffMarker(team, picture, team);
 
   return (
-    <div
-      className="standings-row wildcard-row division-leader-row"
-      key={`${picture.league}-leader-${team.id}`}
-      style={{ gridTemplateColumns: "60px 70px 1.2fr 90px 70px 55px 70px 70px" }}
-    >
+   <div
+  className="standings-row wildcard-row division-leader-row"
+  key={`${picture.league}-leader-${team.id}`}
+  style={{ gridTemplateColumns: "50px 70px 90px 70px 58px 50px 55px" }}
+>
       <span>{index + 1}</span>
       <span>{team.division}</span>
 
@@ -3908,7 +3918,6 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
       <span>{pct(team.wins, team.losses)}</span>
       <span>—</span>
       <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-      <span>{team.streak || "-"}</span>
     </div>
   );
 })}
@@ -3917,7 +3926,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
 <div
   className="standings-header standings-row wildcard-row"
-  style={{ gridTemplateColumns: "60px 1.2fr 90px 70px 70px 55px 70px 70px" }}
+  style={{ gridTemplateColumns: "50px 90px 70px 58px 58px 50px 55px" }}
 >
   <span>Seed</span>
   <span>Team</span>
@@ -3926,7 +3935,6 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   <span>WCGB</span>
   <span>E#</span>
   <span>RD</span>
-  <span>STRK</span>
 </div>
 
 {picture.wildcardTeams.map((team, index) => {
@@ -3935,12 +3943,12 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   const marker = getWildcardMarker(team, picture, index);
   return (
     <div
-      className={`standings-row wildcard-row ${
-        isWildCardTeam ? "wildcard-in" : "wildcard-out"
-      } ${isCutoff ? "wildcard-cutoff" : ""}`}
-      key={`${picture.league}-wc-${team.id}`}
-      style={{ gridTemplateColumns: "60px 1.2fr 90px 70px 70px 55px 70px 70px" }}
-    >
+  className={`standings-row wildcard-row ${
+    isWildCardTeam ? "wildcard-in" : "wildcard-out"
+  } ${isCutoff ? "wildcard-cutoff" : ""}`}
+  key={`${picture.league}-wc-${team.id}`}
+  style={{ gridTemplateColumns: "50px 90px 70px 58px 58px 50px 55px" }}
+>
       <span>{isWildCardTeam ? `WC${index + 1}` : "—"}</span>
 
       <span className="team-name-cell">
@@ -3953,7 +3961,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
       <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
       <span>{isWildCardTeam ? "—" : eliminationNumber(team, picture.cutoffTeam)}</span>
       <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-      <span>{team.streak || "-"}</span>
+
     </div>
   );
 })}
@@ -3998,14 +4006,20 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                     <div className="card" key={`${league}-${division}-quick`}>
                       <h3>{division}</h3>
 
-                      {groupTeams.map((team) => {
+                     {groupTeams.map((team) => {
   const gamesPlayed = Number(team.wins || 0) + Number(team.losses || 0);
   const gamesLeft = Math.max(0, SEASON_LENGTH - gamesPlayed);
   const isDone = gamesLeft === 0;
   const rd = Number(team.runDiff || 0);
+  const leader = groupTeams[0];
 
   return (
-    <div className="quick-row smb-quick-row" key={team.id}>
+    <div
+  className={`quick-row smb-quick-row ${
+    recentlyUpdatedTeamId === team.id ? "recently-updated-row" : ""
+  }`}
+  key={team.id}
+>
       <div className="quick-team-name">
         <strong>{team.city} {team.name}</strong>
         <span>{team.abbr}</span>
@@ -4013,60 +4027,49 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
       <div>
         <span className={`quick-game-count ${isDone ? "complete" : "needs-games"}`}>
-          Game {gamesPlayed} / {SEASON_LENGTH} · {isDone ? "Done" : `Needs ${gamesLeft}`}
+          Game {gamesPlayed}/{SEASON_LENGTH} · {isDone ? "Done" : `Needs ${gamesLeft}`}
         </span>
       </div>
 
-      <div className="quick-stepper">
-        <label>Wins</label>
-        <div className="stepper-controls">
+      <div className="quick-mini-stats">
+        <div>
+          <label>PCT</label>
+          <strong>{pct(Number(team.wins || 0), Number(team.losses || 0))}</strong>
+        </div>
+        <div>
+          <label>GB</label>
+          <strong>{gamesBack(team, leader)}</strong>
+        </div>
+        <div>
+          <label>E#</label>
+          <strong>{team.id === leader?.id ? "—" : eliminationNumber(team, leader)}</strong>
+        </div>
+      </div>
+
+      <div className="quick-record-stack">
+        <div className="quick-compact-stepper">
+          <label>W</label>
           <button type="button" onClick={() => adjustTeamNumber(team.id, "wins", -1)}>-</button>
           <strong>{team.wins || 0}</strong>
           <button type="button" onClick={() => adjustTeamNumber(team.id, "wins", 1)}>+</button>
         </div>
-      </div>
 
-      <div className="quick-stepper">
-        <label>Losses</label>
-        <div className="stepper-controls">
+        <div className="quick-compact-stepper">
+          <label>L</label>
           <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", -1)}>-</button>
           <strong>{team.losses || 0}</strong>
           <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", 1)}>+</button>
         </div>
       </div>
 
-      <div className="quick-readonly-stat">
-        <label>PCT</label>
-        <strong>{pct(Number(team.wins || 0), Number(team.losses || 0))}</strong>
-      </div>
-
-      <div className="quick-readonly-stat">
-  <label>GB</label>
-  <strong>{gamesBack(team, groupTeams[0])}</strong>
-</div>
-
-<div className="quick-readonly-stat">
-  <label>E#</label>
-  <strong>{team.id === groupTeams[0]?.id ? "—" : eliminationNumber(team, groupTeams[0])}</strong>
-</div>
-      <div className="quick-stepper quick-rd-stepper">
+      <div className="quick-rd-compact">
         <label>RD</label>
-        <div className="stepper-controls stepper-controls-wide">
+        <div className="quick-rd-buttons">
           <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", -5)}>-5</button>
-          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", -1)}>-</button>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", -1)}>-1</button>
           <strong>{rd > 0 ? `+${rd}` : rd}</strong>
-          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", 1)}>+</button>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", 1)}>+1</button>
           <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", 5)}>+5</button>
-        </div>
-      </div>
-
-      <div className="quick-stepper quick-streak-stepper">
-        <label>Streak</label>
-        <div className="stepper-controls stepper-controls-wide">
-          <button type="button" onClick={() => adjustTeamStreak(team.id, "L")}>L+</button>
-          <strong>{team.streak || "-"}</strong>
-          <button type="button" onClick={() => adjustTeamStreak(team.id, "W")}>W+</button>
-          <button type="button" className="danger-lite" onClick={() => resetTeamStreak(team.id)}>Reset</button>
         </div>
       </div>
     </div>

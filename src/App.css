@@ -645,10 +645,10 @@ label {
 
 .quick-row {
   display: grid;
-  grid-template-columns: minmax(170px, 1.5fr) 140px 110px 110px 65px 65px 65px minmax(230px, 1.2fr);
-  gap: 10px;
+  grid-template-columns: minmax(140px, 1.3fr) 120px minmax(150px, 0.9fr) minmax(130px, 0.9fr) minmax(220px, 1.2fr);
+  gap: 8px;
   align-items: center;
-  padding: 12px 0;
+  padding: 8px 0;
   border-bottom: 1px solid #1f2937;
 }
 
@@ -663,20 +663,21 @@ label {
 .quick-team-name strong {
   display: block;
   line-height: 1.1;
+  font-size: 13px;
 }
 
 .quick-team-name span {
   display: block;
   color: #93c5fd;
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 2px;
 }
 
 .quick-row label {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   color: #93c5fd;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -687,9 +688,9 @@ label {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  padding: 6px 10px;
+  padding: 5px 8px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -707,98 +708,168 @@ label {
   border: 1px solid #f59e0b;
 }
 
-.quick-row input {
-  width: 100%;
-  max-width: none;
-  padding: 8px 10px;
+.quick-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.quick-mini-stats div,
+.quick-compact-stepper,
+.quick-rd-compact {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.quick-mini-stats strong {
+  display: block;
+  text-align: center;
   font-size: 13px;
 }
 
-.quick-readonly-stat {
-  color: #e5e7eb;
-  font-weight: 800;
-  text-align: center;
-}
-
-.quick-readonly-stat label {
-  display: block;
-  margin-bottom: 4px;
-}
-
-.quick-stepper label {
-  display: block;
-  margin-bottom: 4px;
-  color: #93c5fd;
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.stepper-controls {
+.quick-record-stack {
   display: grid;
-  grid-template-columns: 34px 1fr 34px;
   gap: 6px;
+}
+
+.quick-compact-stepper {
+  display: grid;
+  grid-template-columns: 20px 30px 1fr 30px;
+  gap: 5px;
   align-items: center;
 }
 
-.stepper-controls-wide {
-  grid-template-columns: 44px 34px minmax(50px, 1fr) 34px 44px;
+.quick-compact-stepper label {
+  margin: 0;
 }
 
-.quick-streak-stepper .stepper-controls-wide {
-  grid-template-columns: 42px minmax(54px, 1fr) 42px 66px;
+.quick-compact-stepper strong,
+.quick-rd-buttons strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border-radius: 999px;
+  background: #111827;
+  border: 1px solid #334155;
+  font-size: 13px;
 }
 
-.stepper-controls button {
-  min-height: 32px;
+.quick-compact-stepper button,
+.quick-rd-buttons button {
+  min-height: 28px;
   padding: 0 8px;
   border-radius: 999px;
   font-size: 12px;
 }
 
-.stepper-controls strong {
-  display: inline-flex;
+.quick-rd-buttons {
+  display: grid;
+  grid-template-columns: 40px 40px minmax(48px, 1fr) 40px 40px;
+  gap: 5px;
   align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: #0f172a;
-  border: 1px solid #334155;
-  font-size: 13px;
+}
+
+@media (max-width: 1200px) {
+  .quick-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-mini-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .quick-rd-buttons {
+    grid-template-columns: 1fr 1fr minmax(54px, 1fr) 1fr 1fr;
+  }
 }
 
 .standings-wrap {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
+
+.recently-updated-row {
+  background: rgba(245, 158, 11, 0.32) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(245, 158, 11, 0.95),
+    0 0 22px rgba(245, 158, 11, 0.45);
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+  animation: recent-row-pulse 0.8s ease-in-out infinite alternate;
+}
+
+.recently-updated-row > * {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+}
+
+@keyframes recent-row-pulse {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.35);
+  }
+}
+
+
+
 
 .league-block {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+}
+
+.league-block h2 {
+  margin: 4px 0 0;
 }
 
 .standings-header,
 .standings-row {
   display: grid;
-  grid-template-columns: 30px 1fr 80px 80px 60px;
-  gap: 10px;
+  grid-template-columns: 28px 100px 70px 58px 52px 52px 52px;
+  gap: 6px;
   align-items: center;
 }
 
 .standings-header {
   font-weight: bold;
   color: #94a3b8;
-  padding-bottom: 8px;
+  padding-bottom: 5px;
   border-bottom: 1px solid #1f2937;
+  font-size: 12px;
 }
 
 .standings-row {
-  padding: 8px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #1f2937;
+  font-size: 13px;
+}
+
+.standings-wrap .card {
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.standings-wrap .card h3,
+.standings-wrap .card h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.standings-wrap .grid.three {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+}
+
+.standings-wrap .card {
+  overflow: hidden;
 }
 
 @media (max-width: 1300px) {
@@ -809,23 +880,22 @@ label {
 
 @media (max-width: 1200px) {
   .grid.two,
-  .grid.three,
-  .live-layout,
-  .admin-picker-layout,
-  .compact-admin-grid,
-  .play-detail-row,
-  .live-top-setup,
-  .daily-header-row,
-  .daily-results-head,
-  .daily-results-row,
-  .quick-row,
-  .player-add-row,
-  .player-delete-row,
-  .form-grid,
-  .team-edit-grid,
-  .player-display-row {
-    grid-template-columns: 1fr;
-  }
+.live-layout,
+.admin-picker-layout,
+.compact-admin-grid,
+.play-detail-row,
+.live-top-setup,
+.daily-header-row,
+.daily-results-head,
+.daily-results-row,
+.quick-row,
+.player-add-row,
+.player-delete-row,
+.form-grid,
+.team-edit-grid,
+.player-display-row {
+  grid-template-columns: 1fr;
+}
 
   .compact-scoreboard {
     grid-template-columns: 1fr;
