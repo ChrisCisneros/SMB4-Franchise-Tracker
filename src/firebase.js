@@ -2,15 +2,16 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA7dI-ohE77ZHWmQLcozyfbS5kEEORD19Y",
-  authDomain: "franchise-tracker-c09b9.firebaseapp.com",
-  databaseURL: "https://franchise-tracker-c09b9-default-rtdb.firebaseio.com",
-  projectId: "franchise-tracker-c09b9",
-  storageBucket: "franchise-tracker-c09b9.firebasestorage.app",
-  messagingSenderId: "925622690513",
-  appId: "1:925622690513:web:d66a0348a39cf084531bf0",
-  measurementId: "G-1027BHMGJP",
+  apiKey: "AIzaSyDcfJuRgoUAcrZk04bGdoObCdxxjmXC5JA",
+  authDomain: "smb4-franchise-tracker.firebaseapp.com",
+  databaseURL: "https://smb4-franchise-tracker-default-rtdb.firebaseio.com",
+  projectId: "smb4-franchise-tracker",
+  storageBucket: "smb4-franchise-tracker.firebasestorage.app",
+  messagingSenderId: "1088235770637",
+  appId: "1:1088235770637:web:019375c9aabf376bb6d644",
+  measurementId: "G-XMQRPHH2FV",
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const db = getDatabase(app);

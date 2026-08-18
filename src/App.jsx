@@ -3,10 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { db } from "./firebase";
 import { onValue, ref, set } from "firebase/database";
-const STORAGE_KEY = "franchise-tracker-bugfix-v1";
+const STORAGE_KEY = "smb4-franchise-tracker-v1";
 const CONTROL_PASSWORD = "changeme";
 const LEGACY_STORAGE_KEYS = [];
 const SEASON_LENGTH = 40;
+const WILD_CARD_TEAMS_PER_LEAGUE = 5;
+const PLAYOFF_TEAMS_PER_LEAGUE = 8;
+const PLAYOFF_WINS_NEEDED = 3;
 
 
 
@@ -458,10 +461,8 @@ function makeSafePlayoffBracket(bracket) {
   };
 }
 
-function getWinsNeededForSeries(seriesId) {
-  if (seriesId.includes("_wc")) return 2;
-  if (seriesId === "worldSeries") return 4;
-  return 3;
+function getWinsNeededForSeries() {
+  return PLAYOFF_WINS_NEEDED;
 }
 
 function getPlayoffSeries(bracket, seriesId) {
@@ -740,10 +741,12 @@ function getPlayoffMarker(team, picture, divisionLeader) {
   );
 
   const wildCardTeamIds = new Set(
-    picture.wildcardTeams.slice(0, 3).map((team) => team.id)
+    picture.wildcardTeams
+      .slice(0, WILD_CARD_TEAMS_PER_LEAGUE)
+      .map((team) => team.id)
   );
 
-  const firstTeamOut = picture.wildcardTeams[3];
+  const firstTeamOut = picture.wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE];
 
   if (firstTeamOut) {
     const firstTeamOutMaxWins =
@@ -770,11 +773,11 @@ function getPlayoffMarker(team, picture, divisionLeader) {
 function getWildcardMarker(team, picture, index) {
   if (!team || !picture) return "";
 
-  const isWildCardTeam = index < 3;
+  const isWildCardTeam = index < WILD_CARD_TEAMS_PER_LEAGUE;
   const cutoffTeam = picture.cutoffTeam;
 
   if (isWildCardTeam) {
-    const firstTeamOut = picture.wildcardTeams[3];
+    const firstTeamOut = picture.wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE];
 
     if (!firstTeamOut) return "";
 
@@ -782,8 +785,8 @@ function getWildcardMarker(team, picture, index) {
       Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
 
     if (Number(team.wins || 0) > firstTeamOutMaxWins) {
-  return "w";
-}
+      return "w";
+    }
 
     return "";
   }
@@ -1427,7 +1430,7 @@ const wildcardTeams = sortStandingsTeams(
   leagueTeams.filter((team) => !divisionLeaderIds.has(team.id))
 );
 
-const cutoffTeam = wildcardTeams[2] || null;
+const cutoffTeam = wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE - 1] || null;
 
 return {
   league,
@@ -2309,6 +2312,62 @@ function updateRecord(teamId, field, value) {
   });
 }
 
+function adjustTeamNumber(teamId, field, amount) {
+  setData((prev) => {
+    const nextTeams = prev.teams.map((team) => {
+      if (team.id !== teamId) return team;
+
+      const current = Number(team[field] || 0);
+      const nextValue =
+        field === "wins" || field === "losses"
+          ? Math.max(0, current + amount)
+          : current + amount;
+
+      return {
+        ...team,
+        [field]: nextValue,
+      };
+    });
+
+    syncTeamsToFirebase(nextTeams);
+
+    return {
+      ...prev,
+      teams: nextTeams,
+    };
+  });
+}
+
+function adjustTeamStreak(teamId, resultType) {
+  setData((prev) => {
+    const nextTeams = prev.teams.map((team) => {
+      if (team.id !== teamId) return team;
+
+      const currentStreak = String(team.streak || "").toUpperCase();
+      const currentType = currentStreak.startsWith(resultType) ? resultType : "";
+      const currentNumber = currentType
+        ? Number(currentStreak.replace(resultType, "")) || 0
+        : 0;
+
+      return {
+        ...team,
+        streak: `${resultType}${currentNumber + 1}`,
+      };
+    });
+
+    syncTeamsToFirebase(nextTeams);
+
+    return {
+      ...prev,
+      teams: nextTeams,
+    };
+  });
+}
+
+function resetTeamStreak(teamId) {
+  updateRecord(teamId, "streak", "");
+}
+
   function setLineup(side, index, playerId) {
     const key = side === "away" ? "awayLineup" : "homeLineup";
     const lineup = [...currentGame[key]];
@@ -2839,10 +2898,10 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
       <div className="topbar">
        <div>
   <div className="title-row">
-    <h1>The Show League Central</h1>
+    <h1>SMB4 Franchise Central</h1>
     <span className="version-pill">v1.6</span>
   </div>
-  <p>MLB The Show 26 League Hub · 40-game regular season · Seeds lock after Game 40</p>
+  <p>SMB4 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -3105,14 +3164,34 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
     </div>
 
     <div className="list-row">
-      <strong>Most Runs Scored</strong>
-      <span>{topRunsScored ? `${topRunsScored.abbr} ${topRunsScored.runsScored || 0}` : "—"}</span>
-    </div>
+  <strong>Best Record</strong>
+  <span>
+    {sortTeams(teams)[0]
+      ? `${sortTeams(teams)[0].abbr} ${sortTeams(teams)[0].wins}-${sortTeams(teams)[0].losses}`
+      : "—"}
+  </span>
+</div>
 
-    <div className="list-row">
-      <strong>Fewest Runs Allowed</strong>
-      <span>{bestRunsAllowed ? `${bestRunsAllowed.abbr} ${bestRunsAllowed.runsAllowed || 0}` : "—"}</span>
-    </div>
+<div className="list-row">
+  <strong>Most Games Played</strong>
+  <span>
+    {[...teams].sort(
+      (a, b) =>
+        (Number(b.wins || 0) + Number(b.losses || 0)) -
+        (Number(a.wins || 0) + Number(a.losses || 0))
+    )[0]
+      ? (() => {
+          const team = [...teams].sort(
+            (a, b) =>
+              (Number(b.wins || 0) + Number(b.losses || 0)) -
+              (Number(a.wins || 0) + Number(a.losses || 0))
+          )[0];
+
+          return `${team.abbr} ${Number(team.wins || 0) + Number(team.losses || 0)}`;
+        })()
+      : "—"}
+  </span>
+</div>
   </div>
 
   <div className="card">
@@ -3144,11 +3223,11 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
             <div className="grid two">
     {playoffPicture.map((picture) => (
       <div className="playoff-league-card" key={`${picture.league}-dashboard-race`}>
-        <h3>{picture.league} Wild Card</h3>
+        <h3>{picture.league} Playoff Race </h3>
 
-        <div className="playoff-section-label">Current Wild Cards</div>
+        <div className="playoff-section-label">Current Wild Cards -- Top 5</div>
 
-        {picture.wildcardTeams.slice(0, 3).map((team, index) => (
+        {picture.wildcardTeams.slice(0, WILD_CARD_TEAMS_PER_LEAGUE).map((team, index) => (
           <div className="playoff-race-row" key={`${picture.league}-dash-wc-${team.id}`}>
             <strong>{`WC${index + 1}`}</strong>
             <span>{team.abbr}</span>
@@ -3159,16 +3238,18 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
         <div className="playoff-section-label">Almost In</div>
 
-        {picture.wildcardTeams.slice(3, 6).map((team, index) => (
+        {picture.wildcardTeams
+  .slice(WILD_CARD_TEAMS_PER_LEAGUE, WILD_CARD_TEAMS_PER_LEAGUE + 3)
+  .map((team, index) => (
           <div className="playoff-race-row playoff-race-chaser" key={`${picture.league}-dash-chase-${team.id}`}>
             <strong>{index + 1}</strong>
             <span>{team.abbr}</span>
             <span>{team.wins}-{team.losses}</span>
-            <span>{wildCardGamesBack(team, picture.cutoffTeam, index + 3)} GB</span>
+            <span>{wildCardGamesBack(team, picture.cutoffTeam, index + WILD_CARD_TEAMS_PER_LEAGUE)} GB</span>
           </div>
         ))}
 
-        {picture.wildcardTeams.length <= 3 && (
+        {picture.wildcardTeams.length <= WILD_CARD_TEAMS_PER_LEAGUE && (
           <p className="muted">No teams chasing yet.</p>
         )}
       </div>
@@ -3729,9 +3810,10 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
                   return (
                     <div className="card" key={key}>
                       <h3>{division}</h3>
-                      <div
+                      
+  <div
   className="standings-header standings-row"
-  style={{ gridTemplateColumns: "30px 1.2fr 70px 70px 60px 55px 55px 55px 55px 60px" }}
+  style={{ gridTemplateColumns: "30px 1.4fr 90px 70px 70px 60px 70px 70px" }}
 >
   <span>#</span>
   <span>Team</span>
@@ -3739,10 +3821,7 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   <span>PCT</span>
   <span>GB</span>
   <span>E#</span>
-  <span>RS</span>
-  <span>RA</span>
   <span>RD</span>
-  <span>STRK</span>
 </div>
 
 {divisionTeams.map((team, index) => {
@@ -3751,26 +3830,23 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
   return (
     <div
-      className="standings-row"
-      key={team.id}
-      style={{ gridTemplateColumns: "30px 1.2fr 70px 70px 60px 55px 55px 55px 55px 60px" }}
-    >
-      <span>{index + 1}</span>
+  className="standings-row"
+  key={team.id}
+  style={{ gridTemplateColumns: "30px 1.4fr 90px 70px 70px 60px 70px 70px" }}
+>
+  <span>{index + 1}</span>
 
-      <span className="team-name-cell">
-        {marker && <strong className={`playoff-marker marker-${marker}`}>{marker}</strong>}
-        <span>{team.abbr}</span>
-      </span>
+  <span className="team-name-cell">
+    {marker && <strong className={`playoff-marker marker-${marker}`}>{marker}</strong>}
+    <span>{team.abbr}</span>
+  </span>
 
-      <span>{team.wins}-{team.losses}</span>
-      <span>{pct(team.wins, team.losses)}</span>
-      <span>{gamesBack(team, leader)}</span>
-      <span>{index === 0 ? "—" : eliminationNumber(team, leader)}</span>
-      <span>{team.runsScored || 0}</span>
-      <span>{team.runsAllowed || 0}</span>
-      <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
-      <span>{team.streak || "-"}</span>
-    </div>
+  <span>{team.wins}-{team.losses}</span>
+  <span>{pct(team.wins, team.losses)}</span>
+  <span>{gamesBack(team, leader)}</span>
+  <span>{index === 0 ? "—" : eliminationNumber(team, leader)}</span>
+  <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+</div>
   );
 })}
                       {!divisionTeams.length && (
@@ -3850,10 +3926,9 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 </div>
 
 {picture.wildcardTeams.map((team, index) => {
-  const isWildCardTeam = index < 3;
-  const isCutoff = index === 2;
+  const isWildCardTeam = index < WILD_CARD_TEAMS_PER_LEAGUE;
+  const isCutoff = index === WILD_CARD_TEAMS_PER_LEAGUE - 1;
   const marker = getWildcardMarker(team, picture, index);
-
   return (
     <div
       className={`standings-row wildcard-row ${
@@ -3923,9 +3998,10 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   const gamesPlayed = Number(team.wins || 0) + Number(team.losses || 0);
   const gamesLeft = Math.max(0, SEASON_LENGTH - gamesPlayed);
   const isDone = gamesLeft === 0;
+  const rd = Number(team.runDiff || 0);
 
   return (
-    <div className="quick-row" key={team.id}>
+    <div className="quick-row smb-quick-row" key={team.id}>
       <div className="quick-team-name">
         <strong>{team.city} {team.name}</strong>
         <span>{team.abbr}</span>
@@ -3937,57 +4013,48 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
         </span>
       </div>
 
-      <div>
+      <div className="quick-stepper">
         <label>Wins</label>
-        <input
-          type="number"
-          value={team.wins}
-          onChange={(e) => updateRecord(team.id, "wins", e.target.value)}
-        />
+        <div className="stepper-controls">
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "wins", -1)}>-</button>
+          <strong>{team.wins || 0}</strong>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "wins", 1)}>+</button>
+        </div>
       </div>
 
-      <div>
+      <div className="quick-stepper">
         <label>Losses</label>
-        <input
-          type="number"
-          value={team.losses}
-          onChange={(e) => updateRecord(team.id, "losses", e.target.value)}
-        />
+        <div className="stepper-controls">
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", -1)}>-</button>
+          <strong>{team.losses || 0}</strong>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", 1)}>+</button>
+        </div>
       </div>
 
       <div className="quick-readonly-stat">
-        {pct(team.wins, team.losses)}
+        <label>PCT</label>
+        <strong>{pct(Number(team.wins || 0), Number(team.losses || 0))}</strong>
       </div>
 
-      <div>
-        <label>RS</label>
-        <input
-          type="number"
-          value={team.runsScored || 0}
-          onChange={(e) => updateRecord(team.id, "runsScored", e.target.value)}
-        />
+      <div className="quick-stepper quick-rd-stepper">
+        <label>RD</label>
+        <div className="stepper-controls stepper-controls-wide">
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", -5)}>-5</button>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", -1)}>-</button>
+          <strong>{rd > 0 ? `+${rd}` : rd}</strong>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", 1)}>+</button>
+          <button type="button" onClick={() => adjustTeamNumber(team.id, "runDiff", 5)}>+5</button>
+        </div>
       </div>
 
-      <div>
-        <label>RA</label>
-        <input
-          type="number"
-          value={team.runsAllowed || 0}
-          onChange={(e) => updateRecord(team.id, "runsAllowed", e.target.value)}
-        />
-      </div>
-
-      <div className="quick-readonly-stat">
-        {team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}
-      </div>
-
-      <div>
+      <div className="quick-stepper quick-streak-stepper">
         <label>Streak</label>
-        <input
-          type="text"
-          value={team.streak || ""}
-          onChange={(e) => updateRecord(team.id, "streak", e.target.value)}
-        />
+        <div className="stepper-controls stepper-controls-wide">
+          <button type="button" onClick={() => adjustTeamStreak(team.id, "L")}>L+</button>
+          <strong>{team.streak || "-"}</strong>
+          <button type="button" onClick={() => adjustTeamStreak(team.id, "W")}>W+</button>
+          <button type="button" className="danger-lite" onClick={() => resetTeamStreak(team.id)}>Reset</button>
+        </div>
       </div>
     </div>
   );
