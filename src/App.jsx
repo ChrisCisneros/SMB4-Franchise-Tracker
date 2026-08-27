@@ -87,7 +87,7 @@ TEAM_COLORS.ATL = {
   cityConnect: { main: "#4583d3", alt: "#01105c", border: "#8c1204", text: "#ffffff", gradient:false},
 };
 TEAM_COLORS.AZ = {
-  primary: {main: "#ffffff", alt: "#a70808", border: "#02ebeb", text: "#ffffff", gradient:false},
+  primary: {main: "#ffffff", alt: "#a70808", border: "#02ebeb", text: "#000000", gradient:false},
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#02ebeb", text: "#730606" },{ name: "Red Alt", main: "#730606", alt: "#02ebeb", text: "#02ebeb" },{ name: "Away", main: "#adadad", alt: "#02ebeb", text: "#730606" }
   ],
