@@ -1944,6 +1944,33 @@ label {
   border-bottom: 1px solid #1f2937;
 }
 
+.dashboard-count-stack {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.dashboard-outs-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.dashboard-out-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #111827;
+  border: 2px solid #64748b;
+}
+
+.dashboard-out-dot.active {
+  background: #f59e0b;
+  border-color: #fde68a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
 .franchise-top-row {
   display: flex;
   gap: 14px;

@@ -1019,6 +1019,12 @@ const recentlyUpdatedTimerRef = useRef(null);
     });
   }
 
+  function syncCurrentGameToFirebase(nextCurrentGame) {
+  set(ref(db, "currentGame"), makeSafeGame(nextCurrentGame)).catch((error) => {
+    console.error("[Firebase Debug] WRITE currentGame failed", error);
+  });
+}
+
 function syncLastFinalGameToFirebase(nextLastFinalGame) {
   set(ref(db, "lastFinalGame"), nextLastFinalGame).catch((error) => {
     console.error("[Firebase Debug] WRITE lastFinalGame failed", error);
@@ -1028,9 +1034,7 @@ function syncLastFinalGameToFirebase(nextLastFinalGame) {
 function syncAllDataToFirebase() {
   syncTeamsToFirebase(data.teams);
   syncPlayersToFirebase(data.players);
-  set(ref(db, "currentGame"), makeSafeGame(data.currentGame)).catch((error) => {
-    console.error("[Firebase Debug] WRITE currentGame failed", error);
-  });
+  syncCurrentGameToFirebase(data.currentGame);
   syncLastFinalGameToFirebase(data.lastFinalGame || null);
   alert("Synced local data to Firebase.");
 }
@@ -1680,15 +1684,24 @@ function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam
 }
 
   function commitGameUpdate(mutator) {
-    setData((prev) => {
-      const game = makeSafeGame(prev.currentGame);
-      const next = safeCloneSnapshot(game);
-      next.history = [...(game.history || []).slice(-(MAX_HISTORY - 1)), safeCloneSnapshot(game)];
-      mutator(next);
-      next.playLog = (next.playLog || []).slice(0, MAX_PLAY_LOG);
-      return { ...prev, currentGame: next };
-    });
-  }
+  setData((prev) => {
+    const game = makeSafeGame(prev.currentGame);
+    const next = safeCloneSnapshot(game);
+
+    next.history = [
+      ...(game.history || []).slice(-(MAX_HISTORY - 1)),
+      safeCloneSnapshot(game),
+    ];
+
+    mutator(next);
+
+    next.playLog = (next.playLog || []).slice(0, MAX_PLAY_LOG);
+
+    syncCurrentGameToFirebase(next);
+
+    return { ...prev, currentGame: next };
+  });
+}
 
   function setBanner(message) {
     setInningBanner(message);
@@ -1762,18 +1775,28 @@ function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam
   }
 
   function updateCurrentGame(field, value) {
-    clearBanner();
-    setData((prev) => {
-      const nextGame = { ...prev.currentGame, inningStatus: "", [field]: value };
-      if (field === "awayTeamId") {
-        nextGame.awayLook = { mode: "primary", index: 0 };
-      }
-      if (field === "homeTeamId") {
-        nextGame.homeLook = { mode: "primary", index: 0 };
-      }
-      return { ...prev, currentGame: nextGame };
+  clearBanner();
+
+  setData((prev) => {
+    const nextGame = makeSafeGame({
+      ...prev.currentGame,
+      inningStatus: "",
+      [field]: value,
     });
-  }
+
+    if (field === "awayTeamId") {
+      nextGame.awayLook = { mode: "primary", index: 0 };
+    }
+
+    if (field === "homeTeamId") {
+      nextGame.homeLook = { mode: "primary", index: 0 };
+    }
+
+    syncCurrentGameToFirebase(nextGame);
+
+    return { ...prev, currentGame: nextGame };
+  });
+}
 
   function setLiveGameField(field, value) {
   clearBanner();
@@ -3186,9 +3209,20 @@ const dashboardStories = [
                     ? `${currentGame.status} · ${currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}`
                     : currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}
                 </div>
-                <div className="dashboard-count-pill">
-                  {currentGame.balls}-{currentGame.strikes} · {currentGame.outs} outs
-                </div>
+                <div className="dashboard-count-stack">
+  <div className="dashboard-count-pill">
+    {currentGame.balls}-{currentGame.strikes}
+  </div>
+
+  <div className="dashboard-outs-mini">
+    {[1, 2].map((outNumber) => (
+      <span
+        key={`dashboard-out-${outNumber}`}
+        className={currentGame.outs >= outNumber ? "dashboard-out-dot active" : "dashboard-out-dot"}
+      />
+    ))}
+  </div>
+</div>
               </div>
 
               <div className="dashboard-team-tile">
