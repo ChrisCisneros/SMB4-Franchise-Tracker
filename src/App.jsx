@@ -678,21 +678,20 @@ function formatHalfGame(value) {
 function wildCardGamesBack(team, cutoffTeam, index) {
   if (!team || !cutoffTeam) return "—";
 
-  // 3rd wild card is the cutoff line
-  if (index === 2) return "—";
-
   const raw =
     ((Number(cutoffTeam.wins || 0) - Number(team.wins || 0)) +
       (Number(team.losses || 0) - Number(cutoffTeam.losses || 0))) /
     2;
 
-  // Top 2 WC teams are ahead of the cutoff, so show +0.5 / +1 / etc.
-  if (index < 2) {
-    return raw < 0 ? `+${formatHalfGame(raw)}` : "—";
+  const isCutoffOrTiedWithCutoff = raw === 0;
+
+  if (isCutoffOrTiedWithCutoff) return "—";
+
+  if (raw < 0) {
+    return `+${formatHalfGame(raw)}`;
   }
 
-  // Teams below cutoff show how far back they are
-  return raw > 0 ? formatHalfGame(raw) : "—";
+  return formatHalfGame(raw);
 }
 
 function gamesBackRaw(team, leader) {
@@ -737,33 +736,69 @@ function isEliminatedFromTarget(team, target) {
   return eliminationNumber(team, target) === "E";
 }
 
+function maxPossibleWins(team) {
+  return Number(team.wins || 0) + gamesRemaining(team);
+}
+
+function hasClinchedDivision(team, picture) {
+  if (!team || !picture) return false;
+
+  const divisionTeams = picture.leagueTeams?.filter(
+    (otherTeam) =>
+      otherTeam.division === team.division && otherTeam.id !== team.id
+  ) || [];
+
+  return divisionTeams.every(
+    (otherTeam) => Number(team.wins || 0) > maxPossibleWins(otherTeam)
+  );
+}
+
+function hasClinchedTopLeagueSeed(team, picture) {
+  if (!team || !picture) return false;
+
+  const leagueTeams = picture.leagueTeams || [];
+
+  return leagueTeams.every(
+    (otherTeam) =>
+      otherTeam.id === team.id ||
+      Number(team.wins || 0) > maxPossibleWins(otherTeam)
+  );
+}
+
 function getPlayoffMarker(team, picture, divisionLeader) {
   if (!team || !picture) return "";
 
   const divisionLeaderIds = new Set(
-    picture.divisionLeaders.map((team) => team.id)
-  );
-
-  const wildCardTeamIds = new Set(
-    picture.wildcardTeams
-      .slice(0, WILD_CARD_TEAMS_PER_LEAGUE)
-      .map((team) => team.id)
+    picture.divisionLeaders.map((leaderTeam) => leaderTeam.id)
   );
 
   const firstTeamOut = picture.wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE];
+
+  const allLeagueGamesFinished = (picture.leagueTeams || []).every(
+    (leagueTeam) => gamesRemaining(leagueTeam) === 0
+  );
+
+  if (allLeagueGamesFinished && hasClinchedTopLeagueSeed(team, picture)) {
+    return "z";
+  }
+
+  if (hasClinchedDivision(team, picture)) {
+    return "y";
+  }
 
   if (firstTeamOut) {
     const firstTeamOutMaxWins =
       Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
 
-    if (Number(team.wins || 0) > firstTeamOutMaxWins) {
-      if (wildCardTeamIds.has(team.id) && !divisionLeaderIds.has(team.id)) {
+    const hasClinchedPlayoffSpot =
+      Number(team.wins || 0) > firstTeamOutMaxWins;
+
+    if (hasClinchedPlayoffSpot) {
+      if (!divisionLeaderIds.has(team.id)) {
         return "w";
       }
 
-      if (divisionLeaderIds.has(team.id)) {
-        return "x";
-      }
+      return "x";
     }
   }
 
@@ -1439,6 +1474,7 @@ const cutoffTeam = wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE - 1] || null;
 
 return {
   league,
+  leagueTeams,
   divisionLeaders: seededDivisionLeaders,
   wildcardTeams,
   cutoffTeam,
@@ -1766,6 +1802,76 @@ function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam
       return { ...prev, currentGame: nextGame };
     });
   }
+
+  function setLiveGameField(field, value) {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+    next[field] = value;
+  });
+}
+
+function adjustLiveInning(amount) {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+    next.inning = Math.max(1, Number(next.inning || 1) + amount);
+  });
+}
+
+function setLiveHalf(half) {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.half = half;
+    next.inningStatus = "";
+  });
+}
+
+function setMidEndInningStatus() {
+  commitGameUpdate((next) => {
+    const isTop = next.half === "Top";
+    const statusText = isTop ? `Mid ${next.inning}` : `End ${next.inning}`;
+
+    next.inningStatus = statusText;
+    next.balls = 0;
+    next.strikes = 0;
+    next.outs = 0;
+    next.bases = { first: false, second: false, third: false };
+
+    setBanner(statusText);
+  });
+}
+
+function toggleOutDot(targetOuts) {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+
+    if (next.outs === targetOuts) {
+      next.outs = Math.max(0, targetOuts - 1);
+    } else {
+      next.outs = targetOuts;
+    }
+
+    clearCount(next);
+  });
+}
+
+function resetLiveCountAndBases() {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+    next.balls = 0;
+    next.strikes = 0;
+    next.outs = 0;
+    next.bases = { first: false, second: false, third: false };
+  });
+}
 
   function changePitcher(side, pitcherId) {
   clearBanner();
@@ -2907,14 +3013,123 @@ const lastFinalWinningPitcher = lastFinalGame?.winningPitcherId
 const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
   ? players.find((player) => player.id === lastFinalGame.losingPitcherId)
   : null;
+const favoriteTeam =
+  teams.find((team) => team.abbr === "SF") || sortTeams(teams)[0] || null;
 
+const favoritePicture = favoriteTeam
+  ? playoffPicture.find((picture) => picture.league === favoriteTeam.league)
+  : null;
+
+const favoriteDivisionTeams = favoriteTeam
+  ? sortStandingsTeams(
+      teams.filter(
+        (team) =>
+          team.league === favoriteTeam.league &&
+          team.division === favoriteTeam.division
+      )
+    )
+  : [];
+
+const favoriteDivisionLeader = favoriteDivisionTeams[0] || null;
+const favoriteDivisionRank = favoriteTeam
+  ? favoriteDivisionTeams.findIndex((team) => team.id === favoriteTeam.id) + 1
+  : 0;
+
+const favoriteMarker =
+  favoriteTeam && favoritePicture
+    ? getPlayoffMarker(favoriteTeam, favoritePicture, favoriteDivisionLeader)
+    : "";
+
+const favoriteGamesPlayed = favoriteTeam
+  ? Number(favoriteTeam.wins || 0) + Number(favoriteTeam.losses || 0)
+  : 0;
+
+const favoriteGamesLeft = favoriteTeam
+  ? Math.max(0, SEASON_LENGTH - favoriteGamesPlayed)
+  : 0;
+
+const bestRecordTeam = sortTeams(teams)[0] || null;
+
+const worstRecordTeam =
+  [...teams].sort((a, b) => {
+    const pctDiff = winningPctValue(a) - winningPctValue(b);
+    if (pctDiff !== 0) return pctDiff;
+    return Number(a.runDiff || 0) - Number(b.runDiff || 0);
+  })[0] || null;
+
+const divisionRaceCards = data.leagues.flatMap((league) =>
+  data.divisions
+    .map((division) => {
+      const divisionTeams = sortStandingsTeams(
+        teams.filter((team) => team.league === league && team.division === division)
+      );
+
+      const leader = divisionTeams[0];
+      const second = divisionTeams[1];
+
+      if (!leader || !second) return null;
+
+      return {
+        league,
+        division,
+        leader,
+        second,
+        gap: gamesBack(second, leader),
+        rawGap: gamesBackRaw(second, leader),
+      };
+    })
+    .filter(Boolean)
+);
+
+const tightestDivisionRace =
+  divisionRaceCards
+    .filter((race) => race.rawGap >= 0)
+    .sort((a, b) => a.rawGap - b.rawGap)[0] || null;
+
+const favoriteDivisionChaser =
+  favoriteDivisionTeams.find((team) => team.id !== favoriteTeam?.id) || null;
+
+const dashboardStories = [
+  favoriteTeam && {
+    title: "Franchise Focus",
+    value: `${favoriteTeam.abbr} ${favoriteTeam.wins}-${favoriteTeam.losses}`,
+    detail:
+      favoriteDivisionRank === 1
+        ? `Leading the ${favoriteTeam.league} ${favoriteTeam.division} by ${
+            favoriteDivisionChaser ? gamesBack(favoriteDivisionChaser, favoriteTeam) : "—"
+          }.`
+        : `${gamesBack(favoriteTeam, favoriteDivisionLeader)} GB in the ${favoriteTeam.league} ${favoriteTeam.division}.`,
+  },
+  bestRecordTeam && {
+    title: "Best Record",
+    value: `${bestRecordTeam.abbr} ${bestRecordTeam.wins}-${bestRecordTeam.losses}`,
+    detail: `${pct(bestRecordTeam.wins, bestRecordTeam.losses)} winning percentage.`,
+  },
+  bestRunDiff && {
+    title: "Run Differential King",
+    value: `${bestRunDiff.abbr} ${bestRunDiff.runDiff > 0 ? "+" : ""}${bestRunDiff.runDiff}`,
+    detail: "Biggest RD in the league right now.",
+  },
+  tightestDivisionRace && {
+    title: "Tightest Division",
+    value: `${tightestDivisionRace.league} ${tightestDivisionRace.division}`,
+    detail: `${tightestDivisionRace.leader.abbr} leads ${tightestDivisionRace.second.abbr} by ${tightestDivisionRace.gap}.`,
+  },
+  lastFinalGame &&
+    lastFinalAwayTeam &&
+    lastFinalHomeTeam && {
+      title: "Last Final",
+      value: `${lastFinalAwayTeam.abbr} ${lastFinalGame.awayScore}, ${lastFinalHomeTeam.abbr} ${lastFinalGame.homeScore}`,
+      detail: `Margin: ${Math.abs(Number(lastFinalGame.awayScore || 0) - Number(lastFinalGame.homeScore || 0))}.`,
+    },
+].filter(Boolean);
   return (
     <div className="app-shell wide-shell">
       <div className="topbar">
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill">v0.2</span>
+    <span className="version-pill">v0.5</span>
   </div>
   <p>SMB4 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
@@ -2961,648 +3176,566 @@ const lastFinalLosingPitcher = lastFinalGame?.losingPitcherId
 
 
 
-      {page === "dashboard" && (
-        <div className="grid two">
-          <div className={`card hero-card ${isPlayoffGame ? "playoff-live-card" : ""}`}>
-            <h2>Featured Live Game</h2>
-            {isPlayoffGame && (
-  <div className="playoff-live-badge">
-    Playoff Game · {selectedLivePlayoffSeriesLabel}
-  </div>
-)}
-            {homeTeam && awayTeam ? (
-              <>
-                <div className="mlb-live-layout dashboard-live-layout">
-                  <div className="score-panel">
-                    <div className="unified-scoreboard-card dashboard-scoreboard-card">
-                      <div className="unified-scoreboard-header">
-                        <div className="team-look-column">
-                          <div className="team-pill" style={{
-  background: awayColors.gradient
-    ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})`
-    : awayColors.main,
-  borderColor: awayColors.border,
-  color: awayColors.text
-}}>
-                            {awayTeam ? awayTeam.abbr : "AWY"}
-                          </div>
-                           <div className="small-text muted">
-    {awayTeam ? `${awayTeam.wins}-${awayTeam.losses}` : ""}
-  </div>
-                          <ChallengeBars count={currentGame.awayChallenges} />
-                        </div>
+     {page === "dashboard" && (
+  <div className="dashboard-v3">
+    <div className="dashboard-hero-grid">
+      <div className="card dashboard-broadcast-card">
+        <div className="dashboard-card-kicker">
+          {homeTeam && awayTeam ? "Live Game" : "Latest Result"}
+        </div>
 
-                        <div className="score-center">
-                          <span className={`score-number ${scoreFlashSide === "away" ? "score-flash" : ""}`}>
-  {currentGame.awayScore}
-</span>
-  <span className="score-dash">-</span>
-<span className={`score-number ${scoreFlashSide === "home" ? "score-flash" : ""}`}>
-  {currentGame.homeScore}
-</span>
-                        </div>
-
-                        <div className="team-look-column">
-                          <div className="team-pill" style={{
-  background: homeColors.gradient
-    ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})`
-    : homeColors.main,
-  borderColor: homeColors.border,
-  color: homeColors.text
-}}>
-                            {homeTeam ? homeTeam.abbr : "HME"}
-                          </div>
-                          <div className="small-text muted">
-    {homeTeam ? `${homeTeam.wins}-${homeTeam.losses}` : ""}
-  </div>
-                          <ChallengeBars count={currentGame.homeChallenges} />
-                        </div>
-                      </div>
-
-                      <div className="inning-text unified-inning-text">{displayGameState}</div>
-
-                      <div className="count-bubble unified-count-bubble">
-                        {combinedCountText}
-                      </div>
-
-                      <div className="active-batter-banner"><div>
-  At Bat: #{currentBatter?.number || "--"} {currentBatter?.name}
-
-  <div className="small-text muted">
-    {currentBatter ? `${currentBatter.hits || 0}-${currentBatter.ab || 0}` : ""}
-  </div>
-
-  <div className="small-text muted">
-    Last AB: {currentBatter?.lastAB || "-"}
-  </div>
-  
-</div></div>
-                  <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-
-                      <div className="muted">
-  Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}
-  {" "}
-  ({currentPitchCount} pitches)
-</div>
-
-                      <BaseDiamond bases={currentGame.bases} />
-                      <div className="game-status-strip">
-  <span>Batter: {currentBatter ? `#${currentBatter.number || "--"} ${currentBatter.name}` : "Set lineup"}</span>
-  <span>On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</span>
-  <span>Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}</span>
-  <span>Count: {combinedCountText}</span>
-</div>
-                    </div>
-                    
-                  </div>
-                  <div className="linescore-side-panel">
-                    <div className="linescore-box">
-                      <div className="linescore-row linescore-head">
-                        <span>Team</span>
-                        {Array.from({ length: 9 }, (_, i) => <span key={i}>{i + 1}</span>)}
-                        <span>R</span><span>H</span><span>E</span>
-                      </div>
-                      <div className="linescore-row">
-                        <span>{awayTeam.abbr}</span>
-                        {Array.from({ length: 9 }, (_, i) => <span key={i}>{renderInningCell("away", i + 1, currentGame)}</span>)}
-                        <span>{currentGame.awayScore}</span><span>{currentGame.awayHits}</span><span>{currentGame.awayErrors}</span>
-                      </div>
-                      <div className="linescore-row">
-                        <span>{homeTeam.abbr}</span>
-                        {Array.from({ length: 9 }, (_, i) => <span key={i}>{renderInningCell("home", i + 1, currentGame)}</span>)}
-                        <span>{currentGame.homeScore}</span><span>{currentGame.homeHits}</span><span>{currentGame.homeErrors}</span>
-                      </div>
-                    </div>
-                  </div>
+        {homeTeam && awayTeam ? (
+          <>
+            <div className="dashboard-matchup-row">
+              <div className="dashboard-team-tile">
+                <div
+                  className="dashboard-team-logo"
+                  style={{
+                    background: awayColors.gradient
+                      ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})`
+                      : awayColors.main,
+                    borderColor: awayColors.border,
+                    color: awayColors.text,
+                  }}
+                >
+                  {awayTeam.abbr}
                 </div>
-                <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
-                
-
-
-{(inningBanner || currentGame.status === "Final") && <div className="event-banner">Inning Status: {displayGameState}</div>}           
-              </>
-              
-            ) : lastFinalGame && lastFinalAwayTeam && lastFinalHomeTeam ? (
-  <div className="final-recap-card">
-    <h2>Last Final</h2>
-
-    <div className="unified-scoreboard-card dashboard-scoreboard-card">
-      <div className="unified-scoreboard-header">
-        <div className="team-look-column">
-          <div className="team-pill">
-            {lastFinalAwayTeam.abbr}
-          </div>
-          <div className="small-text muted">
-            {lastFinalAwayTeam.wins}-{lastFinalAwayTeam.losses}
-          </div>
-        </div>
-
-        <div className="score-center">
-          <span className="score-number">{lastFinalGame.awayScore}</span>
-          <span className="score-dash">-</span>
-          <span className="score-number">{lastFinalGame.homeScore}</span>
-        </div>
-
-        <div className="team-look-column">
-          <div className="team-pill">
-            {lastFinalHomeTeam.abbr}
-          </div>
-          <div className="small-text muted">
-            {lastFinalHomeTeam.wins}-{lastFinalHomeTeam.losses}
-          </div>
-        </div>
-      </div>
-
-      <div className="inning-text unified-inning-text">Final</div>
-
-      <div className="game-status-strip">
-        <span>WP: {lastFinalWinningPitcher ? `#${lastFinalWinningPitcher.number || "--"} ${lastFinalWinningPitcher.name}` : "—"}</span>
-        <span>LP: {lastFinalLosingPitcher ? `#${lastFinalLosingPitcher.number || "--"} ${lastFinalLosingPitcher.name}` : "—"}</span>
-      </div>
-    </div>
-  </div>
-) : (
-  <p>No live game set up yet.</p>
-)}
-</div>
-<div className="card batting-card">
-  <h2>{battingTeam ? `${battingTeam.abbr} Batting` : "Batting Team"}</h2>
-
-  {battingLineupPlayers.map(({ player, index }) => {
-    const isCurrent = player.id === currentBatter?.id;
-
-    return (
-      <div
-        className={`batting-lineup-row ${isCurrent ? "is-current-batter" : ""}`}
-        key={`dashboard-batting-${player.id}`}
-      >
-        <span className="batting-order-number">{index + 1}</span>
-
-        <div>
-          <strong>#{player.number || "--"} {player.name}</strong>
-          <div className="muted small-text">
-            {player.hits || 0}-{player.ab || 0}
-            {player.lastAB ? ` · Last AB: ${player.lastAB}` : ""}
-          </div>
-        </div>
-      </div>
-    );
-  })}
-
-  {!battingLineupPlayers.length && (
-    <p className="muted">Set a lineup to show batting order.</p>
-  )}
-
-  <div className="due-up-box">
-    <h3>Due Up Next</h3>
-
-    {dueUpBatters.map(({ player, orderNumber }) => (
-  <div className="due-up-row" key={`dashboard-due-${player.id}`}>
-    <span>{orderNumber}</span>
-    <strong>#{player.number || "--"} {player.name}</strong>
-    <span className="muted">{player.hits || 0}-{player.ab || 0}</span>
-  </div>
-))}
-
-    {!dueUpBatters.length && (
-      <p className="muted">No due-up hitters yet.</p>
-    )}
-  </div>
-</div>
-<div className="grid three" style={{ marginTop: "20px" }}>
-  <div className="card">
-    <h2>League Leaders</h2>
-
-    <div className="list-row">
-      <strong>Best Run Diff</strong>
-      <span>{bestRunDiff ? `${bestRunDiff.abbr} ${bestRunDiff.runDiff > 0 ? "+" : ""}${bestRunDiff.runDiff}` : "—"}</span>
-    </div>
-
-    <div className="list-row">
-  <strong>Best Record</strong>
-  <span>
-    {sortTeams(teams)[0]
-      ? `${sortTeams(teams)[0].abbr} ${sortTeams(teams)[0].wins}-${sortTeams(teams)[0].losses}`
-      : "—"}
-  </span>
-</div>
-
-<div className="list-row">
-  <strong>Most Games Played</strong>
-  <span>
-    {[...teams].sort(
-      (a, b) =>
-        (Number(b.wins || 0) + Number(b.losses || 0)) -
-        (Number(a.wins || 0) + Number(a.losses || 0))
-    )[0]
-      ? (() => {
-          const team = [...teams].sort(
-            (a, b) =>
-              (Number(b.wins || 0) + Number(b.losses || 0)) -
-              (Number(a.wins || 0) + Number(a.losses || 0))
-          )[0];
-
-          return `${team.abbr} ${Number(team.wins || 0) + Number(team.losses || 0)}`;
-        })()
-      : "—"}
-  </span>
-</div>
-  </div>
-
-  <div className="card">
-    <h2>Hot / Cold</h2>
-
-    <div className="list-row">
-      <strong>Hottest</strong>
-      <span>{longestWinStreak ? `${longestWinStreak.abbr} ${longestWinStreak.streak}` : "—"}</span>
-    </div>
-
-    <div className="list-row">
-      <strong>Cold Spell</strong>
-      <span>{longestLossStreak ? `${longestLossStreak.abbr} ${longestLossStreak.streak}` : "—"}</span>
-    </div>
-  </div>
-  <div className="card">
-            <h2>Best Records</h2>
-            {sortTeams(teams).slice(0, 5).map((team) => (
-              <div className="list-row" key={team.id}>
-                <div>
-                  <strong>{team.city} {team.name}</strong>
-                  <div className="muted">{team.league} {team.division}</div>
-                </div>
-                <div>{team.wins}-{team.losses} ({pct(team.wins, team.losses)})</div>
+                <strong>{awayTeam.wins}-{awayTeam.losses}</strong>
               </div>
-            ))}
-            {!teams.length && <p className="muted">No teams yet.</p>}
-          </div>
-            <div className="grid two">
-    {playoffPicture.map((picture) => (
-      <div className="playoff-league-card" key={`${picture.league}-dashboard-race`}>
-        <h3>{picture.league} Playoff Race </h3>
 
-        <div className="playoff-section-label">Current Wild Cards -- Top 5</div>
+              <div className="dashboard-score-core">
+                <div className="dashboard-scoreline">
+                  <span>{currentGame.awayScore}</span>
+                  <span className="dashboard-score-dash">-</span>
+                  <span>{currentGame.homeScore}</span>
+                </div>
+                <div className="dashboard-game-state">
+                  {["Live", "Warmup", "Delay", "Final"].includes(currentGame.status)
+                    ? `${currentGame.status} · ${currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}`
+                    : currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}
+                </div>
+                <div className="dashboard-count-pill">
+                  {currentGame.balls}-{currentGame.strikes} · {currentGame.outs} outs
+                </div>
+              </div>
 
-        {picture.wildcardTeams.slice(0, WILD_CARD_TEAMS_PER_LEAGUE).map((team, index) => (
-          <div className="playoff-race-row" key={`${picture.league}-dash-wc-${team.id}`}>
-            <strong>{`WC${index + 1}`}</strong>
-            <span>{team.abbr}</span>
-            <span>{team.wins}-{team.losses}</span>
-            <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
-          </div>
-        ))}
+              <div className="dashboard-team-tile">
+                <div
+                  className="dashboard-team-logo"
+                  style={{
+                    background: homeColors.gradient
+                      ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})`
+                      : homeColors.main,
+                    borderColor: homeColors.border,
+                    color: homeColors.text,
+                  }}
+                >
+                  {homeTeam.abbr}
+                </div>
+                <strong>{homeTeam.wins}-{homeTeam.losses}</strong>
+              </div>
+            </div>
 
-        <div className="playoff-section-label">Almost In</div>
+            <div className="dashboard-mini-linescore">
+              <div className="dashboard-mini-line dashboard-mini-head">
+                <span>Team</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-head-${i}`}>{i + 1}</span>
+                ))}
+                <span>R</span>
+              </div>
 
-        {picture.wildcardTeams
-  .slice(WILD_CARD_TEAMS_PER_LEAGUE, WILD_CARD_TEAMS_PER_LEAGUE + 3)
-  .map((team, index) => (
-          <div className="playoff-race-row playoff-race-chaser" key={`${picture.league}-dash-chase-${team.id}`}>
-            <strong>{index + 1}</strong>
-            <span>{team.abbr}</span>
-            <span>{team.wins}-{team.losses}</span>
-            <span>{wildCardGamesBack(team, picture.cutoffTeam, index + WILD_CARD_TEAMS_PER_LEAGUE)} GB</span>
-          </div>
-        ))}
+              <div className="dashboard-mini-line">
+                <span>{awayTeam.abbr}</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-away-${i}`}>
+                    {renderInningCell("away", i + 1, currentGame)}
+                  </span>
+                ))}
+                <span>{currentGame.awayScore}</span>
+              </div>
 
-        {picture.wildcardTeams.length <= WILD_CARD_TEAMS_PER_LEAGUE && (
-          <p className="muted">No teams chasing yet.</p>
+              <div className="dashboard-mini-line">
+                <span>{homeTeam.abbr}</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-home-${i}`}>
+                    {renderInningCell("home", i + 1, currentGame)}
+                  </span>
+                ))}
+                <span>{currentGame.homeScore}</span>
+              </div>
+            </div>
+          </>
+        ) : lastFinalGame && lastFinalAwayTeam && lastFinalHomeTeam ? (
+          <>
+            <div className="dashboard-matchup-row">
+              <div className="dashboard-team-tile">
+                <div className="dashboard-team-logo">{lastFinalAwayTeam.abbr}</div>
+                <strong>{lastFinalAwayTeam.wins}-{lastFinalAwayTeam.losses}</strong>
+              </div>
+
+              <div className="dashboard-score-core">
+                <div className="dashboard-scoreline">
+                  <span>{lastFinalGame.awayScore}</span>
+                  <span className="dashboard-score-dash">-</span>
+                  <span>{lastFinalGame.homeScore}</span>
+                </div>
+                <div className="dashboard-game-state">Final</div>
+                <div className="dashboard-count-pill">
+                  {lastFinalAwayTeam.abbr} @ {lastFinalHomeTeam.abbr}
+                </div>
+              </div>
+
+              <div className="dashboard-team-tile">
+                <div className="dashboard-team-logo">{lastFinalHomeTeam.abbr}</div>
+                <strong>{lastFinalHomeTeam.wins}-{lastFinalHomeTeam.losses}</strong>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="muted">No live game or final result yet.</p>
         )}
       </div>
-    ))}
-  </div>
-          </div>
 
-          
+      <div className="card dashboard-franchise-card">
+        <div className="dashboard-card-kicker">Franchise Focus</div>
+
+        {favoriteTeam ? (
+          <>
+            <div className="franchise-top-row">
+              <div className="franchise-logo">{favoriteTeam.abbr}</div>
+              <div>
+                <h2>{favoriteTeam.city} {favoriteTeam.name}</h2>
+                <p className="muted">{favoriteTeam.league} {favoriteTeam.division}</p>
+              </div>
+            </div>
+
+            <div className="franchise-record">{favoriteTeam.wins}-{favoriteTeam.losses}</div>
+
+            <div className="franchise-stat-grid">
+              <div>
+                <span>PCT</span>
+                <strong>{pct(favoriteTeam.wins, favoriteTeam.losses)}</strong>
+              </div>
+              <div>
+                <span>RD</span>
+                <strong>{favoriteTeam.runDiff > 0 ? `+${favoriteTeam.runDiff}` : favoriteTeam.runDiff}</strong>
+              </div>
+              <div>
+                <span>Left</span>
+                <strong>{favoriteGamesLeft}</strong>
+              </div>
+              <div>
+                <span>Mark</span>
+                <strong>{favoriteMarker || "—"}</strong>
+              </div>
+            </div>
+
+            <div className="dashboard-note">
+              {favoriteDivisionRank === 1
+                ? `Leading the division${favoriteDivisionChaser ? ` over ${favoriteDivisionChaser.abbr}` : ""}.`
+                : `${gamesBack(favoriteTeam, favoriteDivisionLeader)} GB in the division.`}
+            </div>
+          </>
+        ) : (
+          <p className="muted">No favorite team found yet.</p>
+        )}
+      </div>
+    </div>
+
+    <div className="dashboard-story-grid">
+      {dashboardStories.slice(0, 5).map((story) => (
+        <div className="card dashboard-story-card" key={`${story.title}-${story.value}`}>
+          <div className="dashboard-card-kicker">{story.title}</div>
+          <strong>{story.value}</strong>
+          <p>{story.detail}</p>
         </div>
-      )}
+      ))}
+    </div>
+
+    <div className="dashboard-lower-grid">
+      <div className="card">
+        <h2>Playoff Push</h2>
+
+        <div className="dashboard-playoff-grid">
+          {playoffPicture.map((picture) => (
+            <div className="dashboard-playoff-card" key={`${picture.league}-dash-playoff`}>
+              <h3>{picture.league}</h3>
+
+              <div className="playoff-section-label">Division Leaders</div>
+              {picture.divisionLeaders.map((team, index) => (
+                <div className="dashboard-race-row" key={`${picture.league}-leader-${team.id}`}>
+                  <strong>{index + 1}</strong>
+                  <span>{team.abbr}</span>
+                  <span>{team.wins}-{team.losses}</span>
+                  <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+                </div>
+              ))}
+
+              <div className="playoff-section-label">Wild Card Cut</div>
+              {picture.wildcardTeams
+                .slice(Math.max(0, WILD_CARD_TEAMS_PER_LEAGUE - 2), WILD_CARD_TEAMS_PER_LEAGUE + 3)
+                .map((team, index) => {
+                  const actualIndex = Math.max(0, WILD_CARD_TEAMS_PER_LEAGUE - 2) + index;
+                  const isCutoff = actualIndex === WILD_CARD_TEAMS_PER_LEAGUE - 1;
+
+                  return (
+                    <div
+                      className={`dashboard-race-row ${isCutoff ? "dashboard-cutoff-row" : ""}`}
+                      key={`${picture.league}-bubble-${team.id}`}
+                    >
+                      <strong>{actualIndex < WILD_CARD_TEAMS_PER_LEAGUE ? `WC${actualIndex + 1}` : "OUT"}</strong>
+                      <span>{team.abbr}</span>
+                      <span>{team.wins}-{team.losses}</span>
+                      <span>{wildCardGamesBack(team, picture.cutoffTeam, actualIndex)}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>League Board</h2>
+
+        <div className="list-row">
+          <strong>Best Record</strong>
+          <span>{bestRecordTeam ? `${bestRecordTeam.abbr} ${bestRecordTeam.wins}-${bestRecordTeam.losses}` : "—"}</span>
+        </div>
+
+        <div className="list-row">
+          <strong>Best RD</strong>
+          <span>{bestRunDiff ? `${bestRunDiff.abbr} ${bestRunDiff.runDiff > 0 ? "+" : ""}${bestRunDiff.runDiff}` : "—"}</span>
+        </div>
+
+        <div className="list-row">
+          <strong>Worst Record</strong>
+          <span>{worstRecordTeam ? `${worstRecordTeam.abbr} ${worstRecordTeam.wins}-${worstRecordTeam.losses}` : "—"}</span>
+        </div>
+
+        <div className="list-row">
+          <strong>Tightest Race</strong>
+          <span>
+            {tightestDivisionRace
+              ? `${tightestDivisionRace.league} ${tightestDivisionRace.division}: ${tightestDivisionRace.gap}`
+              : "—"}
+          </span>
+        </div>
+
+        <h3 style={{ marginTop: "18px" }}>Top 5 Records</h3>
+        {sortTeams(teams).slice(0, 5).map((team) => (
+          <div className="dashboard-race-row" key={`dash-top-${team.id}`}>
+            <strong>{team.abbr}</strong>
+            <span>{team.wins}-{team.losses}</span>
+            <span>{pct(team.wins, team.losses)}</span>
+            <span>{team.runDiff > 0 ? `+${team.runDiff}` : team.runDiff}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
 
       {page === "live" && controlsUnlocked && (
-        <div className="live-layout">
-          <div className="card live-main-card">
-            <h2>Live Scoring</h2>
-            {homeTeam && awayTeam && <div className="matchup-line">{awayTeam.abbr} {currentGame.awayScore} - {currentGame.homeScore} {homeTeam.abbr}</div>}
+  <div className="live-ipad-page">
+    <div className="card live-ipad-card">
+      <div className="live-ipad-header-row">
+        <div>
+          <h2>Live Scoring</h2>
+          <p className="muted">Big-button SMB controller for live games and postseason.</p>
+        </div>
 
-  
+        <div className="inline-buttons">
+          <button className="danger-lite" onClick={resetCurrentMatch}>Reset Full Game</button>
+          <button onClick={resetLiveCountAndBases}>Reset Count/Bases</button>
+        </div>
+      </div>
 
-            <div className="inline-buttons" style={{ marginBottom: "12px" }}>
-  <button className="danger-lite" onClick={resetCurrentMatch}>Reset Full Game</button>
-  <button onClick={resetCurrentGamePlayerStats}>Reset ABs</button>
-</div>
+      <div className="live-top-setup">
+        <div>
+          <label>Away Team</label>
+          <select
+            value={currentGame.awayTeamId}
+            onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}
+          >
+            <option value="">Select away team</option>
+            {numberedTeams.map((team) => (
+              <option value={team.id} key={team.id}>
+                {`${team.listNumber}. ${teamOptionLabel(team)}`}
+              </option>
+            ))}
+          </select>
+        </div>
 
-            <div className="live-top-setup">
-  <div>
-    <label>Away Team</label>
-    <select
-      value={currentGame.awayTeamId}
-      onChange={(e) => updateCurrentGame("awayTeamId", e.target.value)}
-    >
-      <option value="">Select away team</option>
-      {numberedTeams.map((team) => (
-        <option value={team.id} key={team.id}>
-          {`${team.listNumber}. ${teamOptionLabel(team)}`}
-        </option>
-      ))}
-    </select>
-  </div>
+        <div>
+          <label>Home Team</label>
+          <select
+            value={currentGame.homeTeamId}
+            onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}
+          >
+            <option value="">Select home team</option>
+            {numberedTeams.map((team) => (
+              <option value={team.id} key={team.id}>
+                {`${team.listNumber}. ${teamOptionLabel(team)}`}
+              </option>
+            ))}
+          </select>
+        </div>
 
-  <div>
-    <label>Home Team</label>
-    <select
-      value={currentGame.homeTeamId}
-      onChange={(e) => updateCurrentGame("homeTeamId", e.target.value)}
-    >
-      <option value="">Select home team</option>
-      {numberedTeams.map((team) => (
-        <option value={team.id} key={team.id}>
-          {`${team.listNumber}. ${teamOptionLabel(team)}`}
-        </option>
-      ))}
-    </select>
-  </div>
+        <div>
+          <label>Date</label>
+          <input
+            type="date"
+            value={currentGame.date}
+            onChange={(e) => updateCurrentGame("date", e.target.value)}
+          />
+        </div>
 
-  <div>
-    <label>Date</label>
-    <input
-      type="date"
-      value={currentGame.date}
-      onChange={(e) => updateCurrentGame("date", e.target.value)}
-    />
-  </div>
+        <div>
+          <label>Status</label>
+          <select
+            value={currentGame.status}
+            onChange={(e) => updateCurrentGame("status", e.target.value)}
+          >
+            <option>Not Started</option>
+            <option>Live</option>
+            <option>Mid-Inning</option>
+            <option>Final</option>
+            <option>Warmup</option>
+            <option>Delay</option>
+          </select>
+        </div>
 
-  <div>
-    <label>Status</label>
-    <select
-      value={currentGame.status}
-      onChange={(e) => updateCurrentGame("status", e.target.value)}
-    >
-      <option>Not Started</option>
-      <option>Live</option>
-      <option>Mid-Inning</option>
-      <option>Final</option>
-    </select>
-  </div>
+        <div>
+          <label>Game Type</label>
+          <select
+            value={currentGame.gameType || "regular"}
+            onChange={(e) => {
+              updateCurrentGame("gameType", e.target.value);
+              if (e.target.value === "regular") updateCurrentGame("playoffSeriesId", "");
+            }}
+          >
+            <option value="regular">Regular Season</option>
+            <option value="playoff">Playoff</option>
+          </select>
+        </div>
 
-  <div>
-    <label>Game Type</label>
-    <select
-      value={currentGame.gameType || "regular"}
-      onChange={(e) => {
-        updateCurrentGame("gameType", e.target.value);
-        if (e.target.value === "regular") updateCurrentGame("playoffSeriesId", "");
-      }}
-    >
-      <option value="regular">Regular Season</option>
-      <option value="playoff">Playoff</option>
-    </select>
-  </div>
+        <div>
+          <label>Playoff Series</label>
+          <select
+            value={currentGame.playoffSeriesId || ""}
+            disabled={(currentGame.gameType || "regular") !== "playoff"}
+            onChange={(e) => updateCurrentGame("playoffSeriesId", e.target.value)}
+          >
+            <option value="">Select series</option>
+            {playoffSeriesOptions.map((series) => (
+              <option key={series.id} value={series.id}>
+                {playoffSeriesDropdownLabel(series)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-  <div>
-    <label>Playoff Series</label>
-    <select
-      value={currentGame.playoffSeriesId || ""}
-      disabled={(currentGame.gameType || "regular") !== "playoff"}
-      onChange={(e) => updateCurrentGame("playoffSeriesId", e.target.value)}
-    >
-      <option value="">Select series</option>
-      {playoffSeriesOptions.map((series) => (
-  <option key={series.id} value={series.id}>
-    {playoffSeriesDropdownLabel(series)}
-  </option>
-))}
-    </select>
-  </div>
-</div>
-
-            <div className="mlb-live-layout">
-              <div className="score-panel">
-                <div className={`unified-scoreboard-card ${isPlayoffGame ? "playoff-scoreboard-card" : ""}`}>
-                  <div className="unified-scoreboard-header">
-                    <div className="team-look-column">
-                      <div className="team-pill" style={{ background: awayColors.gradient ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})` : awayColors.main, borderColor: awayColors.border, color: awayColors.text }}>
-                        {awayTeam ? awayTeam.abbr : "AWY"}
-                      </div>
-                      <div className="small-text muted">
-    {awayTeam ? `${awayTeam.wins}-${awayTeam.losses}` : ""}
-  </div>
-                      <button className="look-switch-button" onClick={() => cycleLiveLook("away")}>{liveAwayLookLabel}</button>
-                      <ChallengeBars count={currentGame.awayChallenges} />
-                    </div>
-
-                    <div className="score-center">
-                      <span className={`score-number ${scoreFlashSide === "away" ? "score-flash" : ""}`}>
-  {currentGame.awayScore}
-</span>
-  <span className="score-dash">-</span>
-<span className={`score-number ${scoreFlashSide === "home" ? "score-flash" : ""}`}>
-  {currentGame.homeScore}
-</span>
-                    </div>
-
-                    <div className="team-look-column">
-                      <div className="team-pill" style={{ background: homeColors.gradient ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})` : homeColors.main, borderColor: homeColors.border, color: homeColors.text }}>
-                        {homeTeam ? homeTeam.abbr : "HME"}
-                      </div>
-                       <div className="small-text muted">
-    {homeTeam ? `${homeTeam.wins}-${homeTeam.losses}` : ""}
-  </div>
-                      <button className="look-switch-button" onClick={() => cycleLiveLook("home")}>{liveHomeLookLabel}</button>
-                      <ChallengeBars count={currentGame.homeChallenges} />
-                    </div>
-                  </div>
-
-                  <div className="score-adjust-row">
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => changeScore("away", -1)}>-1</button>
-                      <button onClick={() => changeScore("away", 1)}>+1</button>
-                    </div>
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => changeScore("home", -1)}>-1</button>
-                      <button onClick={() => changeScore("home", 1)}>+1</button>
-                    </div>
-                  </div>
-
-                  <div className="score-adjust-row challenge-adjust-row">
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => updateChallenges("away", -1)}>- Challenge</button>
-                      <button onClick={() => updateChallenges("away", 1)}>+ Challenge</button>
-                    </div>
-                    <div className="inline-buttons score-adjust-buttons">
-                      <button onClick={() => updateChallenges("home", -1)}>- Challenge</button>
-                      <button onClick={() => updateChallenges("home", 1)}>+ Challenge</button>
-                    </div>
-                  </div>
-
-                  <div className="inning-text unified-inning-text">{displayGameState}</div>
-
-                  <div className="count-bubble unified-count-bubble">
-                    {combinedCountText}
-                  </div>
-
-                  <div className="active-batter-banner"><div>
-  At Bat: #{currentBatter?.number || "--"} {currentBatter?.name}
-
-  <div className="small-text muted">
-    {currentBatter ? `${currentBatter.hits || 0}-${currentBatter.ab || 0}` : ""}
-  </div>
-
-  <div className="small-text muted">
-    Last AB: {currentBatter?.lastAB || "-"}
-  </div>
-</div></div>
-                  <div className="muted">On Deck: {onDeckBatter ? `#${onDeckBatter.number || "--"} ${onDeckBatter.name}` : "—"}</div>
-                  <div className="muted">
-  Pitching: {fieldingPitcher ? `#${fieldingPitcher.number || "--"} ${fieldingPitcher.name}` : "Set pitcher"}
-  {" "}
-  ({currentPitchCount} pitches)
-</div>
-
-                  <BaseDiamond bases={currentGame.bases} />
-                </div>
-                
-              </div>
-
-              <div className="linescore-side-panel">
-                <div className="linescore-box">
-                  <div className="linescore-row linescore-head">
-                    <span>Team</span>
-                    {Array.from({ length: 9 }, (_, i) => <span key={i}>{i + 1}</span>)}
-                    <span>R</span><span>H</span><span>E</span>
-                  </div>
-                  <div className="linescore-row">
-                    <span>{awayTeam ? awayTeam.abbr : "AWY"}</span>
-                    {Array.from({ length: 9 }, (_, i) => <span key={i}>{renderInningCell("away", i + 1, currentGame)}</span>)}
-                    <span>{currentGame.awayScore}</span><span>{currentGame.awayHits}</span><span>{currentGame.awayErrors}</span>
-                  </div>
-                  <div className="linescore-row">
-                    <span>{homeTeam ? homeTeam.abbr : "HME"}</span>
-                    {Array.from({ length: 9 }, (_, i) => <span key={i}>{renderInningCell("home", i + 1, currentGame)}</span>)}
-                    <span>{currentGame.homeScore}</span><span>{currentGame.homeHits}</span><span>{currentGame.homeErrors}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <CountControls currentGame={currentGame} updateCount={updateCount} incrementPitchCount={incrementPitchCount} />
-
-            <div className="play-mode-tabs">
-              <button className={playMode === "hits" ? "active-tab" : ""} onClick={() => setPlayMode("hits")}>Hits</button>
-              <button className={playMode === "outs" ? "active-tab" : ""} onClick={() => setPlayMode("outs")}>Outs</button>
-              <button className={playMode === "other" ? "active-tab" : ""} onClick={() => setPlayMode("other")}>Other</button>
-            </div>
-
-            <div className="quick-play-wrap compact-play-wrap">
-              {activeButtons.map((item) => (
-                <button key={item.label} className={`quick-play-button ${item.category === "hit" ? "hit-button" : item.category === "out" ? "out-button" : "other-button"}`} onClick={() => applyQuickPlay(item.category, item.type)}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="bases-row">
-              <button onClick={() => updateBases("first")} className={currentGame.bases.first ? "active-base" : ""}>1st: {currentGame.bases.first ? "On" : "Empty"}</button>
-              <button onClick={() => updateBases("second")} className={currentGame.bases.second ? "active-base" : ""}>2nd: {currentGame.bases.second ? "On" : "Empty"}</button>
-              <button onClick={() => updateBases("third")} className={currentGame.bases.third ? "active-base" : ""}>3rd: {currentGame.bases.third ? "On" : "Empty"}</button>
-            </div>
-
-            <div className="event-banner">Last Play: {currentGame.latestPlay}</div>
-            
-            <div className="play-log-box">
-              <label>Play Details / Manual Override</label>
-              <div className="play-detail-row">
-                <input value={fielderName} onChange={(e) => setFielderName(e.target.value)} placeholder="Fielder / location" />
-                <input value={playInput} onChange={(e) => setPlayInput(e.target.value)} placeholder="Optional custom play text" />
-                <button onClick={addPlayLog}>Add Note</button>
-                <button onClick={markLive}>Mark Live</button>
-                <button onClick={undoLastPlay}>Undo Last Play</button>
-              </div>
-              <div className="scroll-box">
-                {currentGame.playLog.map((play, index) => <div className="play-item" key={`${play}-${index}`}>{play}</div>)}
-                {!currentGame.playLog.length && <p className="muted">No plays logged yet.</p>}
-              </div>
-            </div>
-
-            <div className="inline-buttons">
-              <button onClick={finalizeGame}>Finalize Game</button>
-              <div className="form-grid" style={{ marginTop: "14px", marginBottom: "14px" }}>
-  <div>
-    <label>Winning Pitcher</label>
-    <select value={winningPitcherId} onChange={(e) => setWinningPitcherId(e.target.value)}>
-      <option value="">Select winning pitcher</option>
-      {usedGamePitchers.map((player) => (
-        <option value={player.id} key={`wp-${player.id}`}>
-          {player.labelTeam} - #{player.number || "--"} {player.name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <div>
-    <label>Losing Pitcher</label>
-    <select value={losingPitcherId} onChange={(e) => setLosingPitcherId(e.target.value)}>
-      <option value="">Select losing pitcher</option>
-      {usedGamePitchers.map((player) => (
-        <option value={player.id} key={`lp-${player.id}`}>
-          {player.labelTeam} - #{player.number || "--"} {player.name}
-        </option>
-      ))}
-    </select>
-  </div>
-</div>
-              <button onClick={() => commitGameUpdate((next) => { clearCountAndOuts(next); })}>Reset Count</button>
-            </div>
+      <div className="ipad-live-scorebug">
+        <div className="ipad-score-team">
+          <div
+            className="ipad-team-abbr"
+            style={{
+              background: awayColors.gradient
+                ? `linear-gradient(135deg, ${awayColors.main}, ${awayColors.alt})`
+                : awayColors.main,
+              borderColor: awayColors.border,
+              color: awayColors.text,
+            }}
+          >
+            {awayTeam ? awayTeam.abbr : "AWY"}
           </div>
-
-          <div className="card live-side-card">
-            <h2>Lineups</h2>
-
-            <h3>Away Starter Info</h3>
-            <div className="pitcher-row">
-              <span>P</span>
-              <select value={currentGame.awayPitcherId || ""} onChange={(e) => changePitcher("away", e.target.value)}>
-                <option value="">Select pitcher</option>
-                {awayRoster.map((player) => <option value={player.id} key={player.id}>#{player.number || "--"} {player.name}</option>)}
-              </select>
-            </div>
-            {currentGame.awayPitcherHistory.length > 0 && <div className="muted pitcher-history-text">Used: {currentGame.awayPitcherHistory.map((id) => awayRoster.find((p) => p.id === id)?.name).filter(Boolean).join(", ")}</div>}
-            <h3>Away Lineup</h3>
-            {currentGame.awayLineup.map((playerId, index) => (
-              <div className="lineup-row lineup-row-wide" key={`away-${index}`}>
-                <span>{index + 1}</span>
-                <select value={playerId} onChange={(e) => setLineup("away", index, e.target.value)}>
-                  <option value="">Select player</option>
-                  {awayRoster.map((player) => <option value={player.id} key={player.id}>#{player.number || "--"} {player.name}</option>)}
-                </select>
-                <select value={currentGame.awayPositions[index] || ""} onChange={(e) => setLineupPosition("away", index, e.target.value)}>
-                  {POSITION_OPTIONS.map((pos) => <option value={pos} key={pos}>{pos}</option>)}
-                </select>
-              </div>
-            ))}
-
-            <h3>Home Starter Info</h3>
-            <div className="pitcher-row">
-              <span>P</span>
-              <select value={currentGame.homePitcherId || ""} onChange={(e) => changePitcher("home", e.target.value)}>
-                <option value="">Select pitcher</option>
-                {homeRoster.map((player) => <option value={player.id} key={player.id}>#{player.number || "--"} {player.name}</option>)}
-              </select>
-            </div>
-            {currentGame.homePitcherHistory.length > 0 && <div className="muted pitcher-history-text">Used: {currentGame.homePitcherHistory.map((id) => homeRoster.find((p) => p.id === id)?.name).filter(Boolean).join(", ")}</div>}
-            <h3>Home Lineup</h3>
-            {currentGame.homeLineup.map((playerId, index) => (
-              <div className="lineup-row lineup-row-wide" key={`home-${index}`}>
-                <span>{index + 1}</span>
-                <select value={playerId} onChange={(e) => setLineup("home", index, e.target.value)}>
-                  <option value="">Select player</option>
-                  {homeRoster.map((player) => <option value={player.id} key={player.id}>#{player.number || "--"} {player.name}</option>)}
-                </select>
-                <select value={currentGame.homePositions[index] || ""} onChange={(e) => setLineupPosition("home", index, e.target.value)}>
-                  {POSITION_OPTIONS.map((pos) => <option value={pos} key={pos}>{pos}</option>)}
-                </select>
-              </div>
-            ))}
+          <button className="ipad-look-switch-button" onClick={() => cycleLiveLook("away")}>
+  {liveAwayLookLabel}
+</button>
+          <div className="ipad-score-buttons">
+            <button onClick={() => changeScore("away", -1)}>-</button>
+            <span>{currentGame.awayScore}</span>
+            <button onClick={() => changeScore("away", 1)}>+</button>
           </div>
         </div>
-      )}
+
+        <div className="ipad-center-status">
+          <div className="ipad-big-score">
+            <span>{currentGame.awayScore}</span>
+            <span className="ipad-score-dash">-</span>
+            <span>{currentGame.homeScore}</span>
+          </div>
+
+          <div className="ipad-inning-display">
+  {["Live", "Warmup", "Delay", "Final"].includes(currentGame.status)
+    ? `${currentGame.status} · ${currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}`
+    : currentGame.inningStatus || `${currentGame.half} ${currentGame.inning}`}
+</div>
+
+          <div className="ipad-count-line">
+            <strong>{currentGame.balls}</strong>
+            <span>B</span>
+            <span className="ipad-count-separator">-</span>
+            <strong>{currentGame.strikes}</strong>
+            <span>S</span>
+          </div>
+
+          <div className="ipad-out-dots">
+            {[1, 2].map((outNumber) => (
+              <button
+                key={outNumber}
+                type="button"
+                className={currentGame.outs >= outNumber ? "out-dot active" : "out-dot"}
+                onClick={() => toggleOutDot(outNumber)}
+                aria-label={`${outNumber} out`}
+              />
+            ))}
+          </div>
+
+          <button className="ipad-third-out-button" onClick={() => updateCount("outs", 1)}>
+            + Out / Next Half
+          </button>
+        </div>
+
+        <div className="ipad-score-team">
+          <div
+            className="ipad-team-abbr"
+            style={{
+              background: homeColors.gradient
+                ? `linear-gradient(135deg, ${homeColors.main}, ${homeColors.alt})`
+                : homeColors.main,
+              borderColor: homeColors.border,
+              color: homeColors.text,
+            }}
+          >
+            {homeTeam ? homeTeam.abbr : "HME"}
+          </div>
+          <button className="ipad-look-switch-button" onClick={() => cycleLiveLook("home")}>
+  {liveHomeLookLabel}
+</button>
+          <div className="ipad-score-buttons">
+            <button onClick={() => changeScore("home", -1)}>-</button>
+            <span>{currentGame.homeScore}</span>
+            <button onClick={() => changeScore("home", 1)}>+</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="ipad-linescore-card">
+        <div className="ipad-linescore-row ipad-linescore-head">
+          <span>Team</span>
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={`head-${i}`}>{i + 1}</span>
+          ))}
+          <span>R</span>
+          <span>H</span>
+          <span>E</span>
+        </div>
+
+        <div className="ipad-linescore-row">
+          <span>{awayTeam ? awayTeam.abbr : "AWY"}</span>
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={`away-${i}`}>{renderInningCell("away", i + 1, currentGame)}</span>
+          ))}
+          <span>{currentGame.awayScore}</span>
+          <span>{currentGame.awayHits}</span>
+          <span>{currentGame.awayErrors}</span>
+        </div>
+
+        <div className="ipad-linescore-row">
+          <span>{homeTeam ? homeTeam.abbr : "HME"}</span>
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={`home-${i}`}>{renderInningCell("home", i + 1, currentGame)}</span>
+          ))}
+          <span>{currentGame.homeScore}</span>
+          <span>{currentGame.homeHits}</span>
+          <span>{currentGame.homeErrors}</span>
+        </div>
+      </div>
+
+      <div className="ipad-control-grid">
+        <div className="ipad-control-card">
+          <h3>Balls</h3>
+          <div className="ipad-stepper">
+            <button onClick={() => updateCount("balls", -1)}>-</button>
+            <strong>{currentGame.balls}</strong>
+            <button onClick={() => updateCount("balls", 1)}>+</button>
+          </div>
+        </div>
+
+        <div className="ipad-control-card">
+          <h3>Strikes</h3>
+          <div className="ipad-stepper">
+            <button onClick={() => updateCount("strikes", -1)}>-</button>
+            <strong>{currentGame.strikes}</strong>
+            <button onClick={() => updateCount("strikes", 1)}>+</button>
+          </div>
+        </div>
+
+        <div className="ipad-control-card">
+          <h3>Inning</h3>
+          <div className="ipad-stepper">
+            <button onClick={() => adjustLiveInning(-1)}>-</button>
+            <strong>{currentGame.inning}</strong>
+            <button onClick={() => adjustLiveInning(1)}>+</button>
+          </div>
+
+          <div className="ipad-half-buttons">
+            <button
+              className={currentGame.half === "Top" && !currentGame.inningStatus ? "active-ipad-button" : ""}
+              onClick={() => setLiveHalf("Top")}
+            >
+              ▲ Top
+            </button>
+            <button onClick={setMidEndInningStatus}>— Mid/End</button>
+            <button
+              className={currentGame.half === "Bottom" && !currentGame.inningStatus ? "active-ipad-button" : ""}
+              onClick={() => setLiveHalf("Bottom")}
+            >
+              ▼ Bottom
+            </button>
+          </div>
+        </div>
+
+        <div className="ipad-control-card ipad-bases-card">
+          <h3>Bases</h3>
+          <div className="ipad-base-diamond">
+            <button
+              className={`ipad-base ipad-base-second ${currentGame.bases.second ? "occupied" : ""}`}
+              onClick={() => updateBases("second")}
+            >
+              2B
+            </button>
+            <button
+              className={`ipad-base ipad-base-third ${currentGame.bases.third ? "occupied" : ""}`}
+              onClick={() => updateBases("third")}
+            >
+              3B
+            </button>
+            <button
+              className={`ipad-base ipad-base-first ${currentGame.bases.first ? "occupied" : ""}`}
+              onClick={() => updateBases("first")}
+            >
+              1B
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="ipad-extra-actions">
+        <button onClick={() => updateCurrentGame("status", "Live")}>Live</button>
+        <button onClick={() => updateCurrentGame("status", "Warmup")}>Warmup</button>
+        <button onClick={() => updateCurrentGame("status", "Delay")}>Delay</button>
+        <button onClick={() => updateCurrentGame("status", "Final")}>Mark Final</button>
+        <button onClick={undoLastPlay}>Undo Last Change</button>
+        <button onClick={finalizeGame}>Finalize Game</button>
+      </div>
+    </div>
+  </div>
+)}
 
       {page === "daily" && controlsUnlocked && (
         <div className="daily-page-wrap">

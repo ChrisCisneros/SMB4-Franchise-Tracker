@@ -195,6 +195,335 @@ label {
   font-weight: bold;
   font-size: 16px;
 }
+.live-ipad-page {
+  display: grid;
+  gap: 18px;
+}
+
+.live-ipad-card {
+  display: grid;
+  gap: 18px;
+}
+
+.live-ipad-header-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.live-ipad-header-row h2 {
+  margin: 0;
+}
+
+.ipad-live-scorebug {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 1.2fr) 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  border-radius: 26px;
+  background: radial-gradient(circle at center, #172554 0%, #0f172a 62%, #08111f 100%);
+  border: 1px solid #334155;
+}
+
+.ipad-score-team {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.ipad-team-abbr {
+  min-width: 200px;
+  min-height: 110px;
+  border: 2px solid #334155;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  font-size: 40px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+}
+
+.ipad-look-switch-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #1e293b;
+  color: #dbeafe;
+  border: 1px solid #334155;
+}
+
+.ipad-score-buttons {
+  display: grid;
+  grid-template-columns: 70px 90px 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.ipad-score-buttons button,
+.ipad-half-buttons button,
+.ipad-extra-actions button,
+.ipad-third-out-button {
+  min-height: 58px;
+  border-radius: 18px;
+  font-size: 20px;
+}
+
+.ipad-stepper button {
+  min-height: 46px;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+.ipad-score-buttons span {
+  min-height: 58px;
+  border-radius: 18px;
+  background: #020617;
+  border: 1px solid #334155;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.ipad-stepper strong {
+  min-height: 46px;
+  border-radius: 14px;
+  background: #020617;
+  border: 1px solid #334155;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.ipad-center-status {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.ipad-big-score {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 66px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.ipad-score-dash {
+  color: #93c5fd;
+}
+
+.ipad-inning-display {
+  font-size: 28px;
+  font-weight: 900;
+  color: #dbeafe;
+}
+
+.ipad-count-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 24px;
+  color: #bfdbfe;
+}
+
+.ipad-count-line strong {
+  font-size: 34px;
+  color: white;
+}
+
+.ipad-count-separator {
+  color: #64748b;
+  margin: 0 4px;
+}
+
+.ipad-out-dots {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.out-dot {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  background: #111827;
+  border: 2px solid #64748b;
+}
+
+.out-dot.active {
+  background: #f59e0b;
+  border-color: #fde68a;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.45);
+}
+
+.ipad-third-out-button {
+  padding: 0 18px;
+  background: #475569;
+}
+
+.ipad-linescore-card {
+  overflow-x: auto;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 12px;
+}
+
+.ipad-linescore-row {
+  display: grid;
+  grid-template-columns: 90px repeat(12, 50px) 62px 62px 62px;
+  gap: 7px;
+  align-items: center;
+  min-width: 900px;
+  max-width: 1040px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.ipad-linescore-row:last-child {
+  border-bottom: none;
+}
+
+.ipad-linescore-head {
+  color: #93c5fd;
+  font-weight: 900;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.ipad-control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ipad-control-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.ipad-control-card h3 {
+  margin-top: 0;
+  color: #bfdbfe;
+}
+
+.ipad-stepper {
+  display: grid;
+  grid-template-columns: 58px 76px 58px;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.ipad-half-buttons {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.active-ipad-button {
+  background: #16a34a;
+}
+
+.ipad-bases-card {
+  min-height: 230px;
+}
+
+.ipad-base-diamond {
+  position: relative;
+  width: 220px;
+  height: 170px;
+  margin: 0 auto;
+}
+
+.ipad-base {
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  border-radius: 14px;
+  transform: rotate(45deg);
+  background: #111827;
+  border: 2px solid #64748b;
+  color: #dbeafe;
+  font-weight: 900;
+}
+
+.ipad-base:hover {
+  transform: rotate(45deg) translateY(-1px);
+}
+
+.ipad-base.occupied {
+  background: #f8fafc;
+  color: #020617;
+  border-color: white;
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+}
+
+.ipad-base-second {
+  top: 0;
+  left: 71px;
+}
+
+.ipad-base-third {
+  top: 82px;
+  left: 18px;
+}
+
+.ipad-base-first {
+  top: 82px;
+  right: 18px;
+}
+
+.ipad-extra-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ipad-extra-actions button {
+  padding: 0 20px;
+}
+
+@media (max-width: 1100px) {
+  .ipad-live-scorebug {
+    grid-template-columns: 1fr;
+  }
+
+  .ipad-control-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .live-ipad-header-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 700px) {
+  .ipad-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ipad-big-score {
+    font-size: 48px;
+  }
+
+  .ipad-score-buttons {
+    grid-template-columns: 62px 80px 62px;
+  }
+}
 
 /* MLB-APP STYLE COUNT AREA */
 .single-line-counts {
@@ -1487,6 +1816,259 @@ label {
   width: 100%;
 }
 
+.dashboard-v3 {
+  display: grid;
+  gap: 20px;
+}
+
+.dashboard-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(340px, 0.8fr);
+  gap: 20px;
+}
+
+.dashboard-broadcast-card,
+.dashboard-franchise-card,
+.dashboard-story-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-broadcast-card {
+  min-height: 360px;
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.28), transparent 45%),
+    linear-gradient(135deg, #111827, #07111f);
+}
+
+.dashboard-card-kicker {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.dashboard-matchup-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(220px, 1.2fr) minmax(150px, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.dashboard-team-tile {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.dashboard-team-logo,
+.franchise-logo {
+  width: 150px;
+  height: 100px;
+  border-radius: 26px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #334155;
+  background: #0f172a;
+  font-size: 42px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-score-core {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.dashboard-scoreline {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 78px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.dashboard-score-dash {
+  color: #60a5fa;
+}
+
+.dashboard-game-state {
+  font-size: 28px;
+  font-weight: 900;
+  color: #dbeafe;
+}
+
+.dashboard-count-pill,
+.dashboard-note {
+  border: 1px solid #334155;
+  background: #020617;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: #bfdbfe;
+  font-weight: 800;
+}
+
+.dashboard-mini-linescore {
+  margin-top: 22px;
+  background: rgba(2, 6, 23, 0.8);
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 12px;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.dashboard-mini-line {
+  display: grid;
+  grid-template-columns: 90px repeat(9, 56px) 70px;
+  gap: 8px;
+  min-width: 760px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  padding: 7px 0;
+  align-items: center;
+}
+
+.dashboard-mini-head {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1f2937;
+}
+
+.franchise-top-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.franchise-top-row h2 {
+  margin: 0;
+}
+
+.franchise-record {
+  font-size: 64px;
+  font-weight: 950;
+  margin: 16px 0;
+}
+
+.franchise-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.franchise-stat-grid div {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+}
+
+.franchise-stat-grid span {
+  display: block;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.franchise-stat-grid strong {
+  font-size: 20px;
+}
+
+.dashboard-story-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-story-card strong {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.dashboard-story-card p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.dashboard-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.8fr);
+  gap: 20px;
+}
+
+.dashboard-playoff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dashboard-playoff-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.dashboard-race-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 80px 70px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dashboard-race-row:last-child {
+  border-bottom: none;
+}
+
+.dashboard-cutoff-row {
+  background: rgba(245, 158, 11, 0.16);
+  border-radius: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-hero-grid,
+  .dashboard-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-story-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-matchup-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-scoreline {
+    font-size: 58px;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-story-grid,
+  .dashboard-playoff-grid,
+  .franchise-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Team look controls */
 .team-look-column {
@@ -1865,6 +2447,26 @@ label {
 .marker-e {
   background: #7f1d1d;
   color: #fecaca;
+}
+
+.marker-y {
+  background: #2563eb;
+  color: white;
+}
+
+.marker-z {
+  background: #a855f7;
+  color: white;
+}
+
+.marker-w {
+  background: #16a34a;
+  color: white;
+}
+
+.marker-e {
+  background: #dc2626;
+  color: white;
 }
 
 .team-name-cell {
