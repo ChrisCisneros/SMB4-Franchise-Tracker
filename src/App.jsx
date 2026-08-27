@@ -1067,43 +1067,15 @@ function syncAllDataToFirebase() {
       } catch {}
     }
 
-    if (channelRef.current) {
-      channelRef.current.postMessage(safeData);
-    }
+    // Firebase handles cross-device sync.
+// Do not broadcast local snapshots, because stale tabs can overwrite fresh Firebase data.
   }, [data]);
 
 
   useEffect(() => {
-    let channel = null;
-
-    const handleStorageSync = () => {};
-
-    if (typeof BroadcastChannel !== "undefined") {
-      channel = new BroadcastChannel("franchise_tracker_live_sync");
-      channelRef.current = channel;
-      channel.onmessage = (event) => {
-        if (!event.data) return;
-        setData((prev) => {
-          const prevStr = JSON.stringify(prev);
-          const nextStr = JSON.stringify(event.data);
-          return prevStr === nextStr
-            ? prev
-            : {
-                ...prev,
-                ...event.data,
-                currentGame: makeSafeGame(event.data.currentGame),
-              };
-        });
-      };
-    }
-
-    window.addEventListener("storage", handleStorageSync);
-    return () => {
-      window.removeEventListener("storage", handleStorageSync);
-      if (channel) channel.close();
-      channelRef.current = null;
-    };
-  }, []);
+  // Cross-device sync is handled by Firebase listeners below.
+  channelRef.current = null;
+}, []);
 
   useEffect(() => {
     if (!inningBanner) return;
