@@ -13,7 +13,6 @@ const PLAYOFF_WINS_NEEDED = 3;
 
 
 
-
 const TEAM_COLOR_BASE_MAP = {
   ARI: { primary: "#A71930", accent: "#E3D4AD" },
   ATL: { primary: "#CE1141", accent: "#13274F" },
@@ -399,7 +398,10 @@ playoffSeriesId: "",
   playLog: [],
   latestPlay: "No play recorded yet.",
   lastAnnouncement: "No scoring update yet.",
-  history: [],
+bigMomentText: "",
+bigMomentSide: "neutral",
+bigMomentId: 0,
+history: [],
 });
 
 function defaultBracketSeries() {
@@ -881,7 +883,8 @@ function getLastNameSortValue(name) {
 
 function getDisplayGameState(currentGame, inningBanner) {
   if (currentGame.status === "Final") {
-    return `F/${currentGame.inning}`;
+    const finalInning = Number(currentGame.inning || 9);
+    return finalInning > 9 ? `F/${finalInning}` : "Final";
   }
   if (currentGame.status === "Not Started") {
     return "Warmup";
@@ -896,12 +899,23 @@ function getDisplayGameState(currentGame, inningBanner) {
 }
 
 function renderInningCell(side, inningNumber, currentGame) {
-  const value = side === "away" ? currentGame.awayInnings[inningNumber - 1] : currentGame.homeInnings[inningNumber - 1];
-  if (currentGame.status === "Final") return value === 0 ? "0" : String(value);
-  if (inningNumber < currentGame.inning) return value === 0 ? "0" : String(value);
-  if (inningNumber > currentGame.inning) return "";
+  const value =
+    side === "away"
+      ? currentGame.awayInnings[inningNumber - 1]
+      : currentGame.homeInnings[inningNumber - 1];
+
+  const currentInning = Number(currentGame.inning || 1);
+
+  if (currentGame.status === "Final") {
+    if (inningNumber > currentInning) return "";
+    return value === 0 ? "0" : String(value);
+  }
+
+  if (inningNumber < currentInning) return value === 0 ? "0" : String(value);
+  if (inningNumber > currentInning) return "";
   if (side === "away") return value === 0 ? "0" : String(value);
   if (currentGame.half === "Bottom") return value === 0 ? "0" : String(value);
+
   return "";
 }
 
@@ -997,6 +1011,10 @@ export default function App() {
   const hasLoadedFirebasePlayers = useRef(false);
 const [prevScore, setPrevScore] = useState({ away: 0, home: 0 });
 const [scoreFlashSide, setScoreFlashSide] = useState(null);
+const [bigMomentBanner, setBigMomentBanner] = useState("");
+const bigMomentTimerRef = useRef(null);
+const scoreFlashTimerRef = useRef(null);
+const lastSeenBigMomentIdRef = useRef(0);
 const [winningPitcherId, setWinningPitcherId] = useState("");
 const [losingPitcherId, setLosingPitcherId] = useState("");
 const [selectedPlayoffSeriesId, setSelectedPlayoffSeriesId] = useState("al_wc1");
@@ -1117,6 +1135,8 @@ function syncAllDataToFirebase() {
 
     return () => unsubscribe();
   }, []);
+
+
 
   useEffect(() => {
     const playersRef = ref(db, "players");
@@ -1341,6 +1361,24 @@ const dueUpBatters = [0, 1, 2]
   const displayGameState = getDisplayGameState(currentGame, inningBanner);
   const combinedCountText = `${currentGame.balls}-${currentGame.strikes}, ${currentGame.outs} outs`;
 
+  const isPlayoffLiveGame = (currentGame.gameType || "regular") === "playoff";
+
+const liveLeaderClass =
+  Number(currentGame.awayScore || 0) === Number(currentGame.homeScore || 0)
+    ? "scorebug-tied"
+    : Number(currentGame.awayScore || 0) > Number(currentGame.homeScore || 0)
+      ? "scorebug-away-leading"
+      : "scorebug-home-leading";
+
+const playoffBroadcastVars = {
+  "--away-main": awayColors.main,
+  "--away-alt": awayColors.alt,
+  "--away-border": awayColors.border,
+  "--home-main": homeColors.main,
+  "--home-alt": homeColors.alt,
+  "--home-border": homeColors.border,
+};
+
 
   function cycleLiveLook(side) {
     if (side === "away") {
@@ -1364,7 +1402,19 @@ const dueUpBatters = [0, 1, 2]
     const nextLook = looks[(currentIndex + 1 + looks.length) % looks.length] || looks[0];
     updateCurrentGame("homeLook", { mode: nextLook.mode, index: nextLook.index });
   }
+useEffect(() => {
+  const incomingMomentId = Number(currentGame.bigMomentId || 0);
 
+  if (!incomingMomentId || incomingMomentId === lastSeenBigMomentIdRef.current) {
+    return;
+  }
+
+  lastSeenBigMomentIdRef.current = incomingMomentId;
+
+  if (currentGame.bigMomentText) {
+    triggerBigMoment(currentGame.bigMomentText, currentGame.bigMomentSide || "neutral", false);
+  }
+}, [currentGame.bigMomentId]);
 useEffect(() => {
   if (currentGame.awayScore !== prevScore.away) {
     setScoreFlashSide("away");
@@ -2017,6 +2067,80 @@ function resetLiveCountAndBases() {
     });
   }
 
+function triggerScoreFlash(side) {
+  setScoreFlashSide(side);
+
+  if (scoreFlashTimerRef.current) {
+    clearTimeout(scoreFlashTimerRef.current);
+  }
+
+  scoreFlashTimerRef.current = setTimeout(() => {
+    setScoreFlashSide(null);
+  }, 1200);
+}
+
+function triggerBigMoment(message, side = "neutral", shouldSync = true) {
+  setBigMomentBanner(message);
+
+  if (side === "away" || side === "home") {
+    triggerScoreFlash(side);
+  }
+
+  if (bigMomentTimerRef.current) {
+    clearTimeout(bigMomentTimerRef.current);
+  }
+
+  bigMomentTimerRef.current = setTimeout(() => {
+    setBigMomentBanner("");
+  }, 4500);
+
+  if (!shouldSync) return;
+
+  const nextMomentId = Date.now();
+
+  lastSeenBigMomentIdRef.current = nextMomentId;
+
+  commitGameUpdate((next) => {
+    next.bigMomentText = message;
+    next.bigMomentSide = side;
+    next.bigMomentId = nextMomentId;
+  });
+}
+
+function triggerLiveMoment(type) {
+  const battingSide = currentGame.half === "Top" ? "away" : "home";
+  const fieldingSide = currentGame.half === "Top" ? "home" : "away";
+  const battingTeam = currentGame.half === "Top" ? awayTeam : homeTeam;
+  const fieldingTeam = currentGame.half === "Top" ? homeTeam : awayTeam;
+
+  const battingAbbr = battingTeam?.abbr || "BAT";
+  const fieldingAbbr = fieldingTeam?.abbr || "DEF";
+
+  if (type === "homeRun") {
+    triggerBigMoment(`💥 ${battingAbbr} HOME RUN 💥`, battingSide);
+    return;
+  }
+
+  if (type === "clutchHit") {
+    triggerBigMoment(`🔥 ${battingAbbr} CLUTCH HIT 🔥`, battingSide);
+    return;
+  }
+
+  if (type === "walkOff") {
+    triggerBigMoment(`🚨 ${battingAbbr} WALK-OFF 🚨`, battingSide);
+    return;
+  }
+
+  if (type === "strikeout") {
+    triggerBigMoment(`⚡ ${fieldingAbbr} BIG STRIKEOUT ⚡`, fieldingSide);
+    return;
+  }
+
+  if (type === "doublePlay") {
+    triggerBigMoment(`🧤 ${fieldingAbbr} DOUBLE PLAY 🧤`, fieldingSide);
+  }
+}
+
   function changeScore(side, amount) {
     clearBanner();
     commitGameUpdate((next) => {
@@ -2030,7 +2154,21 @@ function resetLiveCountAndBases() {
       }
       if (amount !== 0) next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
     });
+    if (amount > 0) {
+  const scoringTeam = side === "away" ? awayTeam : homeTeam;
+  triggerBigMoment(`${scoringTeam?.abbr || side.toUpperCase()} SCORES`, side);
+}
   }
+
+  function changeBoxStat(side, stat, amount) {
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    const key = `${side}${stat}`;
+    next.inningStatus = "";
+    next[key] = Math.max(0, Number(next[key] || 0) + amount);
+  });
+}
 
   function markLive() {
     clearBanner();
@@ -2667,8 +2805,7 @@ function nextStreak(result, current = "") {
   runsAllowed: (updatedTeams[awayIndex].runsAllowed || 0) + homeScore,
 
   runDiff:
-    ((updatedTeams[awayIndex].runsScored || 0) + awayScore) -
-    ((updatedTeams[awayIndex].runsAllowed || 0) + homeScore),
+  Number(updatedTeams[awayIndex].runDiff || 0) + (awayScore - homeScore),
 
   streak: nextStreak(awayWon ? "W" : "L", updatedTeams[awayIndex].streak),
 };
@@ -2682,8 +2819,7 @@ function nextStreak(result, current = "") {
   runsAllowed: (updatedTeams[homeIndex].runsAllowed || 0) + awayScore,
 
   runDiff:
-    ((updatedTeams[homeIndex].runsScored || 0) + homeScore) -
-    ((updatedTeams[homeIndex].runsAllowed || 0) + awayScore),
+  Number(updatedTeams[homeIndex].runDiff || 0) + (homeScore - awayScore),
 
   streak: nextStreak(homeWon ? "W" : "L", updatedTeams[homeIndex].streak),
 };
@@ -2840,8 +2976,8 @@ if (currentGame.gameType === "playoff") {
   runsAllowed: (team.runsAllowed || 0) + currentGame.awayScore,
 
   runDiff:
-    ((team.runsScored || 0) + currentGame.homeScore) -
-    ((team.runsAllowed || 0) + currentGame.awayScore),
+  Number(team.runDiff || 0) +
+  (Number(currentGame.homeScore || 0) - Number(currentGame.awayScore || 0)),
 
   streak: nextStreak(homeWon ? "W" : "L", team.streak),
 };
@@ -2853,9 +2989,9 @@ if (currentGame.gameType === "playoff") {
   runsScored: (team.runsScored || 0) + currentGame.awayScore,
   runsAllowed: (team.runsAllowed || 0) + currentGame.homeScore,
 
-  runDiff:
-    ((team.runsScored || 0) + currentGame.awayScore) -
-    ((team.runsAllowed || 0) + currentGame.homeScore),
+runDiff:
+  Number(team.runDiff || 0) +
+  (Number(currentGame.awayScore || 0) - Number(currentGame.homeScore || 0)),
 
   streak: nextStreak(awayWon ? "W" : "L", team.streak),
 };
@@ -3174,10 +3310,18 @@ const dashboardStories = [
      {page === "dashboard" && (
   <div className="dashboard-v3">
     <div className="dashboard-hero-grid">
-      <div className="card dashboard-broadcast-card">
+      <div
+  className={`card dashboard-broadcast-card ${liveLeaderClass} ${scoreFlashSide ? `scorebug-flash-${scoreFlashSide}` : ""} ${isPlayoffLiveGame ? "playoff-broadcast-bg" : ""}`}
+  style={playoffBroadcastVars}
+>
         <div className="dashboard-card-kicker">
           {homeTeam && awayTeam ? "Live Game" : "Latest Result"}
         </div>
+        {bigMomentBanner && (
+  <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
+    {bigMomentBanner}
+  </div>
+)}
 
         {homeTeam && awayTeam ? (
           <>
@@ -3223,6 +3367,9 @@ const dashboardStories = [
     ))}
   </div>
 </div>
+<div className="dashboard-bases-wrap">
+  <BaseDiamond bases={currentGame.bases} />
+</div>
               </div>
 
               <div className="dashboard-team-tile">
@@ -3242,35 +3389,7 @@ const dashboardStories = [
               </div>
             </div>
 
-            <div className="dashboard-mini-linescore">
-              <div className="dashboard-mini-line dashboard-mini-head">
-                <span>Team</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-head-${i}`}>{i + 1}</span>
-                ))}
-                <span>R</span>
-              </div>
-
-              <div className="dashboard-mini-line">
-                <span>{awayTeam.abbr}</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-away-${i}`}>
-                    {renderInningCell("away", i + 1, currentGame)}
-                  </span>
-                ))}
-                <span>{currentGame.awayScore}</span>
-              </div>
-
-              <div className="dashboard-mini-line">
-                <span>{homeTeam.abbr}</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-home-${i}`}>
-                    {renderInningCell("home", i + 1, currentGame)}
-                  </span>
-                ))}
-                <span>{currentGame.homeScore}</span>
-              </div>
-            </div>
+           
           </>
         ) : lastFinalGame && lastFinalAwayTeam && lastFinalHomeTeam ? (
           <>
@@ -3302,7 +3421,35 @@ const dashboardStories = [
           <p className="muted">No live game or final result yet.</p>
         )}
       </div>
+ <div className="dashboard-mini-linescore">
+              <div className="dashboard-mini-line dashboard-mini-head">
+                <span>Team</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-head-${i}`}>{i + 1}</span>
+                ))}
+                <span>R</span>
+              </div>
 
+              <div className="dashboard-mini-line">
+                <span>{awayTeam.abbr}</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-away-${i}`}>
+                    {renderInningCell("away", i + 1, currentGame)}
+                  </span>
+                ))}
+                <span>{currentGame.awayScore}</span>
+              </div>
+
+              <div className="dashboard-mini-line">
+                <span>{homeTeam.abbr}</span>
+                {Array.from({ length: 9 }, (_, i) => (
+                  <span key={`dash-home-${i}`}>
+                    {renderInningCell("home", i + 1, currentGame)}
+                  </span>
+                ))}
+                <span>{currentGame.homeScore}</span>
+              </div>
+            </div>
       <div className="card dashboard-franchise-card">
         <div className="dashboard-card-kicker">Franchise Focus</div>
 
@@ -3457,6 +3604,11 @@ const dashboardStories = [
           <button onClick={resetLiveCountAndBases}>Reset Count/Bases</button>
         </div>
       </div>
+      {bigMomentBanner && (
+  <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
+    {bigMomentBanner}
+  </div>
+)}
 
       <div className="live-top-setup">
         <div>
@@ -3544,7 +3696,10 @@ const dashboardStories = [
         </div>
       </div>
 
-      <div className="ipad-live-scorebug">
+      <div
+  className={`ipad-live-scorebug ${liveLeaderClass} ${scoreFlashSide ? `scorebug-flash-${scoreFlashSide}` : ""} ${isPlayoffLiveGame ? "playoff-broadcast-bg" : ""}`}
+  style={playoffBroadcastVars}
+>
         <div className="ipad-score-team">
           <div
             className="ipad-team-abbr"
@@ -3566,6 +3721,25 @@ const dashboardStories = [
             <span>{currentGame.awayScore}</span>
             <button onClick={() => changeScore("away", 1)}>+</button>
           </div>
+          <div className="ipad-box-stat-grid">
+  <div>
+    <span>H</span>
+    <div>
+      <button onClick={() => changeBoxStat("away", "Hits", -1)}>-</button>
+      <strong>{currentGame.awayHits}</strong>
+      <button onClick={() => changeBoxStat("away", "Hits", 1)}>+</button>
+    </div>
+  </div>
+
+  <div>
+    <span>E</span>
+    <div>
+      <button onClick={() => changeBoxStat("away", "Errors", -1)}>-</button>
+      <strong>{currentGame.awayErrors}</strong>
+      <button onClick={() => changeBoxStat("away", "Errors", 1)}>+</button>
+    </div>
+  </div>
+</div>
         </div>
 
         <div className="ipad-center-status">
@@ -3627,6 +3801,25 @@ const dashboardStories = [
             <span>{currentGame.homeScore}</span>
             <button onClick={() => changeScore("home", 1)}>+</button>
           </div>
+          <div className="ipad-box-stat-grid">
+  <div>
+    <span>H</span>
+    <div>
+      <button onClick={() => changeBoxStat("home", "Hits", -1)}>-</button>
+      <strong>{currentGame.homeHits}</strong>
+      <button onClick={() => changeBoxStat("home", "Hits", 1)}>+</button>
+    </div>
+  </div>
+
+  <div>
+    <span>E</span>
+    <div>
+      <button onClick={() => changeBoxStat("home", "Errors", -1)}>-</button>
+      <strong>{currentGame.homeErrors}</strong>
+      <button onClick={() => changeBoxStat("home", "Errors", 1)}>+</button>
+    </div>
+  </div>
+</div>
         </div>
       </div>
 
@@ -3730,7 +3923,13 @@ const dashboardStories = [
           </div>
         </div>
       </div>
-
+<div className="ipad-big-moment-actions">
+  <button onClick={() => triggerLiveMoment("homeRun")}>Home Run</button>
+  <button onClick={() => triggerLiveMoment("clutchHit")}>Clutch Hit</button>
+  <button onClick={() => triggerLiveMoment("strikeout")}>Big Strikeout</button>
+  <button onClick={() => triggerLiveMoment("doublePlay")}>Double Play</button>
+  <button onClick={() => triggerLiveMoment("walkOff")}>Walk-Off</button>
+</div>
       <div className="ipad-extra-actions">
         <button onClick={() => updateCurrentGame("status", "Live")}>Live</button>
         <button onClick={() => updateCurrentGame("status", "Warmup")}>Warmup</button>
