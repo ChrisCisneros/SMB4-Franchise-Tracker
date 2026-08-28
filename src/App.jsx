@@ -647,7 +647,8 @@ function teamLabel(team) {
 }
 
 function teamOptionLabel(team) {
-  return team ? `${team.abbr} — ${team.name}` : "";
+  if (!team || !team.abbr) return "";
+  return `${team.abbr} — ${team.name || "Unnamed Team"}`;
 }
 
 function winningPctValue(team) {
@@ -1255,7 +1256,9 @@ const teamNumberLookup = Object.fromEntries(
 );
 
 const teamAbbrLookup = Object.fromEntries(
-  numberedTeams.map((team) => [String(team.abbr || "").toUpperCase(), team.id])
+  numberedTeams
+    .filter((team) => team && team.abbr && team.id)
+    .map((team) => [String(team.abbr).toUpperCase(), team.id])
 );
   const currentGame = makeSafeGame(data.currentGame);
   const protectedPages = ["live", "daily", "quick", "admin", "bracketAdmin"];
