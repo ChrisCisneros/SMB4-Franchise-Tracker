@@ -1983,16 +1983,16 @@ function resetLiveCountAndBases() {
 }
 
   function updateBases(base) {
-    clearBanner();
-    setData((prev) => ({
-      ...prev,
-      currentGame: {
-        ...prev.currentGame,
-        inningStatus: "",
-        bases: { ...prev.currentGame.bases, [base]: !prev.currentGame.bases[base] },
-      },
-    }));
-  }
+  clearBanner();
+
+  commitGameUpdate((next) => {
+    next.inningStatus = "";
+    next.bases = {
+      ...next.bases,
+      [base]: !next.bases[base],
+    };
+  });
+}
 
   function undoLastPlay() {
     clearBanner();
@@ -3355,11 +3355,13 @@ const dashboardStories = [
         <div className="dashboard-card-kicker">
           {homeTeam && awayTeam ? "Live Game" : "Latest Result"}
         </div>
-        {bigMomentBanner && (
-  <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
-    {bigMomentBanner}
-  </div>
-)}
+       <div className="big-moment-slot">
+  {bigMomentBanner && (
+    <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
+      {bigMomentBanner}
+    </div>
+  )}
+</div>
 
         {homeTeam && awayTeam ? (
           <>
@@ -3642,11 +3644,13 @@ const dashboardStories = [
           <button onClick={resetLiveCountAndBases}>Reset Count/Bases</button>
         </div>
       </div>
-      {bigMomentBanner && (
-  <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
-    {bigMomentBanner}
-  </div>
-)}
+      <div className="big-moment-slot">
+  {bigMomentBanner && (
+    <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>
+      {bigMomentBanner}
+    </div>
+  )}
+</div>
 
       <div className="live-top-setup">
         <div>

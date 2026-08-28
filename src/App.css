@@ -3272,3 +3272,8 @@ mask-image: none;
     box-shadow: inherit;
   }
 }
+.big-moment-slot {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+}
