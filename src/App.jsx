@@ -1015,6 +1015,7 @@ const [bigMomentBanner, setBigMomentBanner] = useState("");
 const bigMomentTimerRef = useRef(null);
 const scoreFlashTimerRef = useRef(null);
 const lastSeenBigMomentIdRef = useRef(0);
+const hasInitializedBigMomentRef = useRef(false);
 const [winningPitcherId, setWinningPitcherId] = useState("");
 const [losingPitcherId, setLosingPitcherId] = useState("");
 const [selectedPlayoffSeriesId, setSelectedPlayoffSeriesId] = useState("al_wc1");
@@ -1231,12 +1232,31 @@ useEffect(() => {
     }
   }, [controlsUnlocked, page]);
 
-  const teams = data.teams;
-  const players = data.players;
-  const sortedTeams = [...teams].sort((a, b) => a.abbr.localeCompare(b.abbr) || a.name.localeCompare(b.name));
-  const numberedTeams = sortedTeams.map((team, index) => ({ ...team, listNumber: index + 1 }));
-  const teamNumberLookup = Object.fromEntries(numberedTeams.map((team) => [String(team.listNumber), team.id]));
-  const teamAbbrLookup = Object.fromEntries(numberedTeams.map((team) => [team.abbr.toUpperCase(), team.id]));
+  const teams = (data.teams || []).filter(
+  (team) => team && team.id && team.abbr
+);
+
+const players = (data.players || []).filter(Boolean);
+
+const sortedTeams = [...teams].sort((a, b) => {
+  const abbrCompare = String(a.abbr || "").localeCompare(String(b.abbr || ""));
+  if (abbrCompare !== 0) return abbrCompare;
+
+  return String(a.name || "").localeCompare(String(b.name || ""));
+});
+
+const numberedTeams = sortedTeams.map((team, index) => ({
+  ...team,
+  listNumber: index + 1,
+}));
+
+const teamNumberLookup = Object.fromEntries(
+  numberedTeams.map((team) => [String(team.listNumber), team.id])
+);
+
+const teamAbbrLookup = Object.fromEntries(
+  numberedTeams.map((team) => [String(team.abbr || "").toUpperCase(), team.id])
+);
   const currentGame = makeSafeGame(data.currentGame);
   const protectedPages = ["live", "daily", "quick", "admin", "bracketAdmin"];
 const bestRunDiff = [...teams].sort((a, b) => (b.runDiff || 0) - (a.runDiff || 0))[0];
@@ -1405,14 +1425,29 @@ const playoffBroadcastVars = {
 useEffect(() => {
   const incomingMomentId = Number(currentGame.bigMomentId || 0);
 
-  if (!incomingMomentId || incomingMomentId === lastSeenBigMomentIdRef.current) {
+  if (!incomingMomentId) {
+    hasInitializedBigMomentRef.current = true;
+    return;
+  }
+
+  if (!hasInitializedBigMomentRef.current) {
+    hasInitializedBigMomentRef.current = true;
+    lastSeenBigMomentIdRef.current = incomingMomentId;
+    return;
+  }
+
+  if (incomingMomentId === lastSeenBigMomentIdRef.current) {
     return;
   }
 
   lastSeenBigMomentIdRef.current = incomingMomentId;
 
   if (currentGame.bigMomentText) {
-    triggerBigMoment(currentGame.bigMomentText, currentGame.bigMomentSide || "neutral", false);
+    triggerBigMoment(
+      currentGame.bigMomentText,
+      currentGame.bigMomentSide || "neutral",
+      false
+    );
   }
 }, [currentGame.bigMomentId]);
 useEffect(() => {
@@ -3260,7 +3295,7 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill">v0.5</span>
+    <span className="version-pill">v0.9</span>
   </div>
   <p>SMB4 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
