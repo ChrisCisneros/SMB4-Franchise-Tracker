@@ -418,20 +418,24 @@ function defaultBracketSeries() {
 function defaultPlayoffBracket() {
   return {
     al: {
-      wc1: defaultBracketSeries(),
-      wc2: defaultBracketSeries(),
-      ds1: defaultBracketSeries(),
-      ds2: defaultBracketSeries(),
-      cs: defaultBracketSeries(),
+      qf1: defaultBracketSeries(),
+      qf2: defaultBracketSeries(),
+      qf3: defaultBracketSeries(),
+      qf4: defaultBracketSeries(),
+      sf1: defaultBracketSeries(),
+      sf2: defaultBracketSeries(),
+      lc: defaultBracketSeries(),
     },
     nl: {
-      wc1: defaultBracketSeries(),
-      wc2: defaultBracketSeries(),
-      ds1: defaultBracketSeries(),
-      ds2: defaultBracketSeries(),
-      cs: defaultBracketSeries(),
+      qf1: defaultBracketSeries(),
+      qf2: defaultBracketSeries(),
+      qf3: defaultBracketSeries(),
+      qf4: defaultBracketSeries(),
+      sf1: defaultBracketSeries(),
+      sf2: defaultBracketSeries(),
+      lc: defaultBracketSeries(),
     },
-    worldSeries: defaultBracketSeries(),
+    finals: defaultBracketSeries(),
   };
 }
 
@@ -444,41 +448,40 @@ function makeSafePlayoffBracket(bracket) {
     games: Array.isArray(series?.games) ? series.games : [],
   });
 
+  const safeLeague = (leagueKey) => ({
+    qf1: mergeSeries(bracket?.[leagueKey]?.qf1 || defaults[leagueKey].qf1),
+    qf2: mergeSeries(bracket?.[leagueKey]?.qf2 || defaults[leagueKey].qf2),
+    qf3: mergeSeries(bracket?.[leagueKey]?.qf3 || defaults[leagueKey].qf3),
+    qf4: mergeSeries(bracket?.[leagueKey]?.qf4 || defaults[leagueKey].qf4),
+    sf1: mergeSeries(bracket?.[leagueKey]?.sf1 || defaults[leagueKey].sf1),
+    sf2: mergeSeries(bracket?.[leagueKey]?.sf2 || defaults[leagueKey].sf2),
+    lc: mergeSeries(bracket?.[leagueKey]?.lc || defaults[leagueKey].lc),
+  });
+
   return {
-    al: {
-      wc1: mergeSeries(bracket?.al?.wc1 || defaults.al.wc1),
-      wc2: mergeSeries(bracket?.al?.wc2 || defaults.al.wc2),
-      ds1: mergeSeries(bracket?.al?.ds1 || defaults.al.ds1),
-      ds2: mergeSeries(bracket?.al?.ds2 || defaults.al.ds2),
-      cs: mergeSeries(bracket?.al?.cs || defaults.al.cs),
-    },
-    nl: {
-      wc1: mergeSeries(bracket?.nl?.wc1 || defaults.nl.wc1),
-      wc2: mergeSeries(bracket?.nl?.wc2 || defaults.nl.wc2),
-      ds1: mergeSeries(bracket?.nl?.ds1 || defaults.nl.ds1),
-      ds2: mergeSeries(bracket?.nl?.ds2 || defaults.nl.ds2),
-      cs: mergeSeries(bracket?.nl?.cs || defaults.nl.cs),
-    },
-    worldSeries: mergeSeries(bracket?.worldSeries || defaults.worldSeries),
+    al: safeLeague("al"),
+    nl: safeLeague("nl"),
+    finals: mergeSeries(bracket?.finals || bracket?.worldSeries || defaults.finals),
   };
 }
-
 function getWinsNeededForSeries() {
   return PLAYOFF_WINS_NEEDED;
 }
 
 function getPlayoffSeries(bracket, seriesId) {
-  if (seriesId === "worldSeries") return bracket.worldSeries;
+  if (seriesId === "finals" || seriesId === "worldSeries") {
+    return bracket.finals || bracket.worldSeries || defaultBracketSeries();
+  }
 
   const [league, key] = seriesId.split("_");
   return bracket?.[league]?.[key] || defaultBracketSeries();
 }
 
 function setPlayoffSeries(bracket, seriesId, nextSeries) {
-  if (seriesId === "worldSeries") {
+  if (seriesId === "finals" || seriesId === "worldSeries") {
     return {
       ...bracket,
-      worldSeries: nextSeries,
+      finals: nextSeries,
     };
   }
 
@@ -499,17 +502,21 @@ function advancePlayoffWinner(bracket, seriesId, winnerTeamId) {
   const next = makeSafePlayoffBracket(bracket);
 
   const advanceMap = {
-    al_wc1: ["al", "ds1", "homeTeamId"],
-    al_wc2: ["al", "ds2", "homeTeamId"],
-    al_ds1: ["al", "cs", "awayTeamId"],
-    al_ds2: ["al", "cs", "homeTeamId"],
-    al_cs: ["worldSeries", null, "awayTeamId"],
+    al_qf1: ["al", "sf1", "awayTeamId"],
+    al_qf2: ["al", "sf1", "homeTeamId"],
+    al_qf3: ["al", "sf2", "awayTeamId"],
+    al_qf4: ["al", "sf2", "homeTeamId"],
+    al_sf1: ["al", "lc", "awayTeamId"],
+    al_sf2: ["al", "lc", "homeTeamId"],
+    al_lc: ["finals", null, "awayTeamId"],
 
-    nl_wc1: ["nl", "ds1", "homeTeamId"],
-    nl_wc2: ["nl", "ds2", "homeTeamId"],
-    nl_ds1: ["nl", "cs", "awayTeamId"],
-    nl_ds2: ["nl", "cs", "homeTeamId"],
-    nl_cs: ["worldSeries", null, "homeTeamId"],
+    nl_qf1: ["nl", "sf1", "awayTeamId"],
+    nl_qf2: ["nl", "sf1", "homeTeamId"],
+    nl_qf3: ["nl", "sf2", "awayTeamId"],
+    nl_qf4: ["nl", "sf2", "homeTeamId"],
+    nl_sf1: ["nl", "lc", "awayTeamId"],
+    nl_sf2: ["nl", "lc", "homeTeamId"],
+    nl_lc: ["finals", null, "homeTeamId"],
   };
 
   const target = advanceMap[seriesId];
@@ -517,9 +524,9 @@ function advancePlayoffWinner(bracket, seriesId, winnerTeamId) {
 
   const [league, key, field] = target;
 
-  if (league === "worldSeries") {
-    next.worldSeries = {
-      ...next.worldSeries,
+  if (league === "finals") {
+    next.finals = {
+      ...next.finals,
       [field]: winnerTeamId,
     };
     return next;
@@ -1024,6 +1031,7 @@ const [playoffAwayScore, setPlayoffAwayScore] = useState("");
 const [playoffHomeScore, setPlayoffHomeScore] = useState("");
 const [recentlyUpdatedTeamId, setRecentlyUpdatedTeamId] = useState("");
 const recentlyUpdatedTimerRef = useRef(null);
+
 
 
   function syncTeamsToFirebase(nextTeams) {
@@ -1548,19 +1556,23 @@ return {
 const playoffBracket = makeSafePlayoffBracket(data.playoffBracket);
 
 const playoffSeriesOptions = [
-  { id: "al_wc1", label: "AL Wild Card A — #3 seed vs WC3" },
-  { id: "al_wc2", label: "AL Wild Card B — WC1 vs WC2" },
-  { id: "al_ds1", label: "ALDS A — #1 seed vs WC A winner" },
-  { id: "al_ds2", label: "ALDS B — #2 seed vs WC B winner" },
-  { id: "al_cs", label: "ALCS" },
+  { id: "al_qf1", label: "AL Quarterfinal A — #1 vs #8" },
+  { id: "al_qf2", label: "AL Quarterfinal B — #4 vs #5" },
+  { id: "al_qf3", label: "AL Quarterfinal C — #3 vs #6" },
+  { id: "al_qf4", label: "AL Quarterfinal D — #2 vs #7" },
+  { id: "al_sf1", label: "AL Semifinal A — QF A winner vs QF B winner" },
+  { id: "al_sf2", label: "AL Semifinal B — QF C winner vs QF D winner" },
+  { id: "al_lc", label: "AL Championship" },
 
-  { id: "nl_wc1", label: "NL Wild Card A — #3 seed vs WC3" },
-  { id: "nl_wc2", label: "NL Wild Card B — WC1 vs WC2" },
-  { id: "nl_ds1", label: "NLDS A — #1 seed vs WC A winner" },
-  { id: "nl_ds2", label: "NLDS B — #2 seed vs WC B winner" },
-  { id: "nl_cs", label: "NLCS" },
+  { id: "nl_qf1", label: "NL Quarterfinal A — #1 vs #8" },
+  { id: "nl_qf2", label: "NL Quarterfinal B — #4 vs #5" },
+  { id: "nl_qf3", label: "NL Quarterfinal C — #3 vs #6" },
+  { id: "nl_qf4", label: "NL Quarterfinal D — #2 vs #7" },
+  { id: "nl_sf1", label: "NL Semifinal A — QF A winner vs QF B winner" },
+  { id: "nl_sf2", label: "NL Semifinal B — QF C winner vs QF D winner" },
+  { id: "nl_lc", label: "NL Championship" },
 
-  { id: "worldSeries", label: "World Series" },
+  { id: "finals", label: "World Series" },
 ];
 
 const isPlayoffGame = currentGame.gameType === "playoff";
@@ -1577,6 +1589,33 @@ const selectedLivePlayoffSeriesLabel =
   selectedLivePlayoffSeriesOption
     ? playoffSeriesDropdownLabel(selectedLivePlayoffSeriesOption)
     : "Select playoff series";
+
+function liveTeamRecordLabel(side, team) {
+  if (!team) return "";
+
+  if (
+    currentGame.gameType === "playoff" &&
+    selectedLivePlayoffSeries &&
+    currentGame.playoffSeriesId
+  ) {
+    const teamIsAwaySlot = selectedLivePlayoffSeries.awayTeamId === team.id;
+    const teamIsHomeSlot = selectedLivePlayoffSeries.homeTeamId === team.id;
+
+    if (teamIsAwaySlot) {
+      return `${Number(selectedLivePlayoffSeries.awayWins || 0)}-${Number(
+        selectedLivePlayoffSeries.homeWins || 0
+      )}`;
+    }
+
+    if (teamIsHomeSlot) {
+      return `${Number(selectedLivePlayoffSeries.homeWins || 0)}-${Number(
+        selectedLivePlayoffSeries.awayWins || 0
+      )}`;
+    }
+  }
+
+  return `${team.wins}-${team.losses}`;
+}
 
 function teamById(teamId) {
   return teams.find((team) => team.id === teamId) || null;
@@ -1623,38 +1662,47 @@ function seriesStatusText(series, seriesId) {
 }
 
 function initializeBracketFromCurrentSeeds() {
-  if (!window.confirm("Initialize the playoff bracket from the current standings? This will clear existing playoff series scores.")) return;
+  if (
+    !window.confirm(
+      "Initialize the playoff bracket from current seeds? This will clear existing playoff series scores."
+    )
+  ) {
+    return;
+  }
 
   const nextBracket = defaultPlayoffBracket();
 
   data.leagues.forEach((league) => {
     const leagueKey = league.toLowerCase();
     const picture = playoffPicture.find((item) => item.league === league);
-    const leaders = picture?.divisionLeaders || [];
-    const wildcards = picture?.wildcardTeams || [];
 
-    nextBracket[leagueKey].wc1 = {
+    const seeds = [
+      ...(picture?.divisionLeaders || []),
+      ...(picture?.wildcardTeams || []),
+    ].slice(0, 8);
+
+    nextBracket[leagueKey].qf1 = {
       ...defaultBracketSeries(),
-      awayTeamId: leaders[2]?.id || "",
-      homeTeamId: wildcards[2]?.id || "",
+      awayTeamId: seeds[0]?.id || "",
+      homeTeamId: seeds[7]?.id || "",
     };
 
-    nextBracket[leagueKey].wc2 = {
+    nextBracket[leagueKey].qf2 = {
       ...defaultBracketSeries(),
-      awayTeamId: wildcards[0]?.id || "",
-      homeTeamId: wildcards[1]?.id || "",
+      awayTeamId: seeds[3]?.id || "",
+      homeTeamId: seeds[4]?.id || "",
     };
 
-    nextBracket[leagueKey].ds1 = {
+    nextBracket[leagueKey].qf3 = {
       ...defaultBracketSeries(),
-      awayTeamId: leaders[0]?.id || "",
-      homeTeamId: "",
+      awayTeamId: seeds[2]?.id || "",
+      homeTeamId: seeds[5]?.id || "",
     };
 
-    nextBracket[leagueKey].ds2 = {
+    nextBracket[leagueKey].qf4 = {
       ...defaultBracketSeries(),
-      awayTeamId: leaders[1]?.id || "",
-      homeTeamId: "",
+      awayTeamId: seeds[1]?.id || "",
+      homeTeamId: seeds[6]?.id || "",
     };
   });
 
@@ -1741,6 +1789,11 @@ function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam
   const series = getPlayoffSeries(playoffBracket, seriesId);
   const awayTeam = teamById(series.awayTeamId) || fallbackAwayTeam || null;
   const homeTeam = teamById(series.homeTeamId) || fallbackHomeTeam || null;
+  const winnerTeam = teamById(series.winnerTeamId) || null;
+
+  const awayColors = getTeamColorsByAbbr(awayTeam?.abbr);
+  const homeColors = getTeamColorsByAbbr(homeTeam?.abbr);
+  const winnerColors = getTeamColorsByAbbr(winnerTeam?.abbr);
 
   const displaySeries = {
     ...series,
@@ -1748,17 +1801,59 @@ function renderBracketSeries(seriesId, label, fallbackAwayTeam, fallbackHomeTeam
     homeTeamId: homeTeam?.id || series.homeTeamId,
   };
 
+  const bracketColorVars = {
+    "--series-away-main": awayColors.main,
+    "--series-away-alt": awayColors.alt,
+    "--series-away-border": awayColors.border,
+    "--series-away-text": awayColors.text,
+    "--series-home-main": homeColors.main,
+    "--series-home-alt": homeColors.alt,
+    "--series-home-border": homeColors.border,
+    "--series-home-text": homeColors.text,
+    "--series-winner-main": winnerColors.main,
+    "--series-winner-alt": winnerColors.alt,
+    "--series-winner-border": winnerColors.border,
+    "--series-winner-text": winnerColors.text,
+  };
+
   return (
-    <div className={`bracket-series-card bracket-slot ${extraClass}`}>
+    <div
+      className={`bracket-series-card bracket-slot ${extraClass} ${
+  series.winnerTeamId ? "bracket-series-winner" : ""
+} ${!awayTeam || !homeTeam ? "bracket-series-empty" : ""} ${
+  awayTeam && homeTeam && !series.winnerTeamId ? "bracket-series-active" : ""
+}`}
+      style={bracketColorVars}
+    >
       <div className="bracket-series-label">{label}</div>
 
-      <div className="bracket-team-row">
+      <div
+        className={`bracket-team-row bracket-away-row ${
+  series.winnerTeamId === awayTeam?.id ? "series-team-winner" : ""
+} ${
+  !series.winnerTeamId &&
+  awayTeam &&
+  series.awayWins > series.homeWins
+    ? "series-team-leading"
+    : ""
+}`}
+      >
         <span>{awayTeam?.abbr || "TBD"}</span>
         <strong>{awayTeam?.abbr || "TBD"}</strong>
         <small>{series.awayWins || 0}</small>
       </div>
 
-      <div className="bracket-team-row">
+      <div
+        className={`bracket-team-row bracket-home-row ${
+  series.winnerTeamId === homeTeam?.id ? "series-team-winner" : ""
+} ${
+  !series.winnerTeamId &&
+  homeTeam &&
+  series.homeWins > series.awayWins
+    ? "series-team-leading"
+    : ""
+}`}
+      >
         <span>{homeTeam?.abbr || "TBD"}</span>
         <strong>{homeTeam?.abbr || "TBD"}</strong>
         <small>{series.homeWins || 0}</small>
@@ -3038,6 +3133,10 @@ runDiff:
 
       syncTeamsToFirebase(nextTeams);
       syncLastFinalGameToFirebase(finishedGame);
+      syncCurrentGameToFirebase({
+  ...defaultCurrentGame(),
+  date: new Date().toISOString().slice(0, 10),
+});
 
 const gameTeamIds = new Set([
   currentGame.awayTeamId,
@@ -3134,6 +3233,49 @@ setLosingPitcherId("");
     setPage("dashboard");
   }
 
+  function resetRegularSeasonStats() {
+  if (
+    !window.confirm(
+      "Reset all team records, run differential, live game, daily results, and playoff bracket for a new season? Teams and players will stay."
+    )
+  ) {
+    return;
+  }
+
+  const resetTeams = teams.map((team) => ({
+    ...team,
+    wins: 0,
+    losses: 0,
+    runDiff: 0,
+    runsScored: 0,
+    runsAllowed: 0,
+  }));
+
+  const resetGame = defaultCurrentGame();
+  const resetDailyRows = Array.from({ length: DAILY_ROWS }, emptyDailyRow);
+  const resetBracket = defaultPlayoffBracket();
+
+  syncTeamsToFirebase(resetTeams);
+  syncCurrentGameToFirebase(resetGame);
+  syncLastFinalGameToFirebase(null);
+  syncPlayoffBracketToFirebase(resetBracket);
+
+  set(ref(db, "dailyResultsRows"), resetDailyRows).catch((error) => {
+    console.error("[Firebase Debug] WRITE dailyResultsRows failed", error);
+  });
+
+  setData((prev) => ({
+    ...prev,
+    teams: resetTeams,
+    currentGame: resetGame,
+    lastFinalGame: null,
+    dailyResultsRows: resetDailyRows,
+    playoffBracket: resetBracket,
+  }));
+
+  setPage("dashboard");
+}
+
   const activeButtons = playMode === "hits"
     ? [
         { label: "Single", category: "hit", type: "single" },
@@ -3176,6 +3318,14 @@ setLosingPitcherId("");
     const lastFinalGame = data.lastFinalGame ? makeSafeGame(data.lastFinalGame) : null;
 const lastFinalAwayTeam = lastFinalGame ? teams.find((team) => team.id === lastFinalGame.awayTeamId) : null;
 const lastFinalHomeTeam = lastFinalGame ? teams.find((team) => team.id === lastFinalGame.homeTeamId) : null;
+const dashboardScoreboardGame =
+  homeTeam && awayTeam ? currentGame : lastFinalGame;
+
+const dashboardScoreboardAwayTeam =
+  homeTeam && awayTeam ? awayTeam : lastFinalAwayTeam;
+
+const dashboardScoreboardHomeTeam =
+  homeTeam && awayTeam ? homeTeam : lastFinalHomeTeam;
 const lastFinalWinningPitcher = lastFinalGame?.winningPitcherId
   ? players.find((player) => player.id === lastFinalGame.winningPitcherId)
   : null;
@@ -3379,7 +3529,7 @@ const dashboardStories = [
                 >
                   {awayTeam.abbr}
                 </div>
-                <strong>{awayTeam.wins}-{awayTeam.losses}</strong>
+                <strong>{liveTeamRecordLabel("away", awayTeam)}</strong>
               </div>
 
               <div className="dashboard-score-core">
@@ -3425,7 +3575,7 @@ const dashboardStories = [
                 >
                   {homeTeam.abbr}
                 </div>
-                <strong>{homeTeam.wins}-{homeTeam.losses}</strong>
+                <strong>{liveTeamRecordLabel("home", homeTeam)}</strong>
               </div>
             </div>
 
@@ -3461,35 +3611,51 @@ const dashboardStories = [
           <p className="muted">No live game or final result yet.</p>
         )}
       </div>
- <div className="dashboard-mini-linescore">
-              <div className="dashboard-mini-line dashboard-mini-head">
-                <span>Team</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-head-${i}`}>{i + 1}</span>
-                ))}
-                <span>R</span>
-              </div>
+ {dashboardScoreboardGame &&
+  dashboardScoreboardAwayTeam &&
+  dashboardScoreboardHomeTeam && (
+    <>
+      <div className="dashboard-linescore-label">
+        {homeTeam && awayTeam ? "Live Linescore" : "Final Linescore"}
+      </div>
 
-              <div className="dashboard-mini-line">
-                <span>{awayTeam.abbr}</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-away-${i}`}>
-                    {renderInningCell("away", i + 1, currentGame)}
-                  </span>
-                ))}
-                <span>{currentGame.awayScore}</span>
-              </div>
+      <div className="dashboard-mini-linescore">
+      <div className="dashboard-mini-line dashboard-mini-head">
+        <span>Team</span>
+        {Array.from({ length: 12 }, (_, i) => (
+          <span key={`dash-head-${i}`}>{i + 1}</span>
+        ))}
+        <span>R</span>
+        <span>H</span>
+        <span>E</span>
+      </div>
 
-              <div className="dashboard-mini-line">
-                <span>{homeTeam.abbr}</span>
-                {Array.from({ length: 9 }, (_, i) => (
-                  <span key={`dash-home-${i}`}>
-                    {renderInningCell("home", i + 1, currentGame)}
-                  </span>
-                ))}
-                <span>{currentGame.homeScore}</span>
-              </div>
-            </div>
+      <div className="dashboard-mini-line">
+        <span>{dashboardScoreboardAwayTeam.abbr}</span>
+        {Array.from({ length: 12 }, (_, i) => (
+          <span key={`dash-away-${i}`}>
+            {renderInningCell("away", i + 1, dashboardScoreboardGame)}
+          </span>
+        ))}
+        <span>{dashboardScoreboardGame.awayScore}</span>
+        <span>{dashboardScoreboardGame.awayHits}</span>
+        <span>{dashboardScoreboardGame.awayErrors}</span>
+      </div>
+
+      <div className="dashboard-mini-line">
+        <span>{dashboardScoreboardHomeTeam.abbr}</span>
+        {Array.from({ length: 12 }, (_, i) => (
+          <span key={`dash-home-${i}`}>
+            {renderInningCell("home", i + 1, dashboardScoreboardGame)}
+          </span>
+        ))}
+        <span>{dashboardScoreboardGame.homeScore}</span>
+        <span>{dashboardScoreboardGame.homeHits}</span>
+        <span>{dashboardScoreboardGame.homeErrors}</span>
+      </div>
+    </div>
+    </>
+  )}
       <div className="card dashboard-franchise-card">
         <div className="dashboard-card-kicker">Franchise Focus</div>
 
@@ -3753,7 +3919,9 @@ const dashboardStories = [
               color: awayColors.text,
             }}
           >
-            {awayTeam ? awayTeam.abbr : "AWY"}
+            <small className="ipad-team-record">
+  {liveTeamRecordLabel("away", awayTeam)}
+</small>
           </div>
           <button className="ipad-look-switch-button" onClick={() => cycleLiveLook("away")}>
   {liveAwayLookLabel}
@@ -3833,7 +4001,9 @@ const dashboardStories = [
               color: homeColors.text,
             }}
           >
-            {homeTeam ? homeTeam.abbr : "HME"}
+            <small className="ipad-team-record">
+  {liveTeamRecordLabel("home", homeTeam)}
+</small>
           </div>
           <button className="ipad-look-switch-button" onClick={() => cycleLiveLook("home")}>
   {liveHomeLookLabel}
@@ -4095,83 +4265,84 @@ const dashboardStories = [
     <div className="card season-format-card">
       <h2>Playoff Bracket</h2>
       <p className="muted">
-        40-game regular season. Seeds lock after Game 40. Playoff series update from Bracket Admin results.
+        40-game regular season. Top 8 teams per league qualify. Every series is best-of-5.
       </p>
     </div>
 
-    <div className="true-bracket-shell">
+    <div className="smb-bracket-shell">
       {["AL", "NL"].map((league) => {
-        const picture = playoffPicture.find((item) => item.league === league);
-        const leaders = picture?.divisionLeaders || [];
-        const wildcards = picture?.wildcardTeams || [];
-
-        const seed1 = leaders[0];
-        const seed2 = leaders[1];
-        const seed3 = leaders[2];
-        const wc1 = wildcards[0];
-        const wc2 = wildcards[1];
-        const wc3 = wildcards[2];
-
-        const isAL = league === "AL";
         const leagueKey = league.toLowerCase();
 
         return (
-          <div
-            className={`true-bracket-league ${isAL ? "true-bracket-left" : "true-bracket-right"}`}
-            key={`${league}-true-bracket`}
-          >
+          <div className="smb-league-bracket" key={`${league}-smb-bracket`}>
             <h3>{league}</h3>
 
-            <div className="true-bracket-grid">
-              <div className="true-bracket-column wildcard-column">
-                <div className="bracket-round-title">Wild Card</div>
+            <div className="smb-bracket-grid">
+              <div className="smb-bracket-column">
+                <div className="bracket-round-title">Quarterfinals</div>
 
                 {renderBracketSeries(
-                  `${leagueKey}_wc1`,
-                  "WC A — #3 vs WC3",
-                  seed3,
-                  wc3,
-                  "wc-slot-top"
+                  `${leagueKey}_qf1`,
+                  "QF A — #1 vs #8",
+                  null,
+                  null,
+                  "qf-slot-1"
                 )}
 
                 {renderBracketSeries(
-                  `${leagueKey}_wc2`,
-                  "WC B — WC1 vs WC2",
-                  wc1,
-                  wc2,
-                  "wc-slot-bottom"
+                  `${leagueKey}_qf2`,
+                  "QF B — #4 vs #5",
+                  null,
+                  null,
+                  "qf-slot-2"
+                )}
+
+                {renderBracketSeries(
+                  `${leagueKey}_qf3`,
+                  "QF C — #3 vs #6",
+                  null,
+                  null,
+                  "qf-slot-3"
+                )}
+
+                {renderBracketSeries(
+                  `${leagueKey}_qf4`,
+                  "QF D — #2 vs #7",
+                  null,
+                  null,
+                  "qf-slot-4"
                 )}
               </div>
 
-              <div className="true-bracket-column lds-column">
-                <div className="bracket-round-title">Division Series</div>
+              <div className="smb-bracket-column">
+                <div className="bracket-round-title">Semifinals</div>
 
                 {renderBracketSeries(
-                  `${leagueKey}_ds1`,
-                  "LDS A — #1 vs WC A Winner",
-                  seed1,
+                  `${leagueKey}_sf1`,
+                  "SF A — QF A vs QF B",
                   null,
-                  "lds-slot-top"
+                  null,
+                  "sf-slot-1"
                 )}
 
                 {renderBracketSeries(
-                  `${leagueKey}_ds2`,
-                  "LDS B — #2 vs WC B Winner",
-                  seed2,
+                  `${leagueKey}_sf2`,
+                  "SF B — QF C vs QF D",
                   null,
-                  "lds-slot-bottom"
+                  null,
+                  "sf-slot-2"
                 )}
               </div>
 
-              <div className="true-bracket-column cs-column">
-                <div className="bracket-round-title">{league}CS</div>
+              <div className="smb-bracket-column">
+                <div className="bracket-round-title">{league} Championship</div>
 
                 {renderBracketSeries(
-                  `${leagueKey}_cs`,
+                  `${leagueKey}_lc`,
                   `${league} Championship`,
                   null,
                   null,
-                  "cs-slot"
+                  "lc-slot"
                 )}
               </div>
             </div>
@@ -4179,15 +4350,16 @@ const dashboardStories = [
         );
       })}
 
-      <div className="true-world-series-center">
-        {renderBracketSeries(
-          "worldSeries",
-          "World Series",
-          null,
-          null,
-          "world-series-card"
-        )}
-      </div>
+      <div className="smb-finals-wrap">
+  <div className="bracket-round-title">World Series</div>
+  {renderBracketSeries(
+    "finals",
+    "World Series",
+    null,
+    null,
+    "finals-slot world-series-card"
+  )}
+</div>
     </div>
   </div>
 )}
@@ -4358,11 +4530,21 @@ const dashboardStories = [
       )}
 
       {page === "quick" && (
-        <div className="quick-groups-wrap">
-          <div className="card">
-            <h2>Quick Daily Record Editor</h2>
-            <p className="muted">This is your emergency correction screen if a record needs to be fixed manually.</p>
-          </div>
+  <div className="quick-groups-wrap">
+    <div className="card quick-reset-card">
+      <div>
+        <h2>Quick Daily Record Editor</h2>
+        <p className="muted">
+          This is your emergency correction screen if a record needs to be fixed manually.
+        </p>
+      </div>
+
+      {controlsUnlocked && (
+        <button className="danger-lite" onClick={resetRegularSeasonStats}>
+          Reset Regular Season Stats
+        </button>
+      )}
+    </div>
 
           {data.leagues.map((league) => (
             <div key={league} className="league-block">
@@ -4499,7 +4681,11 @@ const dashboardStories = [
         </div>
 
         <div>
-          <label>Away / Top Score</label>
+          <label>
+  {teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).awayTeamId) !== "TBD"
+    ? `${teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).awayTeamId)} Score`
+    : "Away / Top Score"}
+</label>
           <input
             type="number"
             value={playoffAwayScore}
@@ -4508,7 +4694,11 @@ const dashboardStories = [
         </div>
 
         <div>
-          <label>Home / Bottom Score</label>
+          <label>
+  {teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).homeTeamId) !== "TBD"
+    ? `${teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).homeTeamId)} Score`
+    : "Home / Bottom Score"}
+</label>
           <input
             type="number"
             value={playoffHomeScore}
@@ -4593,10 +4783,13 @@ const dashboardStories = [
                 </div>
 
                 <div className="topbar-actions">
+                  
   {controlsUnlocked && (
+    
     <button className="danger" onClick={resetLeague}>
       Reset All Data
     </button>
+    
   )}
 </div>
 
