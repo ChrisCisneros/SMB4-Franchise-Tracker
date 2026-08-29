@@ -1730,6 +1730,53 @@ function bumpPlayoffScore(side, amount) {
   }
 }
 
+function resetSelectedPlayoffSeries() {
+  if (!selectedPlayoffSeriesId) {
+    window.alert("Select a playoff series to reset.");
+    return;
+  }
+
+  const currentBracket = makeSafePlayoffBracket(data.playoffBracket);
+  const series = getPlayoffSeries(currentBracket, selectedPlayoffSeriesId);
+
+  if (!series.awayTeamId || !series.homeTeamId) {
+    window.alert("This series does not have both teams yet.");
+    return;
+  }
+
+  if (
+    !window.confirm(
+      `Reset only ${teamAbbr(series.awayTeamId)} vs ${teamAbbr(
+        series.homeTeamId
+      )}? This will clear this series score and game history only.`
+    )
+  ) {
+    return;
+  }
+
+  const resetSeries = {
+    ...defaultBracketSeries(),
+    awayTeamId: series.awayTeamId,
+    homeTeamId: series.homeTeamId,
+  };
+
+  const nextBracket = setPlayoffSeries(
+    currentBracket,
+    selectedPlayoffSeriesId,
+    resetSeries
+  );
+
+  syncPlayoffBracketToFirebase(nextBracket);
+
+  setData((prev) => ({
+    ...prev,
+    playoffBracket: nextBracket,
+  }));
+
+  setPlayoffAwayScore("");
+  setPlayoffHomeScore("");
+}
+
 function addPlayoffGameResult() {
   const awayScore = Number(playoffAwayScore);
   const homeScore = Number(playoffHomeScore);
@@ -2990,7 +3037,13 @@ function nextStreak(result, current = "") {
       };
     });
   }
-  function applyPlayoffGameResult({ seriesId, awayScore, homeScore }) {
+  function applyPlayoffGameResult({
+  seriesId,
+  awayScore,
+  homeScore,
+  gameAwayTeamId = "",
+  gameHomeTeamId = "",
+}) {
   const currentBracket = makeSafePlayoffBracket(data.playoffBracket);
   const series = getPlayoffSeries(currentBracket, seriesId);
 
@@ -3009,17 +3062,43 @@ function nextStreak(result, current = "") {
     return null;
   }
 
-  if (awayScore === homeScore) {
+  function scoreForTeam(teamId) {
+    if (gameAwayTeamId && teamId === gameAwayTeamId) return awayScore;
+    if (gameHomeTeamId && teamId === gameHomeTeamId) return homeScore;
+    return null;
+  }
+
+  const bracketAwayScore =
+    gameAwayTeamId && gameHomeTeamId
+      ? scoreForTeam(series.awayTeamId)
+      : awayScore;
+
+  const bracketHomeScore =
+    gameAwayTeamId && gameHomeTeamId
+      ? scoreForTeam(series.homeTeamId)
+      : homeScore;
+
+  if (bracketAwayScore === null || bracketHomeScore === null) {
+    window.alert("This game's teams do not match the selected playoff series.");
+    return null;
+  }
+
+  if (bracketAwayScore === bracketHomeScore) {
     window.alert("Playoff games cannot end in a tie.");
     return null;
   }
 
-  const winnerTeamId = awayScore > homeScore ? series.awayTeamId : series.homeTeamId;
+  const winnerTeamId =
+    bracketAwayScore > bracketHomeScore ? series.awayTeamId : series.homeTeamId;
 
   const nextSeries = {
     ...series,
-    awayWins: Number(series.awayWins || 0) + (winnerTeamId === series.awayTeamId ? 1 : 0),
-    homeWins: Number(series.homeWins || 0) + (winnerTeamId === series.homeTeamId ? 1 : 0),
+    awayWins:
+      Number(series.awayWins || 0) +
+      (winnerTeamId === series.awayTeamId ? 1 : 0),
+    homeWins:
+      Number(series.homeWins || 0) +
+      (winnerTeamId === series.homeTeamId ? 1 : 0),
     games: [
       ...(series.games || []),
       {
@@ -3027,8 +3106,8 @@ function nextStreak(result, current = "") {
         date: new Date().toISOString().slice(0, 10),
         awayTeamId: series.awayTeamId,
         homeTeamId: series.homeTeamId,
-        awayScore,
-        homeScore,
+        awayScore: bracketAwayScore,
+        homeScore: bracketHomeScore,
         winnerTeamId,
       },
     ],
@@ -3043,7 +3122,11 @@ function nextStreak(result, current = "") {
   let nextBracket = setPlayoffSeries(currentBracket, seriesId, nextSeries);
 
   if (nextSeries.winnerTeamId) {
-    nextBracket = advancePlayoffWinner(nextBracket, seriesId, nextSeries.winnerTeamId);
+    nextBracket = advancePlayoffWinner(
+      nextBracket,
+      seriesId,
+      nextSeries.winnerTeamId
+    );
   }
 
   return nextBracket;
@@ -3068,14 +3151,21 @@ if (currentGame.gameType === "playoff") {
   }
 
   const nextBracket = applyPlayoffGameResult({
-    seriesId: currentGame.playoffSeriesId,
-    awayScore: Number(currentGame.awayScore || 0),
-    homeScore: Number(currentGame.homeScore || 0),
-  });
+  seriesId: currentGame.playoffSeriesId,
+  awayScore: Number(currentGame.awayScore || 0),
+  homeScore: Number(currentGame.homeScore || 0),
+  gameAwayTeamId: currentGame.awayTeamId,
+  gameHomeTeamId: currentGame.homeTeamId,
+});
 
-  if (!nextBracket) return;
+if (!nextBracket) return;
 
-  setData((prev) => {
+const resetGame = {
+  ...defaultCurrentGame(),
+  date: new Date().toISOString().slice(0, 10),
+};
+
+setData((prev) => {
     const gameTeamIds = new Set([
       currentGame.awayTeamId,
       currentGame.homeTeamId,
@@ -3093,8 +3183,9 @@ if (currentGame.gameType === "playoff") {
     );
 
     syncPlayersToFirebase(resetPlayers);
-    syncLastFinalGameToFirebase(finishedGame);
-    syncPlayoffBracketToFirebase(nextBracket);
+syncLastFinalGameToFirebase(finishedGame);
+syncPlayoffBracketToFirebase(nextBracket);
+syncCurrentGameToFirebase(resetGame);
 
     return {
       ...prev,
@@ -3102,10 +3193,7 @@ if (currentGame.gameType === "playoff") {
       players: resetPlayers,
       lastFinalGame: finishedGame,
       playoffBracket: nextBracket,
-      currentGame: {
-        ...defaultCurrentGame(),
-        date: new Date().toISOString().slice(0, 10),
-      },
+      currentGame: resetGame,
     };
   });
 
@@ -3935,7 +4023,10 @@ const dashboardStories = [
               color: awayColors.text,
             }}
           >
-            <small className="ipad-team-record">
+            <span className="ipad-team-abbr-text">
+  {awayTeam ? awayTeam.abbr : "AWY"}
+</span>
+<small className="ipad-team-record">
   {liveTeamRecordLabel("away", awayTeam)}
 </small>
           </div>
@@ -4017,7 +4108,10 @@ const dashboardStories = [
               color: homeColors.text,
             }}
           >
-            <small className="ipad-team-record">
+            <span className="ipad-team-abbr-text">
+  {homeTeam ? homeTeam.abbr : "HME"}
+</span>
+<small className="ipad-team-record">
   {liveTeamRecordLabel("home", homeTeam)}
 </small>
           </div>
@@ -4744,8 +4838,12 @@ const dashboardStories = [
       </div>
 
       <div className="inline-buttons">
-        <button onClick={addPlayoffGameResult}>Add Playoff Result</button>
-      </div>
+  <button onClick={addPlayoffGameResult}>Add Playoff Result</button>
+
+  <button className="danger-lite" onClick={resetSelectedPlayoffSeries}>
+    Reset Selected Series
+  </button>
+</div>
     </div>
 
     <div className="card">
