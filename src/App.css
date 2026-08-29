@@ -940,6 +940,27 @@ label {
   margin-top: 16px;
 }
 
+.playoff-score-stepper {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+.playoff-score-stepper button {
+  min-height: 42px;
+  padding: 0;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.playoff-score-stepper input {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 900;
+}
+
 .team-edit-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 100px;

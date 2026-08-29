@@ -1059,6 +1059,8 @@ function syncLastFinalGameToFirebase(nextLastFinalGame) {
   });
 }
 
+
+
 function syncAllDataToFirebase() {
   syncTeamsToFirebase(data.teams);
   syncPlayersToFirebase(data.players);
@@ -1712,6 +1714,20 @@ function initializeBracketFromCurrentSeeds() {
     ...prev,
     playoffBracket: nextBracket,
   }));
+}
+
+function bumpPlayoffScore(side, amount) {
+  if (side === "away") {
+    setPlayoffAwayScore((prev) =>
+      String(Math.max(0, Number(prev || 0) + amount))
+    );
+  }
+
+  if (side === "home") {
+    setPlayoffHomeScore((prev) =>
+      String(Math.max(0, Number(prev || 0) + amount))
+    );
+  }
 }
 
 function addPlayoffGameResult() {
@@ -3448,7 +3464,7 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill">v0.9</span>
+    <span className="version-pill">v1.0</span>
   </div>
   <p>SMB4 League Hub · 40-game regular season · Seeds lock after Game 40</p>
 </div>
@@ -4686,11 +4702,21 @@ const dashboardStories = [
     ? `${teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).awayTeamId)} Score`
     : "Away / Top Score"}
 </label>
-          <input
-            type="number"
-            value={playoffAwayScore}
-            onChange={(e) => setPlayoffAwayScore(e.target.value)}
-          />
+          <div className="playoff-score-stepper">
+  <button type="button" onClick={() => bumpPlayoffScore("away", -1)}>
+    -
+  </button>
+
+  <input
+    type="number"
+    value={playoffAwayScore}
+    onChange={(e) => setPlayoffAwayScore(e.target.value)}
+  />
+
+  <button type="button" onClick={() => bumpPlayoffScore("away", 1)}>
+    +
+  </button>
+</div>
         </div>
 
         <div>
@@ -4699,11 +4725,21 @@ const dashboardStories = [
     ? `${teamAbbr(getPlayoffSeries(playoffBracket, selectedPlayoffSeriesId).homeTeamId)} Score`
     : "Home / Bottom Score"}
 </label>
-          <input
-            type="number"
-            value={playoffHomeScore}
-            onChange={(e) => setPlayoffHomeScore(e.target.value)}
-          />
+          <div className="playoff-score-stepper">
+  <button type="button" onClick={() => bumpPlayoffScore("home", -1)}>
+    -
+  </button>
+
+  <input
+    type="number"
+    value={playoffHomeScore}
+    onChange={(e) => setPlayoffHomeScore(e.target.value)}
+  />
+
+  <button type="button" onClick={() => bumpPlayoffScore("home", 1)}>
+    +
+  </button>
+</div>
         </div>
       </div>
 
