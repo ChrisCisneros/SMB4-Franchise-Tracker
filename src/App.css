@@ -3551,3 +3551,160 @@ grid-template-columns: 190px 170px 165px;  gap: 30px;
     align-items: flex-start;
   }
 }
+
+.history-page {
+  display: grid;
+  gap: 20px;
+}
+
+.history-header-card,
+.history-season-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.history-header-card h2,
+.history-season-title h3 {
+  margin-top: 0;
+}
+
+.history-header-card p,
+.history-season-title p {
+  margin-bottom: 0;
+}
+
+.history-champion-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.history-team-table,
+.history-series-list {
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.history-team-row {
+  display: grid;
+  grid-template-columns: 1.2fr 90px 70px;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+}
+
+.history-team-row small {
+  display: block;
+  color: #93c5fd;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.history-team-head {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: transparent;
+}
+
+.history-series-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+.history-series-row span {
+  font-weight: 800;
+}
+
+.history-series-row small {
+  color: #fbbf24;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .history-header-card,
+  .history-season-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.history-title-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.history-division-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.history-league-group {
+  display: grid;
+  gap: 10px;
+}
+
+.history-league-group h5 {
+  margin: 0;
+  color: #bfdbfe;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-division-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.history-division-title {
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.history-division-card .history-team-table {
+  max-height: unset;
+  overflow: visible;
+}
+
+@media (max-width: 900px) {
+  .history-title-actions {
+    align-items: flex-start;
+  }
+}

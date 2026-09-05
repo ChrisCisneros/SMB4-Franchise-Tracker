@@ -554,6 +554,7 @@ const defaultData = {
   currentGame: defaultCurrentGame(),
 
   playoffBracket: defaultPlayoffBracket(),
+  seasonHistory: [],
 };
 
 
@@ -1074,6 +1075,29 @@ function syncAllDataToFirebase() {
   });
 }
 
+function syncSeasonHistoryToFirebase(nextHistory) {
+  set(ref(db, "seasonHistory"), nextHistory).catch((error) => {
+    console.error("[Firebase Debug] WRITE seasonHistory failed", error);
+  });
+}
+
+useEffect(() => {
+  const seasonHistoryRef = ref(db, "seasonHistory");
+
+  const unsubscribe = onValue(seasonHistoryRef, (snapshot) => {
+    const value = snapshot.val();
+
+    if (!Array.isArray(value)) return;
+
+    setData((prev) => ({
+      ...prev,
+      seasonHistory: value,
+    }));
+  });
+
+  return () => unsubscribe();
+}, []);
+
   useEffect(() => {
     const safeData = {
       ...data,
@@ -1562,17 +1586,17 @@ const playoffSeriesOptions = [
   { id: "al_qf2", label: "AL Quarterfinal B — #4 vs #5" },
   { id: "al_qf3", label: "AL Quarterfinal C — #3 vs #6" },
   { id: "al_qf4", label: "AL Quarterfinal D — #2 vs #7" },
-  { id: "al_sf1", label: "AL Semifinal A — QF A winner vs QF B winner" },
-  { id: "al_sf2", label: "AL Semifinal B — QF C winner vs QF D winner" },
-  { id: "al_lc", label: "AL Championship" },
+  { id: "al_sf1", label: "ALDS A — Quarterfinal A winner vs Quarterfinal B winner" },
+  { id: "al_sf2", label: "ALDS B — Quarterfinal C winner vs Quarterfinal D winner" },
+  { id: "al_lc", label: "ALCS" },
 
   { id: "nl_qf1", label: "NL Quarterfinal A — #1 vs #8" },
   { id: "nl_qf2", label: "NL Quarterfinal B — #4 vs #5" },
   { id: "nl_qf3", label: "NL Quarterfinal C — #3 vs #6" },
   { id: "nl_qf4", label: "NL Quarterfinal D — #2 vs #7" },
-  { id: "nl_sf1", label: "NL Semifinal A — QF A winner vs QF B winner" },
-  { id: "nl_sf2", label: "NL Semifinal B — QF C winner vs QF D winner" },
-  { id: "nl_lc", label: "NL Championship" },
+  { id: "nl_sf1", label: "NLDS A — Quarterfinal A winner vs Quarterfinal B winner" },
+  { id: "nl_sf2", label: "NLDS B — Quarterfinal C winner vs Quarterfinal D winner" },
+  { id: "nl_lc", label: "NLCS" },
 
   { id: "finals", label: "World Series" },
 ];
@@ -3337,6 +3361,75 @@ setLosingPitcherId("");
     setPage("dashboard");
   }
 
+  function archiveCurrentSeason() {
+  const seasonName = window.prompt(
+    "Name this season snapshot:",
+    `Season ${new Date().getFullYear()}`
+  );
+
+  if (seasonName === null) return;
+
+  const safeBracket = makeSafePlayoffBracket(data.playoffBracket);
+  const championTeam = teamById(safeBracket.finals?.winnerTeamId);
+
+  const snapshot = {
+    id: crypto.randomUUID(),
+    name: seasonName.trim() || `Season ${new Date().getFullYear()}`,
+    archivedAt: new Date().toISOString(),
+    championTeamId: championTeam?.id || "",
+    championAbbr: championTeam?.abbr || "TBD",
+    teams: teams.map((team) => ({
+      id: team.id,
+      abbr: team.abbr,
+      name: team.name,
+      league: team.league,
+      division: team.division,
+      wins: Number(team.wins || 0),
+      losses: Number(team.losses || 0),
+      runDiff: Number(team.runDiff || 0),
+      runsScored: Number(team.runsScored || 0),
+      runsAllowed: Number(team.runsAllowed || 0),
+    })),
+    playoffBracket: safeBracket,
+  };
+
+  const nextHistory = [snapshot, ...(data.seasonHistory || [])].slice(0, 25);
+
+  syncSeasonHistoryToFirebase(nextHistory);
+
+  setData((prev) => ({
+    ...prev,
+    seasonHistory: nextHistory,
+  }));
+
+  setPage("history");
+}
+
+function deleteSeasonSnapshot(snapshotId) {
+  const snapshot = (data.seasonHistory || []).find((item) => item.id === snapshotId);
+
+  if (!snapshot) return;
+
+  if (
+    !window.confirm(
+      `Delete "${snapshot.name}" from season history? This cannot be undone.`
+    )
+  ) {
+    return;
+  }
+
+  const nextHistory = (data.seasonHistory || []).filter(
+    (item) => item.id !== snapshotId
+  );
+
+  syncSeasonHistoryToFirebase(nextHistory);
+
+  setData((prev) => ({
+    ...prev,
+    seasonHistory: nextHistory,
+  }));
+}
+
   function resetRegularSeasonStats() {
   if (
     !window.confirm(
@@ -3569,12 +3662,14 @@ const dashboardStories = [
   <button onClick={() => setPage("dashboard")}>Dashboard</button>
   <button onClick={() => setPage("standings")}>Standings</button>
   <button onClick={() => setPage("bracket")}>Bracket</button>
+  <button onClick={() => setPage("history")}>History</button>
 
   {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
   {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
   {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
   {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
   {controlsUnlocked && <button onClick={() => setPage("bracketAdmin")}>Bracket Admin</button>}
+  
 </div>
 
 
@@ -4393,7 +4488,7 @@ const dashboardStories = [
 
                 {renderBracketSeries(
                   `${leagueKey}_qf1`,
-                  "QF A — #1 vs #8",
+                  `QF A — #1 vs #8`,
                   null,
                   null,
                   "qf-slot-1"
@@ -4401,7 +4496,7 @@ const dashboardStories = [
 
                 {renderBracketSeries(
                   `${leagueKey}_qf2`,
-                  "QF B — #4 vs #5",
+                  `QF B — #4 vs #5`,
                   null,
                   null,
                   "qf-slot-2"
@@ -4409,7 +4504,7 @@ const dashboardStories = [
 
                 {renderBracketSeries(
                   `${leagueKey}_qf3`,
-                  "QF C — #3 vs #6",
+                  `QF C — #3 vs #6`,
                   null,
                   null,
                   "qf-slot-3"
@@ -4417,7 +4512,7 @@ const dashboardStories = [
 
                 {renderBracketSeries(
                   `${leagueKey}_qf4`,
-                  "QF D — #2 vs #7",
+                  `QF D — #2 vs #7`,
                   null,
                   null,
                   "qf-slot-4"
@@ -4425,11 +4520,11 @@ const dashboardStories = [
               </div>
 
               <div className="smb-bracket-column">
-                <div className="bracket-round-title">Semifinals</div>
+                <div className="bracket-round-title">{league} Division Series</div>
 
                 {renderBracketSeries(
                   `${leagueKey}_sf1`,
-                  "SF A — QF A vs QF B",
+                  `${league}DS A — QF A vs QF B`,
                   null,
                   null,
                   "sf-slot-1"
@@ -4437,7 +4532,7 @@ const dashboardStories = [
 
                 {renderBracketSeries(
                   `${leagueKey}_sf2`,
-                  "SF B — QF C vs QF D",
+                  `${league}DS B — QF C vs QF D`,
                   null,
                   null,
                   "sf-slot-2"
@@ -4445,11 +4540,11 @@ const dashboardStories = [
               </div>
 
               <div className="smb-bracket-column">
-                <div className="bracket-round-title">{league} Championship</div>
+                <div className="bracket-round-title">{league} Championship Series</div>
 
                 {renderBracketSeries(
                   `${leagueKey}_lc`,
-                  `${league} Championship`,
+                  `${league}CS`,
                   null,
                   null,
                   "lc-slot"
@@ -4757,6 +4852,181 @@ const dashboardStories = [
           ))}
         </div>
       )}
+
+      {page === "history" && (
+  <div className="history-page">
+    <div className="card history-header-card">
+      <div>
+        <h2>Season History</h2>
+        <p className="muted">
+          Archive completed seasons here before starting the next one.
+        </p>
+      </div>
+
+      {controlsUnlocked && (
+        <button onClick={archiveCurrentSeason}>Archive Current Season</button>
+      )}
+    </div>
+
+    {(data.seasonHistory || []).length === 0 ? (
+      <div className="card">
+        <h3>No seasons archived yet</h3>
+        <p className="muted">
+          When the World Series is complete, archive the season here before resetting for the next year.
+        </p>
+      </div>
+    ) : (
+      (data.seasonHistory || []).map((snapshot) => {
+        function sortSnapshotTeams(list) {
+  return [...list].sort((a, b) => {
+    const pctA =
+      Number(a.wins || 0) + Number(a.losses || 0) > 0
+        ? Number(a.wins || 0) /
+          (Number(a.wins || 0) + Number(a.losses || 0))
+        : 0;
+
+    const pctB =
+      Number(b.wins || 0) + Number(b.losses || 0) > 0
+        ? Number(b.wins || 0) /
+          (Number(b.wins || 0) + Number(b.losses || 0))
+        : 0;
+
+    if (pctB !== pctA) return pctB - pctA;
+
+    const winDiff = Number(b.wins || 0) - Number(a.wins || 0);
+    if (winDiff !== 0) return winDiff;
+
+    return Number(b.runDiff || 0) - Number(a.runDiff || 0);
+  });
+}
+
+        const snapshotTeamAbbr = (teamId) =>
+          snapshot.teams?.find((team) => team.id === teamId)?.abbr ||
+          teamById(teamId)?.abbr ||
+          "TBD";
+
+        return (
+          <div className="card history-season-card" key={snapshot.id}>
+            <div className="history-season-title">
+              <div>
+                <h3>{snapshot.name}</h3>
+                <p className="muted">
+                  Archived {new Date(snapshot.archivedAt).toLocaleDateString()}
+                </p>
+              </div>
+
+              <div className="history-title-actions">
+  <div className="history-champion-pill">
+    Champion: {snapshot.championAbbr || "TBD"}
+  </div>
+
+  {controlsUnlocked && (
+    <button
+      className="danger-lite"
+      onClick={() => deleteSeasonSnapshot(snapshot.id)}
+    >
+      Delete Season
+    </button>
+  )}
+</div>
+            </div>
+
+            <div className="history-grid">
+              <div>
+                <h4>Final Standings Snapshot</h4>
+
+                <div className="history-division-grid">
+  {data.leagues.map((league) => (
+    <div className="history-league-group" key={`${snapshot.id}-${league}`}>
+      <h5>{league}</h5>
+
+      {data.divisions.map((division) => {
+        const divisionTeams = sortSnapshotTeams(
+          (snapshot.teams || []).filter(
+            (team) => team.league === league && team.division === division
+          )
+        );
+
+        if (!divisionTeams.length) return null;
+
+        return (
+          <div
+            className="history-division-card"
+            key={`${snapshot.id}-${league}-${division}`}
+          >
+            <div className="history-division-title">{division}</div>
+
+            <div className="history-team-table">
+              <div className="history-team-row history-team-head">
+                <span>Team</span>
+                <span>Record</span>
+                <span>RD</span>
+              </div>
+
+              {divisionTeams.map((team) => (
+                <div
+                  className="history-team-row"
+                  key={`${snapshot.id}-${team.id}`}
+                >
+                  <span>
+                    <strong>{team.abbr}</strong>
+                    <small>{team.name}</small>
+                  </span>
+                  <span>
+                    {team.wins}-{team.losses}
+                  </span>
+                  <span>
+                    {Number(team.runDiff || 0) > 0 ? "+" : ""}
+                    {team.runDiff}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  ))}
+</div>
+              </div>
+
+              <div>
+                <h4>Playoff Bracket Snapshot</h4>
+
+                <div className="history-series-list">
+                  {playoffSeriesOptions.map((option) => {
+                    const series = getPlayoffSeries(
+                      makeSafePlayoffBracket(snapshot.playoffBracket),
+                      option.id
+                    );
+
+                    if (!series.awayTeamId && !series.homeTeamId) return null;
+
+                    const winnerAbbr = snapshotTeamAbbr(series.winnerTeamId);
+
+                    return (
+                      <div className="history-series-row" key={`${snapshot.id}-${option.id}`}>
+                        <strong>{option.label.split(" — ")[0]}</strong>
+                        <span>
+                          {snapshotTeamAbbr(series.awayTeamId)} {series.awayWins || 0}
+                          {" - "}
+                          {snapshotTeamAbbr(series.homeTeamId)} {series.homeWins || 0}
+                        </span>
+                        <small>
+                          Winner: {winnerAbbr}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })
+    )}
+  </div>
+)}
       {page === "bracketAdmin" && controlsUnlocked && (
   <div className="bracket-admin-page">
     <div className="card">
