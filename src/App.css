@@ -3708,3 +3708,51 @@ grid-template-columns: 190px 170px 165px;  gap: 30px;
     align-items: flex-start;
   }
 }
+
+.history-season-card {
+  padding: 14px;
+}
+
+.history-grid {
+  gap: 14px;
+}
+
+.history-division-grid {
+  gap: 10px;
+}
+
+.history-league-group {
+  gap: 8px;
+}
+
+.history-division-card {
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.history-team-table {
+  gap: 5px;
+}
+
+.history-team-row {
+  grid-template-columns: 1fr 72px 54px;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.history-team-row small {
+  font-size: 10px;
+}
+
+.history-division-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.history-series-row {
+  padding: 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}

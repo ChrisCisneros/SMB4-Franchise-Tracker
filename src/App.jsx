@@ -1032,7 +1032,7 @@ const [playoffAwayScore, setPlayoffAwayScore] = useState("");
 const [playoffHomeScore, setPlayoffHomeScore] = useState("");
 const [recentlyUpdatedTeamId, setRecentlyUpdatedTeamId] = useState("");
 const recentlyUpdatedTimerRef = useRef(null);
-
+const [expandedHistorySeasonIds, setExpandedHistorySeasonIds] = useState([]);
 
 
   function syncTeamsToFirebase(nextTeams) {
@@ -3430,6 +3430,14 @@ function deleteSeasonSnapshot(snapshotId) {
   }));
 }
 
+function toggleHistorySeason(snapshotId) {
+  setExpandedHistorySeasonIds((prev) =>
+    prev.includes(snapshotId)
+      ? prev.filter((id) => id !== snapshotId)
+      : [...prev, snapshotId]
+  );
+}
+
   function resetRegularSeasonStats() {
   if (
     !window.confirm(
@@ -4872,38 +4880,41 @@ const dashboardStories = [
       <div className="card">
         <h3>No seasons archived yet</h3>
         <p className="muted">
-          When the World Series is complete, archive the season here before resetting for the next year.
+          When the World Series is complete, archive the season here before
+          resetting for the next year.
         </p>
       </div>
     ) : (
       (data.seasonHistory || []).map((snapshot) => {
         function sortSnapshotTeams(list) {
-  return [...list].sort((a, b) => {
-    const pctA =
-      Number(a.wins || 0) + Number(a.losses || 0) > 0
-        ? Number(a.wins || 0) /
-          (Number(a.wins || 0) + Number(a.losses || 0))
-        : 0;
+          return [...list].sort((a, b) => {
+            const pctA =
+              Number(a.wins || 0) + Number(a.losses || 0) > 0
+                ? Number(a.wins || 0) /
+                  (Number(a.wins || 0) + Number(a.losses || 0))
+                : 0;
 
-    const pctB =
-      Number(b.wins || 0) + Number(b.losses || 0) > 0
-        ? Number(b.wins || 0) /
-          (Number(b.wins || 0) + Number(b.losses || 0))
-        : 0;
+            const pctB =
+              Number(b.wins || 0) + Number(b.losses || 0) > 0
+                ? Number(b.wins || 0) /
+                  (Number(b.wins || 0) + Number(b.losses || 0))
+                : 0;
 
-    if (pctB !== pctA) return pctB - pctA;
+            if (pctB !== pctA) return pctB - pctA;
 
-    const winDiff = Number(b.wins || 0) - Number(a.wins || 0);
-    if (winDiff !== 0) return winDiff;
+            const winDiff = Number(b.wins || 0) - Number(a.wins || 0);
+            if (winDiff !== 0) return winDiff;
 
-    return Number(b.runDiff || 0) - Number(a.runDiff || 0);
-  });
-}
+            return Number(b.runDiff || 0) - Number(a.runDiff || 0);
+          });
+        }
 
         const snapshotTeamAbbr = (teamId) =>
           snapshot.teams?.find((team) => team.id === teamId)?.abbr ||
           teamById(teamId)?.abbr ||
           "TBD";
+
+        const isExpanded = expandedHistorySeasonIds.includes(snapshot.id);
 
         return (
           <div className="card history-season-card" key={snapshot.id}>
@@ -4911,116 +4922,133 @@ const dashboardStories = [
               <div>
                 <h3>{snapshot.name}</h3>
                 <p className="muted">
-                  Archived {new Date(snapshot.archivedAt).toLocaleDateString()}
+                  Archived{" "}
+                  {new Date(snapshot.archivedAt).toLocaleDateString()}
                 </p>
               </div>
 
               <div className="history-title-actions">
-  <div className="history-champion-pill">
-    Champion: {snapshot.championAbbr || "TBD"}
-  </div>
-
-  {controlsUnlocked && (
-    <button
-      className="danger-lite"
-      onClick={() => deleteSeasonSnapshot(snapshot.id)}
-    >
-      Delete Season
-    </button>
-  )}
-</div>
-            </div>
-
-            <div className="history-grid">
-              <div>
-                <h4>Final Standings Snapshot</h4>
-
-                <div className="history-division-grid">
-  {data.leagues.map((league) => (
-    <div className="history-league-group" key={`${snapshot.id}-${league}`}>
-      <h5>{league}</h5>
-
-      {data.divisions.map((division) => {
-        const divisionTeams = sortSnapshotTeams(
-          (snapshot.teams || []).filter(
-            (team) => team.league === league && team.division === division
-          )
-        );
-
-        if (!divisionTeams.length) return null;
-
-        return (
-          <div
-            className="history-division-card"
-            key={`${snapshot.id}-${league}-${division}`}
-          >
-            <div className="history-division-title">{division}</div>
-
-            <div className="history-team-table">
-              <div className="history-team-row history-team-head">
-                <span>Team</span>
-                <span>Record</span>
-                <span>RD</span>
-              </div>
-
-              {divisionTeams.map((team) => (
-                <div
-                  className="history-team-row"
-                  key={`${snapshot.id}-${team.id}`}
-                >
-                  <span>
-                    <strong>{team.abbr}</strong>
-                    <small>{team.name}</small>
-                  </span>
-                  <span>
-                    {team.wins}-{team.losses}
-                  </span>
-                  <span>
-                    {Number(team.runDiff || 0) > 0 ? "+" : ""}
-                    {team.runDiff}
-                  </span>
+                <div className="history-champion-pill">
+                  Champion: {snapshot.championAbbr || "TBD"}
                 </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  ))}
-</div>
+
+                <button onClick={() => toggleHistorySeason(snapshot.id)}>
+                  {isExpanded ? "Hide Details" : "Show Details"}
+                </button>
+
+                {controlsUnlocked && (
+                  <button
+                    className="danger-lite"
+                    onClick={() => deleteSeasonSnapshot(snapshot.id)}
+                  >
+                    Delete Season
+                  </button>
+                )}
               </div>
+            </div>
 
-              <div>
-                <h4>Playoff Bracket Snapshot</h4>
+            {isExpanded && (
+              <div className="history-grid">
+                <div>
+                  <h4>Final Standings Snapshot</h4>
 
-                <div className="history-series-list">
-                  {playoffSeriesOptions.map((option) => {
-                    const series = getPlayoffSeries(
-                      makeSafePlayoffBracket(snapshot.playoffBracket),
-                      option.id
-                    );
+                  <div className="history-division-grid">
+                    {data.leagues.map((league) => (
+                      <div
+                        className="history-league-group"
+                        key={`${snapshot.id}-${league}`}
+                      >
+                        <h5>{league}</h5>
 
-                    if (!series.awayTeamId && !series.homeTeamId) return null;
+                        {data.divisions.map((division) => {
+                          const divisionTeams = sortSnapshotTeams(
+                            (snapshot.teams || []).filter(
+                              (team) =>
+                                team.league === league &&
+                                team.division === division
+                            )
+                          );
 
-                    const winnerAbbr = snapshotTeamAbbr(series.winnerTeamId);
+                          if (!divisionTeams.length) return null;
 
-                    return (
-                      <div className="history-series-row" key={`${snapshot.id}-${option.id}`}>
-                        <strong>{option.label.split(" — ")[0]}</strong>
-                        <span>
-                          {snapshotTeamAbbr(series.awayTeamId)} {series.awayWins || 0}
-                          {" - "}
-                          {snapshotTeamAbbr(series.homeTeamId)} {series.homeWins || 0}
-                        </span>
-                        <small>
-                          Winner: {winnerAbbr}
-                        </small>
+                          return (
+                            <div
+                              className="history-division-card"
+                              key={`${snapshot.id}-${league}-${division}`}
+                            >
+                              <div className="history-division-title">
+                                {division}
+                              </div>
+
+                              <div className="history-team-table">
+                                <div className="history-team-row history-team-head">
+                                  <span>Team</span>
+                                  <span>Record</span>
+                                  <span>RD</span>
+                                </div>
+
+                                {divisionTeams.map((team) => (
+                                  <div
+                                    className="history-team-row"
+                                    key={`${snapshot.id}-${team.id}`}
+                                  >
+                                    <span>
+                                      <strong>{team.abbr}</strong>
+                                      <small>{team.name}</small>
+                                    </span>
+                                    <span>
+                                      {team.wins}-{team.losses}
+                                    </span>
+                                    <span>
+                                      {Number(team.runDiff || 0) > 0 ? "+" : ""}
+                                      {team.runDiff}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4>Playoff Bracket Snapshot</h4>
+
+                  <div className="history-series-list">
+                    {playoffSeriesOptions.map((option) => {
+                      const series = getPlayoffSeries(
+                        makeSafePlayoffBracket(snapshot.playoffBracket),
+                        option.id
+                      );
+
+                      if (!series.awayTeamId && !series.homeTeamId) return null;
+
+                      const winnerAbbr = snapshotTeamAbbr(series.winnerTeamId);
+
+                      return (
+                        <div
+                          className="history-series-row"
+                          key={`${snapshot.id}-${option.id}`}
+                        >
+                          <strong>{option.label.split(" — ")[0]}</strong>
+                          <span>
+                            {snapshotTeamAbbr(series.awayTeamId)}{" "}
+                            {series.awayWins || 0}
+                            {" - "}
+                            {snapshotTeamAbbr(series.homeTeamId)}{" "}
+                            {series.homeWins || 0}
+                          </span>
+                          <small>Winner: {winnerAbbr}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         );
       })
