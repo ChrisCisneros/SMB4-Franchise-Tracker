@@ -79,7 +79,7 @@ TEAM_COLORS.ATH = {
   ]
 };
 TEAM_COLORS.ATL = {
-  primary: {main: "#ffffff", alt: "#8c1204", border: "#8c1204", text: "#01105c", gradient:false},
+  primary: {main: "#ffffff", alt: "#01105c", border: "#8c1204", text: "#01105c", gradient:false},
   alternates: [
     { name: "Blue Alt", main: "#01105c", alt: "#8c1204", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#8c1204", text: "#01105c" }
   ],
@@ -107,7 +107,7 @@ TEAM_COLORS.BOS = {
   cityConnect: { main: "#2c5443", alt: "#021059", border: "#dbc70d", text: "#ffffff", gradient:false},
 };
 TEAM_COLORS.CHC = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#0442b5", text: "#c40404", gradient:false},
+  primary: {main: "#ffffff", alt: "#c40404", border: "#0442b5", text: "#c40404", gradient:false},
   alternates: [
     { name: "Blue Alt", main: "#0442b5", alt: "#c40404", text: "#ffffff" },{ name: "Powder Alt", main: "#6dc1f2", alt: "#c40404", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#0442b5", text: "#c40404" }
   ],
@@ -121,7 +121,7 @@ TEAM_COLORS.CIN = {
   cityConnect: { main: "#9b0303", alt: "#ba4404", border: "#000000", text: "#9b0303", gradient:false},
 };
 TEAM_COLORS.CLE = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#b0110e", text: "#000324", gradient:false},
+  primary: {main: "#ffffff", alt: "#b0110e", border: "#b0110e", text: "#000324", gradient:false},
   alternates: [
     { name: "Blue Alt", main: "#000324", alt: "#ffffff", text: "#b0110e" }, { name: "Red Alt", main: "#b0110e", alt: "#ffffff", text: "#000324" },{ name: "Away", main: "#adadad", alt: "#b0110e", text: "#000324" }
   ],
@@ -149,7 +149,7 @@ TEAM_COLORS.DET = {
   cityConnect: { main: "#020133", alt: "#082aa3", border: "#FFFFFF", text: "#ffffff", gradient:true},
 };
 TEAM_COLORS.HOU = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#010440", text: "#cf6802", gradient:false},
+  primary: {main: "#ffffff", alt: "#cf6802", border: "#010440", text: "#cf6802", gradient:false},
   alternates: [
     { name: "Orange Alt", main: "#cf6802", alt: "#ffffff", text: "#010440" }, { name: "Blue Alt", main: "#010440", alt: "#ffffff", text: "#cf6802" },{ name: "Away", main: "#adadad", alt: "#010440", text: "#cf6802" }
   ],
@@ -169,7 +169,7 @@ TEAM_COLORS.KC = {
   cityConnect: { main: "#fdfaf2", alt: "#a30303", border: "#a30303", text: "#a30303", gradient:false},
 };
 TEAM_COLORS.LAD = {
-  primary: {main: "#ffffff", alt: "#001994", border: "#001994", text: "#001994", gradient:false},
+  primary: {main: "#ffffff", alt: "#ffffff", border: "#001994", text: "#001994", gradient:false},
   alternates: [
     { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#001994", text: "#001994" }
   ],
@@ -183,14 +183,14 @@ TEAM_COLORS.MIA = {
   cityConnect: { main: "#0e80cc", alt: "#c201c2", border: "#7429bb", text: "#ffffff", gradient:true},
 };
 TEAM_COLORS.MIL = {
-  primary: {main: "#fcf0e3", alt: "#e3ac17", border: "#fffb1d", text: "#010041", gradient:false},
+  primary: {main: "#fcf0e3", alt: "#010041", border: "#fffb1d", text: "#010041", gradient:false},
   alternates: [
     { name: "White Alt", main: "#ffffff", alt: "#fffb1d", text: "#010041" }, { name: "Blue  Alt", main: "#010041", alt: "#fffb1d", text: "#fffb1d" },{ name: "Away", main: "#adadad", alt: "#fffb1d", text: "#010041" }
   ],
   cityConnect: { main: "#023353", alt: "#fffb1d", border: "#fff5d3", text: "#fff5d3", gradient:false},
 };
 TEAM_COLORS.MIN = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#00063b", text: "#d30000", gradient:false},
+  primary: {main: "#ffffff", alt: "#d30000", border: "#00063b", text: "#d30000", gradient:false},
   alternates: [
     { name: "Blue Alt", main: "#00063b", alt: "#d30000", text: "##ffffff" }, { name: "Cream Alt", main: "#fff9f3", alt: "#00063b", text: "#00063b" },{ name: "Away", main: "#adadad", alt: "#d30000", text: "#00063b" }
   ],
@@ -219,7 +219,7 @@ TEAM_COLORS.PHI = {
   cityConnect: { main: "#0782ab", alt: "#020a4d", border: "#e6d437", text: "#ffffff", gradient:true},
 };
 TEAM_COLORS.PIT = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#e3ac17", text: "#000000", gradient:false},
+  primary: {main: "#ffffff", alt: "#000000", border: "#e3ac17", text: "#000000", gradient:false},
   alternates: [
     { name: "Black Alt", main: "#000000", alt: "#e3ac17", text: "#e3ac17" },{ name: "Away", main: "#adadad", alt: "#e3ac17", text: "#000000" }
   ],
@@ -256,7 +256,7 @@ TEAM_COLORS.STL = {
   extras: [],
 };
 TEAM_COLORS.TB = {
-  primary: { main: "#ffffff", alt: "#000000", border:"#0077d8", text: "#040041" , gradient: false},
+  primary: { main: "#ffffff", alt: "#f1da09", border:"#0077d8", text: "#040041" , gradient: false},
   alternates: [
     { name: "Powder Alt", main: "#0077d8", alt: "#f1da09", text: "#FFFFFF" }, { name: "Devil Alt", main: "#0077d8", alt: "#f1da09", border:"#040041", text: "#FFFFFF" , gradient: true },{ name: "Away", main: "#adadad", alt: "#0077d8", text: "#0077d8" }
   ],
