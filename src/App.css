@@ -508,10 +508,16 @@ label {
 }
 
 .ipad-base.occupied {
-  background: #f8fafc;
-  color: #020617;
-  border-color: white;
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  background: var(--base-main, #f8fafc);
+  color: var(--base-text, #ffffff);
+  border-color: var(--base-border, #ffffff);
+  box-shadow:
+    0 0 0 2px var(--base-border, #ffffff),
+    0 0 22px color-mix(
+      in srgb,
+      var(--base-main, #ffffff) 65%,
+      transparent
+    );
 }
 
 .ipad-base-second {
@@ -721,9 +727,21 @@ label {
 }
 
 .base.occupied {
-  background: white;
-  border-color: white;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+  background: var(--base-main, white);
+  border-color: var(--base-border, white);
+  box-shadow:
+    0 0 0 1px var(--base-border, white),
+    0 0 14px color-mix(
+      in srgb,
+      var(--base-main, white) 70%,
+      transparent
+    );
+}
+
+.base.home-plate {
+  background: #ffffff;
+  border-color: #60a5fa;
+  box-shadow: none;
 }
 
 .base.second { top: 2px; left: 32px; }
@@ -3755,4 +3773,57 @@ grid-template-columns: 190px 170px 165px;  gap: 30px;
   padding: 8px;
   border-radius: 12px;
   font-size: 12px;
+}
+
+.dashboard-seed-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.84);
+  border: 1px solid #94a3b8;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+.world-series-trophy {
+  font-size: 54px;
+  line-height: 1;
+  filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.8));
+  animation: trophy-glow 1.8s ease-in-out infinite alternate;
+}
+
+.dashboard-world-series-trophy {
+  font-size: 64px;
+}
+
+@keyframes trophy-glow {
+  from {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.55));
+  }
+
+  to {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 24px rgba(251, 191, 36, 0.95));
+  }
+}
+
+.ipad-count-reset-button {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 46px;
+  border-radius: 14px;
+  background: #475569;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.playoff-broadcast-bg .dashboard-card-kicker {
+  color: #111827;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.95),
+     1px -1px 0 rgba(255, 255, 255, 0.95),
+    -1px  1px 0 rgba(255, 255, 255, 0.95),
+     1px  1px 0 rgba(255, 255, 255, 0.95);
 }
