@@ -2114,9 +2114,7 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
         <span>
   {awayTeam ? `#${playoffSeedForTeam(awayTeam.id)}` : "—"}
 </span>
-        <span>
-  {homeTeam ? `#${playoffSeedForTeam(homeTeam.id)}` : "—"}
-</span>
+        <strong>{awayTeam?.abbr || "TBD"}</strong>
         <small>{series.awayWins || 0}</small>
       </div>
 
@@ -2131,7 +2129,9 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
     : ""
 }`}
       >
-        <span>{homeTeam?.abbr || "TBD"}</span>
+        <span>
+  {homeTeam ? `#${playoffSeedForTeam(homeTeam.id)}` : "—"}
+</span>
         <strong>{homeTeam?.abbr || "TBD"}</strong>
         <small>{series.homeWins || 0}</small>
       </div>
