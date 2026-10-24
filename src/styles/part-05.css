@@ -1,0 +1,509 @@
+.franchise-record {
+  font-size: 64px;
+  font-weight: 950;
+  margin: 16px 0;
+}
+
+.franchise-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.franchise-stat-grid div {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+}
+
+.franchise-stat-grid span {
+  display: block;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.franchise-stat-grid strong {
+  font-size: 20px;
+}
+
+.dashboard-story-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dashboard-story-card strong {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.dashboard-story-card p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.dashboard-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.8fr);
+  gap: 20px;
+}
+
+.dashboard-playoff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.dashboard-playoff-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.dashboard-race-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 80px 70px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.dashboard-race-row:last-child {
+  border-bottom: none;
+}
+
+.dashboard-cutoff-row {
+  background: rgba(245, 158, 11, 0.16);
+  border-radius: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-hero-grid,
+  .dashboard-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-story-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-matchup-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-scoreline {
+    font-size: 58px;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-story-grid,
+  .dashboard-playoff-grid,
+  .franchise-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-bases-wrap {
+  margin-top: 4px;
+  display: grid;
+  place-items: center;
+}
+
+.dashboard-bases-wrap .diamond-wrap {
+  width: 135px;
+  height: 135px;
+  margin: 2px auto 0;
+}
+
+.dashboard-bases-wrap .base {
+  width: 40px;
+  height: 40px;
+}
+
+.dashboard-bases-wrap .base.second {
+  top: 3px;
+  left: 47px;
+}
+
+.dashboard-bases-wrap .base.first {
+  right: 3px;
+  top: 47px;
+}
+
+.dashboard-bases-wrap .base.third {
+  left: 3px;
+  top: 47px;
+}
+
+.dashboard-bases-wrap .base.home {
+  bottom: 3px;
+  left: 47px;
+}
+
+/* Team look controls */
+.team-look-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.look-switch-button {
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #e5e7eb;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 150px;
+}
+
+.look-switch-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Keep dashboard and live scoreboard structure aligned */
+.dashboard-scoreboard-card .team-look-column .look-switch-button {
+  display: none;
+}
+
+
+.control-warning {
+  margin: 10px 0 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #7f1d1d;
+  border: 1px solid #dc2626;
+  color: #fecaca;
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.daily-page-wrap {
+  display: grid;
+  gap: 20px;
+}
+
+.daily-helper-card h3 {
+  margin-top: 0;
+}
+
+.quick-entry-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.quick-entry-input {
+  width: 100%;
+}
+
+.team-status-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  padding: 10px 12px;
+  border: 1px solid #334155;
+  background: #1f2937;
+}
+
+.team-status-chip.is-added {
+  background: #7f1d1d;
+  border-color: #dc2626;
+}
+
+.team-status-chip.is-open {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+.team-status-abbr {
+  font-weight: 900;
+  min-width: 38px;
+}
+
+.team-status-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 1200px) {
+  .quick-entry-row {
+    grid-template-columns: 1fr;
+  }
+
+  .team-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+
+.hidden-file-input {
+  display: none;
+}
+
+
+/* --- CHALLENGES --- */
+
+.challenge-bars {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.challenge-bar {
+  width: 34px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid #e3ac17;
+}
+
+.challenge-bar.is-on {
+  background: #ffd447;
+  box-shadow: 0 0 8px rgba(255, 212, 71, 0.45);
+}
+
+.challenge-bar.is-off {
+  background: #1f2937;
+  border-color: #475569;
+}
+
+.challenge-adjust-row button {
+  min-width: 120px;
+}
+
+.score-flash {
+  animation: flash 0.4s ease;
+}
+
+@keyframes flash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); color: #facc15; }
+  100% { transform: scale(1); }
+}
+
+.challenge-bar.is-on {
+  animation: glow 0.4s ease;
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 0px gold; }
+  50% { box-shadow: 0 0 12px gold; }
+  100% { box-shadow: 0 0 0px gold; }
+}
+
+.game-status-strip {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.game-status-strip span {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.wildcard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.wildcard-wrap h4 {
+  margin-bottom: 8px;
+  color: #cbd5e1;
+}
+
+.wildcard-row {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.division-leader-row {
+  background: rgba(37, 99, 235, 0.14);
+  border-radius: 12px;
+}
+
+.wildcard-in {
+  background: rgba(22, 101, 52, 0.16);
+  border-radius: 12px;
+}
+
+.wildcard-cutoff {
+  box-shadow: inset 0 -2px 0 rgba(250, 204, 21, 0.7);
+}
+
+.wildcard-out {
+  opacity: 0.48;
+}
+
+.playoff-race-card h2 {
+  margin-top: 0;
+}
+
+.playoff-league-card {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.playoff-league-card h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.playoff-section-label {
+  margin: 12px 0 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.playoff-race-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 80px 80px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #1f2937;
+  font-weight: 800;
+}
+
+.playoff-race-row strong {
+  color: #dbeafe;
+}
+
+.playoff-race-row span {
+  text-align: right;
+}
+
+.playoff-race-row span:nth-child(2) {
+  text-align: left;
+}
+
+.playoff-race-chaser {
+  opacity: 0.72;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.version-pill {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #93c5fd;
+  letter-spacing: 0.04em;
+}
+
+.batting-card h2 {
+  margin-top: 0;
+}
+
+.batting-lineup-row {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-bottom: 1px solid #1f2937;
+  border-radius: 14px;
+}
+
+.batting-order-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  color: #dbeafe;
+  font-weight: 900;
+}
+
+.is-current-batter {
+  background: rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(96, 165, 250, 0.55);
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.18);
+}
+
+.due-up-box {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+}
+
+.due-up-box h3 {
+  margin-top: 0;
+}
+
+.due-up-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.even-playoff-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid.two.even-playoff-grid {
+  grid-template-columns: 1fr 1fr;
+}
+

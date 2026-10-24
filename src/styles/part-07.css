@@ -1,0 +1,537 @@
+.playoff-broadcast-bg {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-color: rgba(255, 255, 255, 0.8);
+
+  background:
+  radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 44%),
+  linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--away-main, #2563eb) 55%, #020617) 0%,
+    rgba(15, 23, 42, 0.48) 42%,
+    rgba(255, 255, 255, 0.24) 50%,
+    rgba(15, 23, 42, 0.48) 58%,
+    color-mix(in srgb, var(--home-main, #f97316) 55%, #020617) 100%
+  ) !important;
+
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.5),
+    0 0 44px rgba(255, 255, 255, 0.36),
+    0 0 80px color-mix(in srgb, var(--away-border, #2563eb) 28%, transparent),
+    0 0 80px color-mix(in srgb, var(--home-border, #f97316) 28%, transparent),
+    0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.playoff-broadcast-bg > * {
+  position: relative;
+  z-index: 2;
+}
+
+.playoff-broadcast-bg::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.65;
+
+  background:
+  linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 5%,
+    color-mix(in srgb, var(--away-border, #2563eb) 90%, transparent) 6%,
+    color-mix(in srgb, var(--away-border, #2563eb) 90%, transparent) 10%,
+    transparent 11%,
+
+    transparent 16%,
+    color-mix(in srgb, var(--away-main, #2563eb) 88%, transparent) 17%,
+    color-mix(in srgb, var(--away-main, #2563eb) 88%, transparent) 22%,
+    transparent 23%,
+
+    transparent 28%,
+    color-mix(in srgb, var(--away-alt, #60a5fa) 82%, transparent) 29%,
+    color-mix(in srgb, var(--away-alt, #60a5fa) 82%, transparent) 34%,
+    transparent 35%,
+
+    transparent 40%,
+    color-mix(in srgb, var(--away-border, #2563eb) 90%, transparent) 41%,
+    color-mix(in srgb, var(--away-border, #2563eb) 90%, transparent) 47%,
+    transparent 48%,
+
+    transparent 50%
+  ),
+  linear-gradient(
+    68deg,
+    transparent 50%,
+
+    transparent 52%,
+    color-mix(in srgb, var(--home-border, #f97316) 90%, transparent) 53%,
+    color-mix(in srgb, var(--home-border, #f97316) 90%, transparent) 59%,
+    transparent 60%,
+
+    transparent 65%,
+    color-mix(in srgb, var(--home-alt, #fb923c) 82%, transparent) 66%,
+    color-mix(in srgb, var(--home-alt, #fb923c) 82%, transparent) 71%,
+    transparent 72%,
+
+    transparent 77%,
+    color-mix(in srgb, var(--home-main, #f97316) 88%, transparent) 78%,
+    color-mix(in srgb, var(--home-main, #f97316) 88%, transparent) 83%,
+    transparent 84%,
+
+    transparent 89%,
+    color-mix(in srgb, var(--home-border, #f97316) 90%, transparent) 90%,
+    color-mix(in srgb, var(--home-border, #f97316) 90%, transparent) 95%,
+    transparent 96%
+  );
+
+mask-image: none;
+
+  animation: playoff-banner-fight 7s ease-in-out infinite alternate;
+}
+
+.playoff-broadcast-bg::after {
+  content: "PLAYOFF GAME";
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.28);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 16px rgba(255, 255, 255, 0.6),
+    0 0 28px rgba(255, 255, 255, 0.24);
+}
+
+@keyframes playoff-banner-fight {
+  from {
+    transform: scale(1.02);
+  }
+
+  to {
+    transform: scale(1.045);
+  }
+}
+
+.playoff-broadcast-bg .dashboard-card-kicker,
+.playoff-broadcast-bg .dashboard-game-state,
+.playoff-broadcast-bg .ipad-inning-display,
+.playoff-broadcast-bg .dashboard-score-dash,
+.playoff-broadcast-bg .ipad-score-dash {
+  color: #111827;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.playoff-broadcast-bg .dashboard-scoreline,
+.playoff-broadcast-bg .ipad-big-score,
+.playoff-broadcast-bg .dashboard-count-pill,
+.playoff-broadcast-bg .dashboard-note,
+.playoff-broadcast-bg .ipad-count-line {
+  color: #111827;
+}
+
+.playoff-broadcast-bg .dashboard-count-pill,
+.playoff-broadcast-bg .dashboard-mini-linescore,
+.playoff-broadcast-bg .ipad-linescore-card {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+.playoff-broadcast-bg .dashboard-count-pill,
+.playoff-broadcast-bg .dashboard-count-pill strong {
+  color: #111827;
+}
+
+.playoff-broadcast-bg.scorebug-tied {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.78),
+    0 0 46px rgba(255, 255, 255, 0.42),
+    0 0 95px rgba(255, 255, 255, 0.2),
+    0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.playoff-broadcast-bg.scorebug-away-leading {
+  border-color: var(--away-border, #60a5fa);
+  box-shadow:
+    0 0 0 3px var(--away-border, #60a5fa),
+    0 0 52px color-mix(in srgb, var(--away-border, #60a5fa) 95%, transparent),
+    0 0 105px color-mix(in srgb, var(--away-main, #60a5fa) 52%, transparent),
+    0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.playoff-broadcast-bg.scorebug-home-leading {
+  border-color: var(--home-border, #f97316);
+  box-shadow:
+    0 0 0 3px var(--home-border, #f97316),
+    0 0 52px color-mix(in srgb, var(--home-border, #f97316) 95%, transparent),
+    0 0 105px color-mix(in srgb, var(--home-main, #f97316) 52%, transparent),
+    0 18px 46px rgba(0, 0, 0, 0.45);
+}
+
+.big-moment-banner {
+  width: fit-content;
+  max-width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 12px 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #020617;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 24px rgba(255, 255, 255, 0.5),
+    0 0 50px rgba(96, 165, 250, 0.22);
+  animation: big-moment-pop 0.48s ease-out, big-moment-pulse 1.1s ease-in-out infinite alternate;
+  z-index: 5;
+}
+
+.big-moment-away {
+  box-shadow:
+    0 0 0 2px var(--away-border, #60a5fa),
+    0 0 34px color-mix(in srgb, var(--away-border, #60a5fa) 85%, transparent),
+    0 0 70px color-mix(in srgb, var(--away-main, #60a5fa) 42%, transparent);
+}
+
+.big-moment-home {
+  box-shadow:
+    0 0 0 2px var(--home-border, #f97316),
+    0 0 34px color-mix(in srgb, var(--home-border, #f97316) 85%, transparent),
+    0 0 70px color-mix(in srgb, var(--home-main, #f97316) 42%, transparent);
+}
+
+.ipad-big-moment-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 20px;
+  background: #08111f;
+  border: 1px solid #263654;
+}
+
+.ipad-big-moment-actions button {
+  min-height: 54px;
+  border-radius: 18px;
+  padding: 0 18px;
+  font-size: 16px;
+  background: #7c2d12;
+}
+
+.scorebug-flash-away {
+  animation: scorebug-flash-away 1.2s ease-out;
+}
+
+.scorebug-flash-home {
+  animation: scorebug-flash-home 1.2s ease-out;
+}
+
+@keyframes big-moment-pop {
+  from {
+    transform: scale(0.84);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes big-moment-pulse {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes scorebug-flash-away {
+  0% {
+    box-shadow:
+      0 0 0 4px var(--away-border, #60a5fa),
+      0 0 68px color-mix(in srgb, var(--away-border, #60a5fa) 95%, transparent),
+      0 0 120px color-mix(in srgb, var(--away-main, #60a5fa) 65%, transparent);
+  }
+
+  100% {
+    box-shadow: inherit;
+  }
+}
+
+@keyframes scorebug-flash-home {
+  0% {
+    box-shadow:
+      0 0 0 4px var(--home-border, #f97316),
+      0 0 68px color-mix(in srgb, var(--home-border, #f97316) 95%, transparent),
+      0 0 120px color-mix(in srgb, var(--home-main, #f97316) 65%, transparent);
+  }
+
+  100% {
+    box-shadow: inherit;
+  }
+}
+.big-moment-slot {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+}
+
+.smb-bracket-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px minmax(0, 1fr);
+  gap: 36px;
+  align-items: center;
+}
+
+.smb-league-bracket:nth-of-type(2) .smb-bracket-grid {
+  direction: rtl;
+}
+
+.smb-league-bracket:nth-of-type(2) .smb-bracket-column,
+.smb-league-bracket:nth-of-type(2) .bracket-series-card,
+.smb-league-bracket:nth-of-type(2) .bracket-team-row,
+.smb-league-bracket:nth-of-type(2) .bracket-round-title {
+  direction: ltr;
+}
+.smb-league-bracket:first-of-type {
+  order: 1;
+}
+
+.smb-finals-wrap {
+  order: 2;
+}
+
+.smb-league-bracket:nth-of-type(2) {
+  order: 3;
+}
+
+.smb-league-bracket {
+  display: grid;
+  gap: 14px;
+}
+
+.smb-league-bracket h3 {
+  margin: 0;
+  font-size: 28px;
+  text-align: center;
+}
+
+.smb-bracket-grid {
+  display: grid;
+grid-template-columns: 190px 170px 165px;  gap: 30px;
+  align-items: center;
+}
+
+.smb-bracket-column {
+  display: grid;
+  gap: 14px;
+}
+
+.qf-slot-1,
+.qf-slot-2,
+.qf-slot-3,
+.qf-slot-4 {
+  min-height: 112px;
+}
+
+.sf-slot-1,
+.sf-slot-2 {
+  min-height: 132px;
+}
+
+.lc-slot {
+  min-height: 150px;
+  border-color: #f59e0b;
+}
+
+.finals-slot {
+  max-width: 340px;
+  margin: 0 auto;
+  width: 100%;
+  border-color: #fbbf24;
+}
+
+.smb-finals-wrap {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 1300px) {
+  .smb-bracket-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .smb-bracket-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .smb-finals-wrap {
+    order: 3;
+  }
+}
+
+.bracket-away-row.series-team-leading,
+.bracket-home-row.series-team-leading {
+  outline: 1px solid rgba(250, 204, 21, 0.75);
+  box-shadow:
+    inset 0 0 18px rgba(250, 204, 21, 0.14),
+    0 0 16px rgba(250, 204, 21, 0.12);
+}
+
+.series-team-leading strong::after {
+  content: "  ▲";
+  color: #facc15;
+}
+
+.ipad-team-abbr {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+}
+
+.ipad-team-abbr-text {
+  font-size: 40px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.ipad-team-record {
+  display: block;
+  font-size: 16px;
+  font-weight: 900;
+  opacity: 0.82;
+}
+
+.ipad-team-record {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 900;
+  opacity: 0.8;
+}
+
+.quick-reset-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.quick-reset-card h2 {
+  margin-top: 0;
+}
+
+.quick-reset-card p {
+  margin-bottom: 0;
+}
+
+@media (max-width: 800px) {
+  .quick-reset-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.history-page {
+  display: grid;
+  gap: 20px;
+}
+
+.history-header-card,
+.history-season-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.history-header-card h2,
+.history-season-title h3 {
+  margin-top: 0;
+}
+
+.history-header-card p,
+.history-season-title p {
+  margin-bottom: 0;
+}
+
+.history-champion-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.history-team-table,
+.history-series-list {
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.history-team-row {
+  display: grid;
+  grid-template-columns: 1.2fr 90px 70px;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+}
+
+.history-team-row small {
+  display: block;
+  color: #93c5fd;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.history-team-head {
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: transparent;
+}
+
+.history-series-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+

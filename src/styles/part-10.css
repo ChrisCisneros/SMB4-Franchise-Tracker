@@ -1,0 +1,541 @@
+.news-page {
+  display: grid;
+  gap: 18px;
+}
+
+.news-masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: center;
+  padding: 22px 26px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 36%),
+    linear-gradient(135deg, #111827, #09111d 70%);
+}
+
+.news-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.news-network-mark {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #dc2626;
+  border: 1px solid #f87171;
+  color: white;
+  font-size: 25px;
+  font-weight: 1000;
+  letter-spacing: -0.04em;
+  box-shadow: 0 12px 28px rgba(220, 38, 38, 0.22);
+}
+
+.news-kicker {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.news-masthead h2 {
+  margin: 3px 0 5px;
+  font-size: 35px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.news-masthead p {
+  margin: 0;
+  max-width: 760px;
+  color: #9fb0c5;
+  line-height: 1.45;
+}
+
+.news-masthead-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(82px, 1fr));
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.news-masthead-stats > div {
+  min-width: 88px;
+  padding: 11px 12px;
+  border: 1px solid #2d3b50;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.7);
+  text-align: center;
+}
+
+.news-masthead-stats strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.news-masthead-stats span {
+  display: block;
+  margin-top: 5px;
+  color: #718096;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.news-ticker {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #29364a;
+  background: #0b1220;
+  padding: 0 15px 0 0;
+}
+
+.news-ticker-label {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.news-ticker strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.news-ticker-date {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.news-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  padding: 4px 2px 0;
+}
+
+.news-section-title {
+  display: grid;
+  gap: 2px;
+}
+
+.news-section-title span {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.news-section-title strong {
+  font-size: 20px;
+}
+
+.news-filter-row {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.news-filter-row button {
+  padding: 8px 12px;
+  background: #111827;
+  border: 1px solid #2c3a4f;
+  color: #9fb0c5;
+  font-size: 11px;
+}
+
+.news-filter-row .news-filter-active {
+  background: #e5e7eb;
+  border-color: #f8fafc;
+  color: #111827;
+  box-shadow: none;
+}
+
+.news-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(300px, 0.8fr);
+  gap: 14px;
+}
+
+.news-lead-story,
+.news-side-story,
+.news-headline-row {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #28364a;
+  background: #111827;
+}
+
+.news-lead-story {
+  min-height: 420px;
+  border-radius: 18px;
+  display: flex;
+  align-items: flex-end;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(59, 130, 246, 0.22), transparent 32%),
+    radial-gradient(circle at 25% 90%, rgba(220, 38, 38, 0.12), transparent 38%),
+    linear-gradient(145deg, #172033 0%, #0a101c 72%);
+}
+
+.news-lead-story::before,
+.news-side-story::before,
+.news-headline-row::before {
+  content: "";
+  position: absolute;
+  background: #64748b;
+}
+
+.news-lead-story::before {
+  inset: 0 0 auto 0;
+  height: 5px;
+}
+
+.news-side-story::before,
+.news-headline-row::before {
+  inset: 0 auto 0 0;
+  width: 4px;
+}
+
+.news-tone-championship::before { background: #f59e0b; }
+.news-tone-postseason::before { background: #8b5cf6; }
+.news-tone-record::before { background: #22c55e; }
+.news-tone-current::before { background: #3b82f6; }
+.news-tone-game::before { background: #ef4444; }
+.news-tone-archive::before { background: #64748b; }
+
+.news-lead-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 25%, rgba(2, 6, 23, 0.22) 52%, rgba(2, 6, 23, 0.92) 100%);
+  pointer-events: none;
+}
+
+.news-lead-content {
+  position: relative;
+  z-index: 1;
+  width: min(900px, 100%);
+  padding: 30px;
+}
+
+.news-breaking-label {
+  width: fit-content;
+  margin-bottom: 9px;
+  color: #fca5a5;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.news-lead-story h3 {
+  margin: 0 0 12px;
+  max-width: 900px;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.news-lead-story p {
+  max-width: 780px;
+  margin: 0;
+  color: #c2cedd;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.news-side-stack {
+  display: grid;
+  gap: 14px;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.news-side-story {
+  min-height: 200px;
+  padding: 18px 18px 16px 20px;
+  border-radius: 16px;
+}
+
+.news-side-story h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.news-side-story p {
+  margin: 0;
+  color: #9fb0c5;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.news-story-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.news-category-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: #182338;
+  border: 1px solid #2d456d;
+  color: #bfdbfe;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.news-date {
+  color: #66758a;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.news-team-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.news-team-row span {
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: #0b1220;
+  border: 1px solid #2b394d;
+  color: #c8d6e8;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.news-desk-note {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(30, 64, 175, 0.12), transparent 56%), #111827;
+}
+
+.news-desk-note h3 {
+  margin: 7px 0 10px;
+  font-size: 23px;
+}
+
+.news-desk-note p {
+  margin-top: 0;
+  line-height: 1.5;
+}
+
+.news-latest-section {
+  display: grid;
+  gap: 10px;
+}
+
+.news-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  padding: 5px 2px 2px;
+  border-bottom: 1px solid #263449;
+}
+
+.news-section-heading h3 {
+  margin: 2px 0 7px;
+  font-size: 23px;
+}
+
+.news-section-heading > span {
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.news-headline-list {
+  display: grid;
+  gap: 9px;
+}
+
+.news-headline-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  min-height: 132px;
+  padding: 16px 18px 16px 22px;
+  border-radius: 13px;
+}
+
+.news-headline-copy {
+  min-width: 0;
+}
+
+.news-headline-row .news-story-topline {
+  justify-content: flex-start;
+  margin-bottom: 7px;
+}
+
+.news-headline-row h3 {
+  margin: 0 0 5px;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.news-headline-row p {
+  margin: 0;
+  color: #91a2b8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.news-headline-row > .news-team-row {
+  justify-content: flex-end;
+  margin-top: 0;
+  max-width: 230px;
+}
+
+.news-empty-state {
+  text-align: center;
+  padding: 42px 24px;
+}
+
+.news-empty-state h3 {
+  margin: 8px 0;
+}
+
+@media (max-width: 1100px) {
+  .news-masthead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .news-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .news-side-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .news-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .news-filter-row {
+    justify-content: flex-start;
+  }
+
+  .news-side-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .news-headline-row {
+    grid-template-columns: 1fr;
+  }
+
+  .news-headline-row > .news-team-row {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .news-ticker {
+    grid-template-columns: auto 1fr;
+  }
+
+  .news-ticker-date {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .news-masthead {
+    padding: 18px;
+  }
+
+  .news-brand-block {
+    align-items: flex-start;
+  }
+
+  .news-network-mark {
+    width: 58px;
+    height: 58px;
+    flex-basis: 58px;
+    font-size: 19px;
+  }
+
+  .news-masthead h2 {
+    font-size: 29px;
+  }
+
+  .news-masthead-stats {
+    width: 100%;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .news-masthead-stats > div {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .news-lead-story {
+    min-height: 365px;
+  }
+
+  .news-lead-content {
+    padding: 22px;
+  }
+
+  .news-lead-story h3 {
+    font-size: 31px;
+  }
+}
+
+/* LEAGUE UNIVERSE */
+.universe-page{display:grid;gap:18px}.universe-hero{display:flex;justify-content:space-between;gap:24px;align-items:center;background:linear-gradient(135deg,#07111f,#111827 55%,#172554)}.universe-kicker{font-size:11px;font-weight:950;letter-spacing:.16em;color:#93c5fd}.universe-hero h2{font-size:34px;margin:4px 0 6px}.universe-hero p{margin:0;color:#cbd5e1}.universe-hero-stats,.universe-tabs{display:flex;gap:8px;flex-wrap:wrap}.universe-pill{padding:7px 11px;border:1px solid #334155;background:#020617;border-radius:999px;font-size:12px;font-weight:800}.universe-tabs{padding:4px 0}.universe-tabs button{background:#1e293b}.universe-tabs .active-tab{background:#2563eb}.universe-section{display:grid;gap:16px}.profile-selector{display:grid;grid-template-columns:1fr minmax(260px,420px);align-items:end;gap:18px}.franchise-profile-hero{display:grid;grid-template-columns:130px 1fr auto;gap:22px;align-items:center}.profile-abbr{height:100px;border-radius:24px;display:grid;place-items:center;background:#020617;border:1px solid #334155;font-size:42px;font-weight:950}.profile-trophy-count{font-size:30px;font-weight:950}.universe-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.universe-stat{display:grid;gap:6px}.universe-stat span{font-size:11px;text-transform:uppercase;color:#93c5fd;font-weight:900}.universe-stat strong{font-size:24px}.universe-scroll-list{max-height:360px;overflow:auto;padding-right:6px}.universe-list-row{display:flex;justify-content:space-between;gap:16px;padding:11px 2px;border-bottom:1px solid #1f2937}.power-list{display:grid}.power-row{display:grid;grid-template-columns:52px 90px 100px 120px 90px 1fr;gap:10px;align-items:center;padding:12px 4px;border-bottom:1px solid #1f2937}.power-rank{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#1e3a8a;font-weight:950}.universe-section-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.award-grid,.hall-grid,.rivalry-grid,.trophy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.award-card,.hall-card,.rivalry-card,.trophy-team{padding:16px;border-radius:18px;background:#0f172a;border:1px solid #334155}.award-card span,.award-card small{display:block;color:#93c5fd}.award-card h4,.hall-card h4{margin:8px 0}.timeline-list{display:grid;gap:0}.timeline-item{display:grid;grid-template-columns:24px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid #1f2937}.timeline-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa;margin-top:5px;box-shadow:0 0 0 5px rgba(96,165,250,.12)}.timeline-item h4{margin:2px 0}.timeline-item p{margin:3px 0;color:#cbd5e1}.universe-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}.trophy-team{text-align:center}.trophy-abbr{font-size:28px;font-weight:950;margin-bottom:8px}.rivalry-matchup{display:flex;justify-content:center;gap:12px;align-items:center;font-size:22px}.hall-plaque{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#78350f;border:1px solid #f59e0b;font-size:26px}.season-feature-team{font-size:42px;font-weight:950;margin:12px 0 18px}.universe-empty{padding:22px;text-align:center;color:#94a3b8;border:1px dashed #334155;border-radius:16px}.playoff-hub-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.playoff-hub-stat{padding:14px;border-radius:16px;background:#0f172a;border:1px solid #334155}.playoff-hub-stat span{display:block;color:#93c5fd;font-size:11px;font-weight:900;text-transform:uppercase}.playoff-hub-stat strong{display:block;font-size:20px;margin-top:4px}@media(max-width:1000px){.universe-stat-grid{grid-template-columns:1fr 1fr}.universe-two-col,.profile-selector,.franchise-profile-hero{grid-template-columns:1fr}.power-row{grid-template-columns:40px 70px 80px 1fr}.power-row span:nth-of-type(4),.power-row small{display:none}.universe-hero{flex-direction:column;align-items:flex-start}.playoff-hub-strip{grid-template-columns:1fr}}
+
+.profile-selector{grid-template-columns:1fr minmax(260px,420px)}.profile-selector .profile-team-picker{grid-column:1/-1}.profile-team-picker{display:flex;gap:7px;flex-wrap:wrap}.profile-team-picker button{padding:7px 11px;background:#1e293b}.profile-team-picker .active-tab{background:#2563eb}

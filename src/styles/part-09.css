@@ -1,0 +1,339 @@
+.records-page {
+  display: grid;
+  gap: 20px;
+}
+
+.records-hero {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 24px;
+  align-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.28), transparent 34%),
+    linear-gradient(135deg, #111827, #07111f);
+}
+
+.records-hero-kicker,
+.records-section-kicker,
+.record-eyebrow {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.records-hero h2 {
+  margin: 6px 0 8px;
+  font-size: 38px;
+}
+
+.records-hero p {
+  margin: 0;
+  max-width: 760px;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.records-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.records-hero-stats > div {
+  padding: 16px 10px;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.78);
+  text-align: center;
+}
+
+.records-hero-stats strong {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.records-hero-stats span {
+  display: block;
+  margin-top: 7px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.records-spotlight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.record-spotlight-card {
+  min-height: 180px;
+  padding: 18px;
+  border: 1px solid #27364d;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(30, 64, 175, 0.18), transparent 52%),
+    #111827;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.record-spotlight-card h3 {
+  margin: 8px 0 22px;
+  font-size: 15px;
+  color: #dbeafe;
+}
+
+.record-spotlight-value {
+  display: grid;
+  gap: 4px;
+}
+
+.record-spotlight-value strong {
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.record-spotlight-value span {
+  color: #60a5fa;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.records-empty-inline {
+  color: #64748b !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.records-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.records-section-heading h3,
+.records-list-card h3 {
+  margin: 5px 0 0;
+}
+
+.records-table-note {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.records-season-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.records-season-card {
+  min-height: 145px;
+  padding: 14px;
+  border: 1px solid #27364d;
+  border-radius: 18px;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.records-season-card > span {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.records-season-card strong {
+  font-size: 26px;
+}
+
+.records-season-card b {
+  font-size: 18px;
+  color: #f8fafc;
+}
+
+.records-season-card small {
+  margin-top: auto;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.records-season-card em {
+  color: #64748b;
+  font-style: normal;
+}
+
+.records-tables-grid,
+.records-drought-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.records-table-card {
+  min-width: 0;
+}
+
+.records-ranking-list {
+  display: grid;
+}
+
+.records-ranking-row {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.records-ranking-row:last-child {
+  border-bottom: none;
+}
+
+.records-rank {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #172554;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.records-team-block {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.records-team-block strong {
+  font-size: 15px;
+}
+
+.records-team-block small {
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.records-ranking-value {
+  color: #bfdbfe;
+  font-size: 17px;
+  text-align: right;
+}
+
+.records-achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.records-list-card p {
+  margin: 7px 0 14px;
+}
+
+.records-team-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.records-team-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #172554;
+  border: 1px solid #1d4ed8;
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.records-all-clear {
+  padding: 12px;
+  border-radius: 14px;
+  background: #052e16;
+  border: 1px solid #166534;
+  color: #bbf7d0;
+  font-weight: 800;
+}
+
+.records-empty-state {
+  text-align: center;
+  padding: 42px 24px;
+}
+
+.records-empty-state h2 {
+  margin: 8px 0;
+}
+
+@media (max-width: 1200px) {
+  .records-spotlight-grid,
+  .records-season-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 850px) {
+  .records-hero,
+  .records-tables-grid,
+  .records-drought-grid,
+  .records-achievement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .records-hero-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .records-spotlight-grid,
+  .records-season-grid,
+  .records-hero-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Records polish: keep long leaderboards compact and scrollable. */
+.records-ranking-list {
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 7px;
+  scrollbar-gutter: stable;
+}
+
+.records-team-pills {
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 7px;
+  scrollbar-gutter: stable;
+}
+
+.records-ranking-list::-webkit-scrollbar,
+.records-team-pills::-webkit-scrollbar {
+  width: 8px;
+}
+
+.records-ranking-list::-webkit-scrollbar-thumb,
+.records-team-pills::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}

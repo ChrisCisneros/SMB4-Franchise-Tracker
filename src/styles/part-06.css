@@ -1,0 +1,516 @@
+.playoff-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.marker-x {
+  background: #16a34a;
+  color: white;
+}
+
+.marker-e {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+.marker-y {
+  background: #2563eb;
+  color: white;
+}
+
+.marker-z {
+  background: #a855f7;
+  color: white;
+}
+
+.marker-w {
+  background: #16a34a;
+  color: white;
+}
+
+.marker-e {
+  background: #dc2626;
+  color: white;
+}
+
+.team-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.team-name-cell .playoff-marker {
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+
+
+.season-format-card {
+  margin-bottom: 20px;
+}
+
+.bracket-page {
+  display: grid;
+  gap: 20px;
+}
+
+.true-bracket-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+}
+
+.true-bracket-league {
+  display: grid;
+  gap: 12px;
+}
+
+.true-bracket-league h3 {
+  margin: 0;
+  text-align: center;
+  font-size: 26px;
+}
+
+.true-bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 26px;
+  align-items: center;
+  position: relative;
+}
+
+.true-bracket-column {
+  display: grid;
+  grid-template-rows: auto 130px 70px 130px;
+  gap: 8px;
+  position: relative;
+}
+
+.bracket-round-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.bracket-series-card,
+.world-series-card {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+}
+
+.bracket-slot {
+  position: relative;
+  z-index: 2;
+}
+
+.bracket-series-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.bracket-series-card:not(.bracket-series-winner) {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--series-away-border, #334155) 58%, #111827) 0%,
+      color-mix(in srgb, var(--series-away-alt, #334155) 38%, #111827) 48%,
+      color-mix(in srgb, var(--series-home-alt, #334155) 38%, #111827) 52%,
+      color-mix(in srgb, var(--series-home-border, #334155) 58%, #111827) 100%
+    );
+  border-color: color-mix(
+    in srgb,
+    var(--series-away-border, #334155) 50%,
+    var(--series-home-border, #334155)
+  );
+}
+
+.bracket-series-winner {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--series-winner-border, #f59e0b) 58%, #020617),
+      color-mix(in srgb, var(--series-winner-alt, #f59e0b) 36%, #020617)
+    );
+  border-color: var(--series-winner-border, #f59e0b);
+  box-shadow:
+    0 0 0 1px var(--series-winner-border, #f59e0b),
+    0 0 28px color-mix(in srgb, var(--series-winner-border, #f59e0b) 45%, transparent),
+    0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.bracket-away-row {
+  background: color-mix(in srgb, var(--series-away-border, #1e293b) 42%, rgba(2, 6, 23, 0.55));
+  border-color: color-mix(in srgb, var(--series-away-border, #334155) 70%, transparent);
+}
+
+.bracket-home-row {
+  background: color-mix(in srgb, var(--series-home-border, #1e293b) 42%, rgba(2, 6, 23, 0.55));
+  border-color: color-mix(in srgb, var(--series-home-border, #334155) 70%, transparent);
+}
+
+.bracket-team-row {
+  border-radius: 12px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bracket-series-winner .bracket-team-row {
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.bracket-series-empty {
+  filter: saturate(0.65);
+  opacity: 0.82;
+}
+
+.bracket-series-empty .bracket-team-row {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.bracket-series-active {
+  box-shadow:
+    0 0 0 1px rgba(96, 165, 250, 0.22),
+    0 0 22px rgba(96, 165, 250, 0.14),
+    0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.bracket-series-active .bracket-series-status {
+  color: #facc15;
+}
+
+.series-team-winner {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.16);
+}
+
+.series-team-winner strong::after {
+  content: "  ✓";
+  color: #facc15;
+}
+
+.wc-slot-top,
+.lds-slot-top {
+  grid-row: 2;
+}
+
+.wc-slot-bottom,
+.lds-slot-bottom {
+  grid-row: 4;
+}
+
+.cs-slot {
+  grid-row: 3 / 5;
+  align-self: center;
+}
+
+.lds-slot-top,
+.lds-slot-bottom {
+  border-style: dashed;
+}
+
+.cs-slot {
+  border-color: #f59e0b;
+}
+
+.bracket-series-label,
+.world-series-kicker {
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bracket-team-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid #1f2937;
+}
+
+.bracket-team-row:first-of-type {
+  border-top: none;
+}
+
+.bracket-team-row span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #1e293b;
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.bracket-team-row small {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.true-world-series-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  order: 2;
+}
+
+.world-series-card {
+  width: 100%;
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, #172554 0%, #111827 100%);
+  text-align: center;
+}
+
+.world-series-card h2 {
+  margin-top: 0;
+}
+
+.true-bracket-left {
+  order: 1;
+}
+
+.true-bracket-right {
+  order: 3;
+}
+
+.true-bracket-left .true-bracket-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.true-bracket-right .true-bracket-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  direction: rtl;
+}
+
+.true-bracket-right .true-bracket-column,
+.true-bracket-right .bracket-team-row,
+.true-bracket-right .bracket-series-card,
+.true-bracket-right .bracket-round-title {
+  direction: ltr;
+}
+
+/* Connector lines moving inward */
+.true-bracket-left .wildcard-column::after,
+.true-bracket-left .lds-column::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 50%;
+  width: 22px;
+  height: 2px;
+  background: #334155;
+}
+
+.true-bracket-right .wildcard-column::after,
+.true-bracket-right .lds-column::after {
+  content: "";
+  position: absolute;
+  right: calc(100% + 4px);
+  top: 50%;
+  width: 22px;
+  height: 2px;
+  background: #334155;
+}
+
+.wildcard-column::before,
+.lds-column::before {
+  content: "";
+  position: absolute;
+  top: 33%;
+  bottom: 24%;
+  width: 2px;
+  background: #334155;
+}
+
+.true-bracket-left .wildcard-column::before,
+.true-bracket-left .lds-column::before {
+  right: -14px;
+}
+
+.true-bracket-right .wildcard-column::before,
+.true-bracket-right .lds-column::before {
+  left: -14px;
+}
+
+@media (max-width: 1300px) {
+  .true-bracket-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .true-world-series-center,
+  .true-bracket-left,
+  .true-bracket-right {
+    order: initial;
+  }
+
+  .true-bracket-right .true-bracket-grid {
+    direction: ltr;
+  }
+}
+
+@media (max-width: 800px) {
+  .true-bracket-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .true-bracket-column {
+    grid-template-rows: auto;
+  }
+
+  .wc-slot-top,
+  .lds-slot-top,
+  .wc-slot-bottom,
+  .lds-slot-bottom,
+  .cs-slot {
+    grid-row: auto;
+  }
+
+  .wildcard-column::before,
+  .lds-column::before,
+  .true-bracket-left .wildcard-column::after,
+  .true-bracket-left .lds-column::after,
+  .true-bracket-right .wildcard-column::after,
+  .true-bracket-right .lds-column::after {
+    display: none;
+  }
+}
+
+.marker-w {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.bracket-series-status {
+  margin-top: 8px;
+  padding: 7px 9px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bracket-admin-page {
+  display: grid;
+  gap: 20px;
+}
+
+.bracket-admin-series-list {
+  display: grid;
+  gap: 10px;
+}
+
+.bracket-admin-series-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.bracket-admin-series-row:last-child {
+  border-bottom: none;
+}
+
+.playoff-live-card {
+  border-color: #fbbf24;
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.65),
+    0 0 32px rgba(251, 191, 36, 0.22),
+    0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.playoff-scoreboard-card {
+  border-color: #fbbf24;
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 191, 36, 0.45),
+    0 0 32px rgba(251, 191, 36, 0.22);
+}
+
+.playoff-live-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #fbbf24;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.quick-game-count {
+  width: fit-content;
+  margin-top: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quick-game-count.complete {
+  background: #14532d;
+  color: #bbf7d0;
+  border: 1px solid #22c55e;
+}
+
+.quick-game-count.needs-games {
+  background: #713f12;
+  color: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+
+.scorebug-tied {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.72),
+    0 0 38px rgba(255, 255, 255, 0.44),
+    0 0 80px rgba(255, 255, 255, 0.18),
+    0 18px 42px rgba(0, 0, 0, 0.4);
+}
+
+.scorebug-away-leading {
+  box-shadow:
+    0 0 0 2px var(--away-border, #60a5fa),
+    0 0 42px color-mix(in srgb, var(--away-border, #60a5fa) 88%, transparent),
+    0 0 92px color-mix(in srgb, var(--away-main, #60a5fa) 42%, transparent),
+    0 18px 42px rgba(0, 0, 0, 0.4);
+}
+
+.scorebug-home-leading {
+  box-shadow:
+    0 0 0 2px var(--home-border, #f97316),
+    0 0 42px color-mix(in srgb, var(--home-border, #f97316) 88%, transparent),
+    0 0 92px color-mix(in srgb, var(--home-main, #f97316) 42%, transparent),
+    0 18px 42px rgba(0, 0, 0, 0.4);
+}
+

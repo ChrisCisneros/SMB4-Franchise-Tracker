@@ -1,0 +1,174 @@
+.history-series-row span {
+  font-weight: 800;
+}
+
+.history-series-row small {
+  color: #fbbf24;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .history-header-card,
+  .history-season-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.history-title-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.history-division-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.history-league-group {
+  display: grid;
+  gap: 10px;
+}
+
+.history-league-group h5 {
+  margin: 0;
+  color: #bfdbfe;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-division-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.history-division-title {
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.history-division-card .history-team-table {
+  max-height: unset;
+  overflow: visible;
+}
+
+@media (max-width: 900px) {
+  .history-title-actions {
+    align-items: flex-start;
+  }
+}
+
+.history-season-card {
+  padding: 14px;
+}
+
+.history-grid {
+  gap: 14px;
+}
+
+.history-division-grid {
+  gap: 10px;
+}
+
+.history-league-group {
+  gap: 8px;
+}
+
+.history-division-card {
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.history-team-table {
+  gap: 5px;
+}
+
+.history-team-row {
+  grid-template-columns: 1fr 72px 54px;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.history-team-row small {
+  font-size: 10px;
+}
+
+.history-division-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.history-series-row {
+  padding: 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.dashboard-seed-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.84);
+  border: 1px solid #94a3b8;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+.world-series-trophy {
+  font-size: 54px;
+  line-height: 1;
+  filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.8));
+  animation: trophy-glow 1.8s ease-in-out infinite alternate;
+}
+
+.dashboard-world-series-trophy {
+  font-size: 64px;
+}
+
+@keyframes trophy-glow {
+  from {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.55));
+  }
+
+  to {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 24px rgba(251, 191, 36, 0.95));
+  }
+}
+
+.ipad-count-reset-button {
+  width: 100%;
+  margin-top: 14px;
+  min-height: 46px;
+  border-radius: 14px;
+  background: #475569;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.playoff-broadcast-bg .dashboard-card-kicker {
+  color: #111827;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.95),
+     1px -1px 0 rgba(255, 255, 255, 0.95),
+    -1px  1px 0 rgba(255, 255, 255, 0.95),
+     1px  1px 0 rgba(255, 255, 255, 0.95);
+}
