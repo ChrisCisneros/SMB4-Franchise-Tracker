@@ -46,6 +46,35 @@ export default function DashboardPage({ ctx }) {
   const openingDay = data.leagueExtras?.openingDay || '';
   const seasonTagline = data.leagueExtras?.seasonTagline || '';
   const openingCountdown = openingDay ? Math.ceil((new Date(`${openingDay}T12:00:00`).getTime() - Date.now()) / 86400000) : null;
+  const opponentRows = useMemo(() => {
+    if (!favoriteTeam) return [];
+    const teamMap = new Map(teams.map((team) => [team.id, team]));
+    const rows = new Map();
+    (data.games || []).forEach((game) => {
+      if (!game || game.status !== 'Final') return;
+      if ((game.seasonName || activeSeason) !== activeSeason) return;
+      const isAway = game.awayTeamId === favoriteTeam.id;
+      const isHome = game.homeTeamId === favoriteTeam.id;
+      if (!isAway && !isHome) return;
+      const opponentId = isAway ? game.homeTeamId : game.awayTeamId;
+      const opponent = teamMap.get(opponentId);
+      if (!opponent) return;
+      const runsFor = Number(isAway ? game.awayScore : game.homeScore) || 0;
+      const runsAgainst = Number(isAway ? game.homeScore : game.awayScore) || 0;
+      const won = runsFor > runsAgainst;
+      const row = rows.get(opponentId) || { opponent, wins:0, losses:0, runsFor:0, runsAgainst:0, homeWins:0, homeLosses:0, awayWins:0, awayLosses:0, games:0, last:null };
+      row.games += 1;
+      row.runsFor += runsFor;
+      row.runsAgainst += runsAgainst;
+      if (won) row.wins += 1; else if (runsAgainst > runsFor) row.losses += 1;
+      if (isHome) won ? row.homeWins += 1 : row.homeLosses += 1;
+      if (isAway) won ? row.awayWins += 1 : row.awayLosses += 1;
+      const stamp = Date.parse(game.finalizedAt || game.date || '') || 0;
+      if (!row.last || stamp >= row.last.stamp) row.last = { stamp, won, runsFor, runsAgainst, date:game.date || '' };
+      rows.set(opponentId,row);
+    });
+    return [...rows.values()].sort((a,b) => b.games-a.games || b.wins-a.wins || a.opponent.abbr.localeCompare(b.opponent.abbr));
+  }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className="dashboard-v3 dashboard-v3-home">
     <section className="v3-dashboard-masthead">
@@ -116,6 +145,11 @@ export default function DashboardPage({ ctx }) {
       <div className="card v3-league-pulse"><div className="v3-section-heading compact"><div><span>LEAGUE PULSE</span><h3>At a Glance</h3></div></div><div className="v3-pulse-grid"><div><span>Best Record</span><strong>{bestRecordTeam?`${bestRecordTeam.abbr} ${bestRecordTeam.wins}-${bestRecordTeam.losses}`:'—'}</strong></div><div><span>Run Diff Leader</span><strong>{bestRunDiff?`${bestRunDiff.abbr} ${bestRunDiff.runDiff>0?'+':''}${bestRunDiff.runDiff}`:'—'}</strong></div><div><span>Bottom Record</span><strong>{worstRecordTeam?`${worstRecordTeam.abbr} ${worstRecordTeam.wins}-${worstRecordTeam.losses}`:'—'}</strong></div><div><span>Tightest Race</span><strong>{tightestDivisionRace?`${tightestDivisionRace.league} ${tightestDivisionRace.division}`:'—'}</strong></div><div><span>Archived Seasons</span><strong>{leagueRecords.summary.seasonsArchived}</strong></div><div><span>Permanent Games</span><strong>{gameRecords.games.length}</strong></div></div></div>
 
       <div className="card v3-recent-results"><div className="v3-section-heading compact"><div><span>SCOREBOARD</span><h3>Recent Finals</h3></div><button onClick={()=>setPage?.('league')}>Game Archive →</button></div><div className="v3-recent-list">{gameRecords.games.length?gameRecords.games.slice(0,6).map(g=><div key={g.id}><small>{g.date} · {g.gameType==='playoff'?'POST':'REG'}</small><strong>{g.away?.abbr||'AWY'} {g.awayScore} <em>–</em> {g.home?.abbr||'HME'} {g.homeScore}</strong></div>):<div className="v3-empty-compact">Season 4 finals will appear here automatically.</div>}</div></div>
+    </section>
+
+    <section className="card v3-opponent-book">
+      <div className="v3-section-heading compact"><div><span>{activeSeason.toUpperCase()} SERIES BOOK</span><h3>{favoriteTeam?.abbr || 'Franchise'} vs Opponents</h3></div><MiniPill>{opponentRows.reduce((sum,row)=>sum+row.games,0)} scored games</MiniPill></div>
+      {opponentRows.length ? <div className="v3-opponent-scroll"><div className="v3-opponent-head"><span>Opponent</span><span>Record</span><span>Runs</span><span>Diff</span><span>Home</span><span>Away</span><span>Last</span></div>{opponentRows.map((row)=>{const diff=row.runsFor-row.runsAgainst;return <div className="v3-opponent-row" key={row.opponent.id}><div className="v3-opponent-team"><strong>{row.opponent.abbr}</strong><small>{row.opponent.city} {row.opponent.name}</small></div><strong className={row.wins>row.losses?'positive':row.losses>row.wins?'negative':''}>{row.wins}-{row.losses}</strong><span>{row.runsFor}-{row.runsAgainst}</span><span className={diff>0?'positive':diff<0?'negative':''}>{diff>0?'+':''}{diff}</span><span>{row.homeWins}-{row.homeLosses}</span><span>{row.awayWins}-{row.awayLosses}</span><span className={row.last?.won?'positive':'negative'}>{row.last?`${row.last.won?'W':'L'} ${row.last.runsFor}-${row.last.runsAgainst}`:'—'}</span></div>})}</div> : <div className="v3-opponent-empty"><strong>Your {activeSeason} matchup book starts with the first final.</strong><span>Every finalized scored game will automatically add the opponent, series record, runs for/against, home/away split and latest result here.</span></div>}
     </section>
   </div>;
 }
