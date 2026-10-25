@@ -672,3 +672,108 @@
 .field-remove-runner-group { display: flex; gap: 7px; flex-wrap: wrap; margin-left: auto; }
 .remove-runner-button { background: #7f1d1d; border: 1px solid #ef4444; padding: 7px 10px; font-size: 11px; }
 .manual-runner-badge { display: inline-flex; margin-left: 8px; padding: 4px 8px; border-radius: 999px; background: #78350f; border: 1px solid #f59e0b; color: #fde68a; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+
+
+/* V3 GameCast operator compactness + stolen-base controls */
+.field-command-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(330px, .65fr);
+  gap: 14px;
+  align-items: start;
+}
+.field-command-layout .live-field-shell,
+.field-command-layout .field-play-console { min-width: 0; }
+.field-command-layout .field-play-console {
+  position: sticky;
+  top: 74px;
+  max-height: calc(100vh - 92px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.field-runner-primary-actions { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.field-runner-help { flex: 1 1 260px; }
+.steal-runner-button {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  border: 1px solid #60a5fa;
+  padding: 8px 11px;
+  font-size: 11px;
+  box-shadow: 0 7px 16px rgba(37,99,235,.18);
+}
+.steal-home-button {
+  background: linear-gradient(135deg, #9a3412, #ea580c);
+  border-color: #fb923c;
+}
+
+/* Smoother continuous ball flight. More intermediate frames remove the snap/zip feel. */
+.field-play-ball.phase-flight.motion-ground { animation: field-ball-ground-smooth .96s linear forwards; }
+.field-play-ball.phase-flight.motion-liner { animation: field-ball-liner-smooth .86s linear forwards; }
+.field-play-ball.phase-flight.motion-single { animation: field-ball-single-smooth 1.00s linear forwards; }
+.field-play-ball.phase-flight.motion-double { animation: field-ball-air-smooth 1.10s linear forwards; }
+.field-play-ball.phase-flight.motion-triple { animation: field-ball-air-smooth 1.20s linear forwards; }
+.field-play-ball.phase-flight.motion-fly { animation: field-ball-fly-smooth 1.30s linear forwards; }
+.field-play-ball.phase-flight.motion-popup { animation: field-ball-popup-smooth 1.26s linear forwards; }
+.field-play-ball.phase-flight.motion-homer { animation: field-ball-homer-smooth 1.44s linear forwards; }
+.field-play-ball.phase-flight.motion-standard { animation: field-ball-single-smooth 1.00s linear forwards; }
+
+@keyframes field-ball-ground-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.10) rotate(0deg); }
+  18% { left:calc(50% + (var(--ball-mid-x) - 50%) * .35); top:80%; transform:translate(-50%,-50%) scale(1.02) rotate(120deg); }
+  36% { left:var(--ball-mid-x); top:calc(var(--ball-mid-y) + 12%); transform:translate(-50%,-50%) scale(.94) rotate(260deg); }
+  52% { left:calc(var(--ball-mid-x) + (var(--ball-target-x) - var(--ball-mid-x)) * .35); top:calc(var(--ball-mid-y) + 15%); transform:translate(-50%,-50%) scale(1.04) rotate(410deg); }
+  70% { left:var(--ball-late-x); top:var(--ball-late-y); transform:translate(-50%,-50%) scale(.91) rotate(575deg); }
+  84% { transform:translate(-50%,-50%) scale(.98) rotate(690deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.90) rotate(820deg); }
+}
+@keyframes field-ball-liner-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.1) rotate(0deg); }
+  20% { left:calc(50% + (var(--ball-mid-x) - 50%) * .38); top:calc(86% + (var(--ball-mid-y) - 86%) * .38); transform:translate(-50%,-50%) scale(1.01) rotate(110deg); }
+  45% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.93) rotate(255deg); }
+  72% { left:var(--ball-late-x); top:calc(var(--ball-target-y) + 2%); transform:translate(-50%,-50%) scale(.90) rotate(430deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.88) rotate(620deg); }
+}
+@keyframes field-ball-single-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.1) rotate(0deg); }
+  20% { left:calc(50% + (var(--ball-mid-x) - 50%) * .36); top:calc(86% + (var(--ball-mid-y) - 86%) * .42); transform:translate(-50%,-50%) scale(1.02) rotate(105deg); }
+  46% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.91) rotate(245deg); }
+  68% { left:var(--ball-late-x); top:calc(var(--ball-target-y) - 2%); transform:translate(-50%,-50%) scale(.90) rotate(365deg); }
+  84% { transform:translate(-50%,-50%) scale(.96) rotate(450deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.88) rotate(560deg); }
+}
+@keyframes field-ball-air-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.12) rotate(0deg); }
+  18% { left:calc(50% + (var(--ball-mid-x) - 50%) * .32); top:calc(86% + (var(--ball-mid-y) - 86%) * .58); transform:translate(-50%,-50%) scale(.95) rotate(115deg); }
+  42% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.80) rotate(265deg); filter:drop-shadow(0 15px 9px rgba(0,0,0,.32)); }
+  62% { left:calc(var(--ball-mid-x) + (var(--ball-target-x) - var(--ball-mid-x)) * .45); top:calc(var(--ball-mid-y) + (var(--ball-target-y) - var(--ball-mid-y)) * .22); transform:translate(-50%,-50%) scale(.82) rotate(390deg); }
+  82% { left:var(--ball-late-x); top:calc(var(--ball-target-y) - 5%); transform:translate(-50%,-50%) scale(.87) rotate(510deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.92) rotate(650deg); }
+}
+@keyframes field-ball-fly-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.12) rotate(0deg); }
+  16% { left:calc(50% + (var(--ball-mid-x) - 50%) * .25); top:57%; transform:translate(-50%,-50%) scale(.91) rotate(110deg); }
+  38% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.69) rotate(285deg); filter:drop-shadow(0 20px 12px rgba(0,0,0,.25)); }
+  58% { left:calc(var(--ball-mid-x) + (var(--ball-target-x) - var(--ball-mid-x)) * .42); top:calc(var(--ball-mid-y) + 2%); transform:translate(-50%,-50%) scale(.70) rotate(440deg); }
+  78% { left:var(--ball-late-x); top:calc(var(--ball-target-y) - 9%); transform:translate(-50%,-50%) scale(.77) rotate(590deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.93) rotate(760deg); }
+}
+@keyframes field-ball-popup-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.12) rotate(0deg); }
+  18% { left:calc(50% + (var(--ball-mid-x) - 50%) * .18); top:45%; transform:translate(-50%,-50%) scale(.82) rotate(120deg); }
+  40% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.64) rotate(285deg); filter:drop-shadow(0 22px 13px rgba(0,0,0,.22)); }
+  60% { left:calc(var(--ball-mid-x) + (var(--ball-target-x) - var(--ball-mid-x)) * .34); top:calc(var(--ball-mid-y) + 1%); transform:translate(-50%,-50%) scale(.66) rotate(440deg); }
+  80% { left:var(--ball-late-x); top:calc(var(--ball-target-y) - 12%); transform:translate(-50%,-50%) scale(.74) rotate(600deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.94) rotate(780deg); }
+}
+@keyframes field-ball-homer-smooth {
+  0% { left:50%; top:86%; transform:translate(-50%,-50%) scale(1.14) rotate(0deg); }
+  14% { left:calc(50% + (var(--ball-mid-x) - 50%) * .22); top:49%; transform:translate(-50%,-50%) scale(.89) rotate(120deg); }
+  34% { left:var(--ball-mid-x); top:var(--ball-mid-y); transform:translate(-50%,-50%) scale(.59) rotate(320deg); filter:drop-shadow(0 23px 13px rgba(0,0,0,.2)); }
+  54% { left:calc(var(--ball-mid-x) + (var(--ball-target-x) - var(--ball-mid-x)) * .40); top:calc(var(--ball-mid-y) - 1%); transform:translate(-50%,-50%) scale(.61) rotate(500deg); }
+  72% { left:var(--ball-late-x); top:calc(var(--ball-target-y) - 14%); transform:translate(-50%,-50%) scale(.67) rotate(665deg); }
+  88% { left:calc(var(--ball-late-x) + (var(--ball-target-x) - var(--ball-late-x)) * .60); top:calc(var(--ball-target-y) - 5%); transform:translate(-50%,-50%) scale(.75) rotate(805deg); }
+  100% { left:var(--ball-target-x); top:var(--ball-target-y); transform:translate(-50%,-50%) scale(.83) rotate(930deg); }
+}
+
+@media (max-width: 1180px) {
+  .field-command-layout { grid-template-columns: 1fr; }
+  .field-command-layout .field-play-console { position: static; max-height: none; overflow: visible; }
+}

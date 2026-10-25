@@ -643,28 +643,27 @@ function resetLiveCountAndBases() {
   commitGameUpdate((next) => {
     next.inningStatus = "";
     const isTurningOn = !next.bases?.[base];
+    const fieldState = {
+      ...defaultFieldState(),
+      ...(next.fieldState || {}),
+      ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
+    };
+
     next.bases = {
       ...next.bases,
       [base]: isTurningOn,
     };
 
-    if (isTurningOn) {
-      const fieldState = {
-        ...defaultFieldState(),
-        ...(next.fieldState || {}),
-        ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
-      };
-      fieldState.runnerEvent = {
-        id: Date.now(),
-        from: "home",
-        to: base,
-        side: next.half === "Top" ? "away" : "home",
-        scored: false,
-        source: "base-toggle",
-      };
-    } else {
-      fieldState.runnerEvent = null;
-    }
+    fieldState.runnerEvent = isTurningOn
+      ? {
+          id: Date.now(),
+          from: "home",
+          to: base,
+          side: next.half === "Top" ? "away" : "home",
+          scored: false,
+          source: "base-toggle",
+        }
+      : null;
     fieldState.manualRunnerOverride = true;
     next.fieldState = fieldState;
   });
@@ -732,6 +731,56 @@ function removeFieldRunner(base) {
     };
     next.fieldState = fieldState;
   });
+}
+
+function stealFieldRunner(origin, destination) {
+  const valid = { first: "second", second: "third", third: "home" };
+  if (valid[origin] !== destination) return;
+  if (!currentGame.bases?.[origin]) return;
+  if (destination !== "home" && currentGame.bases?.[destination]) return;
+
+  clearBanner();
+  const battingSide = currentGame.half === "Top" ? "away" : "home";
+  const fromLabel = origin === "first" ? "1B" : origin === "second" ? "2B" : "3B";
+  const toLabel = destination === "second" ? "2B" : destination === "third" ? "3B" : "Home";
+  const text = `Stolen base: runner advances ${fromLabel} → ${toLabel}.`;
+
+  commitGameUpdate((next) => {
+    if (!next.bases?.[origin]) return;
+    if (destination !== "home" && next.bases?.[destination]) return;
+
+    next.bases = { ...next.bases, [origin]: false };
+    if (destination === "home") {
+      scoreRuns(next, 1);
+      next.lastAnnouncement = `Runner steals home. ${next.awayScore}-${next.homeScore}.`;
+    } else {
+      next.bases = { ...next.bases, [destination]: true };
+    }
+
+    const eventId = Date.now();
+    next.latestPlay = text;
+    next.playLog = [text, ...(next.playLog || [])];
+    next.fieldState = {
+      ...defaultFieldState(),
+      ...(next.fieldState || {}),
+      ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
+      runnerEvent: {
+        id: eventId,
+        from: origin,
+        to: destination,
+        side: battingSide,
+        scored: destination === "home",
+        source: "stolen-base",
+      },
+      playEvent: null,
+      manualRunnerOverride: false,
+    };
+  });
+
+  if (destination === "home") {
+    const scoringTeam = battingSide === "away" ? awayTeam : homeTeam;
+    triggerBigMoment(`${scoringTeam?.abbr || battingSide.toUpperCase()} STEALS HOME`, battingSide, false);
+  }
 }
 
 
@@ -809,15 +858,15 @@ function scheduleFieldBallReset(delay = 7000) {
 
 function fieldPlayLogDelay(type, kind) {
   if (kind !== "batted") return kind === "pitch" || kind === "pickoff" ? 650 : kind === "runner" ? 350 : 80;
-  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1380;
-  if (["lineout"].includes(type)) return 1280;
-  if (["single"].includes(type)) return 1420;
-  if (["double"].includes(type)) return 1520;
-  if (["triple"].includes(type)) return 1620;
-  if (["flyout", "sacfly"].includes(type)) return 1720;
-  if (["popup"].includes(type)) return 1660;
-  if (["homerun"].includes(type)) return 1840;
-  return 1450;
+  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1580;
+  if (["lineout"].includes(type)) return 1480;
+  if (["single"].includes(type)) return 1620;
+  if (["double"].includes(type)) return 1720;
+  if (["triple"].includes(type)) return 1820;
+  if (["flyout", "sacfly"].includes(type)) return 1920;
+  if (["popup"].includes(type)) return 1880;
+  if (["homerun"].includes(type)) return 2060;
+  return 1620;
 }
 
 function startAnimatedFieldPlay(category, type) {
@@ -1744,7 +1793,7 @@ const dashboardStories = [
       detail: `Margin: ${Math.abs(Number(lastFinalGame.awayScore || 0) - Number(lastFinalGame.homeScore || 0))}.`,
     },
 ].filter(Boolean);
-  const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
+  const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
 
   return (
     <div className="app-shell wide-shell">

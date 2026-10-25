@@ -106,15 +106,15 @@ function ballMotion(type) {
 }
 
 function runnerPhaseDelay(type) {
-  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1380;
-  if (type === "lineout") return 1280;
-  if (type === "single") return 1420;
-  if (type === "double") return 1520;
-  if (type === "triple") return 1620;
-  if (["flyout", "sacfly"].includes(type)) return 1720;
-  if (type === "popup") return 1660;
-  if (type === "homerun") return 1840;
-  return 1450;
+  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1580;
+  if (type === "lineout") return 1480;
+  if (type === "single") return 1620;
+  if (type === "double") return 1720;
+  if (type === "triple") return 1820;
+  if (["flyout", "sacfly"].includes(type)) return 1920;
+  if (type === "popup") return 1880;
+  if (type === "homerun") return 2060;
+  return 1620;
 }
 
 export default function LiveField({
@@ -123,6 +123,7 @@ export default function LiveField({
   interactive = false,
   onRunnerMove = undefined,
   onRunnerRemove = undefined,
+  onRunnerSteal = undefined,
   onBallDrop = undefined,
   onBallResult = undefined,
   onToggleBase = undefined,
@@ -301,8 +302,19 @@ export default function LiveField({
             <button type="button" className="field-clear-ball" onClick={onClearBall}>Clear Ball</button>
           </div>
           <div className="field-runner-tools">
-            <button type="button" className="advance-all-button" onClick={onAdvanceAll}>Advance Everyone +1</button>
-            <span>Moves the batter to 1B and every occupied runner up one base.</span>
+            <div className="field-runner-primary-actions">
+              <button type="button" className="advance-all-button" onClick={onAdvanceAll}>Advance Everyone +1</button>
+              {bases.first && !bases.second && (
+                <button type="button" className="steal-runner-button" onClick={() => onRunnerSteal?.("first", "second")}>Steal 2B</button>
+              )}
+              {bases.second && !bases.third && (
+                <button type="button" className="steal-runner-button" onClick={() => onRunnerSteal?.("second", "third")}>Steal 3B</button>
+              )}
+              {bases.third && (
+                <button type="button" className="steal-runner-button steal-home-button" onClick={() => onRunnerSteal?.("third", "home")}>Steal Home</button>
+              )}
+            </div>
+            <span className="field-runner-help">Advance All includes the batter. Steal buttons move only that runner and keep the count/batter intact.</span>
             <div className="field-remove-runner-group">
               {["first", "second", "third"].filter((base) => bases[base]).map((base) => (
                 <button type="button" key={base} className="remove-runner-button" onClick={() => onRunnerRemove?.(base)}>

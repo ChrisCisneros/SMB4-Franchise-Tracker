@@ -9,7 +9,7 @@ export default function LivePage({ ctx }) {
   const [showFieldMode, setShowFieldMode] = useState(false);
   const [fieldPlayCategory, setFieldPlayCategory] = useState("hit");
   const [fieldPlayType, setFieldPlayType] = useState("single");
-  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
 
   const fieldPlayGroups = {
     hit: [
@@ -332,22 +332,22 @@ export default function LivePage({ ctx }) {
           </div>
     
           {showFieldMode && (
-            <LiveField
+            <div className="field-command-layout">
+              <LiveField
               game={currentGame}
               battingColors={battingBaseColors}
               interactive
               onRunnerMove={moveFieldRunner}
               onRunnerRemove={removeFieldRunner}
+              onRunnerSteal={stealFieldRunner}
               onBallDrop={dropFieldBall}
               onBallResult={updateFieldBallResult}
               onToggleBase={updateBases}
               onClearBall={clearFieldBall}
               onAdvanceAll={advanceAllFieldRunners}
-            />
-          )}
+              />
 
-          {showFieldMode && (
-            <div className="field-play-console">
+              <div className="field-play-console">
               <div className="field-play-console-head">
                 <div>
                   <span className="operator-label">Animated Play</span>
@@ -397,6 +397,7 @@ export default function LivePage({ ctx }) {
               >
                 ▶ Start Play · {selectedFieldPlayLabel}
               </button>
+              </div>
             </div>
           )}
 
