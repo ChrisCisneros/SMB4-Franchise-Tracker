@@ -93,11 +93,36 @@ function routeVars(move) {
   };
 }
 
+function ballMotion(type) {
+  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return "ground";
+  if (["lineout"].includes(type)) return "liner";
+  if (type === "single") return "single";
+  if (type === "double") return "double";
+  if (type === "triple") return "triple";
+  if (type === "homerun") return "homer";
+  if (["flyout", "sacfly"].includes(type)) return "fly";
+  if (type === "popup") return "popup";
+  return "standard";
+}
+
+function runnerPhaseDelay(type) {
+  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1380;
+  if (type === "lineout") return 1280;
+  if (type === "single") return 1420;
+  if (type === "double") return 1520;
+  if (type === "triple") return 1620;
+  if (["flyout", "sacfly"].includes(type)) return 1720;
+  if (type === "popup") return 1660;
+  if (type === "homerun") return 1840;
+  return 1450;
+}
+
 export default function LiveField({
   game,
   battingColors,
   interactive = false,
   onRunnerMove = undefined,
+  onRunnerRemove = undefined,
   onBallDrop = undefined,
   onBallResult = undefined,
   onToggleBase = undefined,
@@ -133,10 +158,11 @@ export default function LiveField({
     const timers = [];
 
     if (kind === "batted") {
+      const runnersAt = runnerPhaseDelay(playEvent.type);
       timers.push(window.setTimeout(() => setPlayPhase("contact"), 360));
       timers.push(window.setTimeout(() => setPlayPhase("flight"), 560));
-      timers.push(window.setTimeout(() => setPlayPhase("runners"), 900));
-      timers.push(window.setTimeout(() => setPlayPhase("settle"), 2200));
+      timers.push(window.setTimeout(() => setPlayPhase("runners"), runnersAt));
+      timers.push(window.setTimeout(() => setPlayPhase("settle"), runnersAt + 1450));
     } else if (kind === "pitch") {
       timers.push(window.setTimeout(() => setPlayPhase("contact"), 420));
       timers.push(window.setTimeout(() => setPlayPhase("runners"), 650));
@@ -229,9 +255,22 @@ export default function LiveField({
     if (playEvent.kind === "runner" || playEvent.kind === "log-only") return null;
     if (playPhase === "pitch") return POSITIONS.pitcher;
     if (playPhase === "contact") return POSITIONS.home;
-    if (playPhase === "flight") return { x: playEvent.targetX ?? ball.x ?? 50, y: playEvent.targetY ?? ball.y ?? 30 };
     return { x: playEvent.targetX ?? ball.x ?? 50, y: playEvent.targetY ?? ball.y ?? 30 };
   })();
+  const playMotion = ballMotion(playEvent?.type);
+  const targetX = Number(playEvent?.targetX ?? ball.x ?? 50);
+  const targetY = Number(playEvent?.targetY ?? ball.y ?? 30);
+  const midX = (50 + targetX) / 2;
+  const naturalMidY = (86 + targetY) / 2;
+  const arcLift = playMotion === "homer" ? 34 : playMotion === "popup" ? 38 : playMotion === "fly" ? 28 : playMotion === "triple" ? 23 : playMotion === "double" ? 18 : playMotion === "single" ? 10 : playMotion === "liner" ? 5 : 0;
+  const ballAnimationVars = {
+    "--ball-target-x": `${targetX}%`,
+    "--ball-target-y": `${targetY}%`,
+    "--ball-mid-x": `${midX}%`,
+    "--ball-mid-y": `${Math.max(7, naturalMidY - arcLift)}%`,
+    "--ball-late-x": `${midX + (targetX - midX) * 0.55}%`,
+    "--ball-late-y": `${targetY + 6}%`,
+  };
 
   return (
     <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"}`} style={fieldVars}>
@@ -264,6 +303,13 @@ export default function LiveField({
           <div className="field-runner-tools">
             <button type="button" className="advance-all-button" onClick={onAdvanceAll}>Advance Everyone +1</button>
             <span>Moves the batter to 1B and every occupied runner up one base.</span>
+            <div className="field-remove-runner-group">
+              {["first", "second", "third"].filter((base) => bases[base]).map((base) => (
+                <button type="button" key={base} className="remove-runner-button" onClick={() => onRunnerRemove?.(base)}>
+                  Remove {POSITIONS[base].label}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -346,8 +392,8 @@ export default function LiveField({
         {playBallPosition && (
           <div
             key={`play-ball-${playEvent?.id}`}
-            className={`field-play-ball phase-${playPhase}`}
-            style={{ left: `${playBallPosition.x}%`, top: `${playBallPosition.y}%` }}
+            className={`field-play-ball phase-${playPhase} motion-${playMotion}`}
+            style={{ left: `${playBallPosition.x}%`, top: `${playBallPosition.y}%`, ...ballAnimationVars }}
           >
             ⚾
           </div>
@@ -366,7 +412,7 @@ export default function LiveField({
 
       <div className="live-field-footer">
         {interactive ? (
-          <><span>Drag the ball to the destination, then use Start Play below.</span><span>The ball resets automatically after 10 seconds.</span></>
+          <><span>Drag the ball to the destination, then use Start Play below.</span><span>The ball resets automatically after 7 seconds.</span></>
         ) : (
           <><span>{game?.latestPlay || "Waiting for the next play."}</span><span>{playPhase !== "idle" && playPhase !== "settle" ? "Play in motion" : ball?.visible ? `${ball.result || "HIT"} location` : "Ready"}</span></>
         )}

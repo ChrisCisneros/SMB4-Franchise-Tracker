@@ -20,6 +20,7 @@ export const defaultFieldState = () => ({
   },
   runnerEvent: null,
   playEvent: null,
+  manualRunnerOverride: false,
 });
 
 export const defaultCurrentGame = () => ({

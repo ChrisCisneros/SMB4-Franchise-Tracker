@@ -9,7 +9,7 @@ export default function LivePage({ ctx }) {
   const [showFieldMode, setShowFieldMode] = useState(false);
   const [fieldPlayCategory, setFieldPlayCategory] = useState("hit");
   const [fieldPlayType, setFieldPlayType] = useState("single");
-  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
 
   const fieldPlayGroups = {
     hit: [
@@ -337,6 +337,7 @@ export default function LivePage({ ctx }) {
               battingColors={battingBaseColors}
               interactive
               onRunnerMove={moveFieldRunner}
+              onRunnerRemove={removeFieldRunner}
               onBallDrop={dropFieldBall}
               onBallResult={updateFieldBallResult}
               onToggleBase={updateBases}
@@ -352,7 +353,10 @@ export default function LivePage({ ctx }) {
                   <span className="operator-label">Animated Play</span>
                   <strong>Drag the ball to the destination, choose the result, then start the play.</strong>
                 </div>
-                <div className="field-play-selected">Ready: <b>{selectedFieldPlayLabel}</b></div>
+                <div className="field-play-selected">
+                  Ready: <b>{selectedFieldPlayLabel}</b>
+                  {currentGame.fieldState?.manualRunnerOverride && <span className="manual-runner-badge">Manual runners</span>}
+                </div>
               </div>
 
               <div className="field-play-category-tabs">

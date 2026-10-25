@@ -555,22 +555,83 @@
 .field-play-ball {
   position: absolute;
   z-index: 40;
-  transform: translate(-50%, -50%) scale(1.08);
-  filter: drop-shadow(0 5px 8px rgba(0,0,0,.5));
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 9px rgba(0,0,0,.58));
   pointer-events: none;
-  transition:
-    left .34s cubic-bezier(.2,.78,.25,1),
-    top .34s cubic-bezier(.2,.78,.25,1),
-    transform .18s ease;
+  will-change: left, top, transform, filter;
+}
+
+.field-play-ball.phase-pitch {
+  animation: field-pitch-travel .34s cubic-bezier(.32,.02,.55,1) forwards;
 }
 
 .field-play-ball.phase-contact {
-  transform: translate(-50%, -50%) scale(1.28);
+  left: 50% !important;
+  top: 86% !important;
+  animation: field-contact-pop .20s ease-out forwards;
 }
 
-.field-play-ball.phase-flight {
-  transition-duration: .62s;
-  transform: translate(-50%, -50%) scale(.95);
+.field-play-ball.phase-flight.motion-ground { animation: field-ball-ground .82s cubic-bezier(.25,.65,.42,1) forwards; }
+.field-play-ball.phase-flight.motion-liner { animation: field-ball-liner .70s cubic-bezier(.18,.72,.22,1) forwards; }
+.field-play-ball.phase-flight.motion-single { animation: field-ball-single .86s cubic-bezier(.2,.75,.27,1) forwards; }
+.field-play-ball.phase-flight.motion-double { animation: field-ball-air .96s cubic-bezier(.22,.66,.28,1) forwards; }
+.field-play-ball.phase-flight.motion-triple { animation: field-ball-air 1.06s cubic-bezier(.22,.66,.28,1) forwards; }
+.field-play-ball.phase-flight.motion-fly { animation: field-ball-air 1.16s cubic-bezier(.22,.62,.32,1) forwards; }
+.field-play-ball.phase-flight.motion-popup { animation: field-ball-popup 1.10s cubic-bezier(.3,.48,.38,1) forwards; }
+.field-play-ball.phase-flight.motion-homer { animation: field-ball-homer 1.28s cubic-bezier(.2,.56,.28,1) forwards; }
+.field-play-ball.phase-flight.motion-standard { animation: field-ball-single .86s ease-out forwards; }
+
+@keyframes field-pitch-travel {
+  0% { left: 50%; top: 62%; transform: translate(-50%,-50%) scale(.72); filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+  55% { transform: translate(-50%,-50%) scale(.92) rotate(220deg); }
+  100% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.15) rotate(410deg); filter: drop-shadow(0 7px 10px rgba(0,0,0,.55)); }
+}
+
+@keyframes field-contact-pop {
+  0% { transform: translate(-50%,-50%) scale(1.05); }
+  45% { transform: translate(-50%,-50%) scale(1.5); filter: drop-shadow(0 0 12px rgba(250,204,21,.72)); }
+  100% { transform: translate(-50%,-50%) scale(1.12); }
+}
+
+@keyframes field-ball-ground {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.08) rotate(0deg); }
+  32% { left: var(--ball-mid-x); top: calc(var(--ball-mid-y) + 13%); transform: translate(-50%,-50%) scale(.98) rotate(260deg); }
+  48% { transform: translate(-50%,-50%) scale(1.08) rotate(390deg); }
+  67% { left: var(--ball-late-x); top: var(--ball-late-y); transform: translate(-50%,-50%) scale(.94) rotate(540deg); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.9) rotate(760deg); }
+}
+
+@keyframes field-ball-liner {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.1) rotate(0); }
+  48% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.94) rotate(260deg); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.88) rotate(580deg); }
+}
+
+@keyframes field-ball-single {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.1) rotate(0); }
+  52% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.92) rotate(250deg); }
+  82% { transform: translate(-50%,-50%) scale(.98) rotate(390deg); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.88) rotate(520deg); }
+}
+
+@keyframes field-ball-air {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.12) rotate(0); }
+  50% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.82) rotate(270deg); filter: drop-shadow(0 14px 9px rgba(0,0,0,.35)); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.92) rotate(590deg); filter: drop-shadow(0 6px 7px rgba(0,0,0,.5)); }
+}
+
+@keyframes field-ball-popup {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.12); }
+  36% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.68) rotate(210deg); filter: drop-shadow(0 18px 11px rgba(0,0,0,.28)); }
+  63% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.7) rotate(390deg); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.94) rotate(650deg); }
+}
+
+@keyframes field-ball-homer {
+  0% { left: 50%; top: 86%; transform: translate(-50%,-50%) scale(1.14); }
+  45% { left: var(--ball-mid-x); top: var(--ball-mid-y); transform: translate(-50%,-50%) scale(.62) rotate(330deg); filter: drop-shadow(0 20px 12px rgba(0,0,0,.24)); }
+  78% { transform: translate(-50%,-50%) scale(.7) rotate(590deg); }
+  100% { left: var(--ball-target-x); top: var(--ball-target-y); transform: translate(-50%,-50%) scale(.82) rotate(820deg); filter: drop-shadow(0 5px 6px rgba(0,0,0,.42)); }
 }
 
 .field-ball.is-playing {
@@ -607,3 +668,7 @@
   .field-play-selected { white-space: normal; }
 }
 .field-infield-dirt::after { display: none; }
+
+.field-remove-runner-group { display: flex; gap: 7px; flex-wrap: wrap; margin-left: auto; }
+.remove-runner-button { background: #7f1d1d; border: 1px solid #ef4444; padding: 7px 10px; font-size: 11px; }
+.manual-runner-badge { display: inline-flex; margin-left: 8px; padding: 4px 8px; border-radius: 999px; background: #78350f; border: 1px solid #f59e0b; color: #fde68a; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
