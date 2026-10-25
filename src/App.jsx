@@ -640,10 +640,28 @@ function resetLiveCountAndBases() {
 
   commitGameUpdate((next) => {
     next.inningStatus = "";
+    const isTurningOn = !next.bases?.[base];
     next.bases = {
       ...next.bases,
-      [base]: !next.bases[base],
+      [base]: isTurningOn,
     };
+
+    if (isTurningOn) {
+      const fieldState = {
+        ...defaultFieldState(),
+        ...(next.fieldState || {}),
+        ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
+      };
+      fieldState.runnerEvent = {
+        id: Date.now(),
+        from: "home",
+        to: base,
+        side: next.half === "Top" ? "away" : "home",
+        scored: false,
+        source: "base-toggle",
+      };
+      next.fieldState = fieldState;
+    }
   });
 }
 

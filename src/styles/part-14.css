@@ -252,9 +252,32 @@
 .field-runner-ghost.scored { box-shadow: 0 0 0 3px rgba(250,204,21,.7), 0 0 28px rgba(250,204,21,.55); }
 
 @keyframes field-runner-travel {
-  0% { left: var(--from-x); top: var(--from-y); opacity: .95; transform: translate(-50%,-50%) scale(.9); }
-  70% { opacity: 1; transform: translate(-50%,-50%) scale(1.14); }
-  100% { left: var(--to-x); top: var(--to-y); opacity: 0; transform: translate(-50%,-50%) scale(.82); }
+  0% { left: var(--from-x); top: var(--from-y); opacity: .98; transform: translate(-50%,-50%) scale(.94); }
+  72% { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+  100% { left: var(--to-x); top: var(--to-y); opacity: 0; transform: translate(-50%,-50%) scale(.9); }
+}
+
+.field-runner-ghost.route-1 { animation-name: field-runner-route-1; }
+.field-runner-ghost.route-2 { animation-name: field-runner-route-2; }
+.field-runner-ghost.route-3 { animation-name: field-runner-route-3; }
+
+@keyframes field-runner-route-1 {
+  0% { left: var(--from-x); top: var(--from-y); opacity: .98; transform: translate(-50%,-50%) scale(.94); }
+  82% { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+  100% { left: var(--to-x); top: var(--to-y); opacity: 0; transform: translate(-50%,-50%) scale(.9); }
+}
+
+@keyframes field-runner-route-2 {
+  0% { left: var(--from-x); top: var(--from-y); opacity: .98; }
+  48% { left: var(--via1-x); top: var(--via1-y); opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+  100% { left: var(--to-x); top: var(--to-y); opacity: 0; transform: translate(-50%,-50%) scale(.9); }
+}
+
+@keyframes field-runner-route-3 {
+  0% { left: var(--from-x); top: var(--from-y); opacity: .98; }
+  31% { left: var(--via1-x); top: var(--via1-y); opacity: 1; }
+  63% { left: var(--via2-x); top: var(--via2-y); opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+  100% { left: var(--to-x); top: var(--to-y); opacity: 0; transform: translate(-50%,-50%) scale(.9); }
 }
 
 .field-ball {
@@ -314,4 +337,56 @@
   .live-field { aspect-ratio: 1.05 / 1; border-radius: 34% 34% 16px 16px / 26% 26% 16px 16px; }
   .field-base { width: 36px; height: 36px; min-height: 36px; }
   .field-runner, .field-runner-ghost { width: 30px; height: 30px; }
+}
+/* POLISHED FIELD GEOMETRY */
+.live-field {
+  width: min(100%, 780px);
+  aspect-ratio: 1.28 / 1;
+  border-radius: 50% 50% 10% 10% / 42% 42% 8% 8%;
+  border: 2px solid #365b43;
+  background:
+    repeating-linear-gradient(100deg, rgba(255,255,255,.018) 0 36px, rgba(0,0,0,.018) 36px 72px),
+    radial-gradient(ellipse at 50% 98%, rgba(185,135,82,.98) 0 16%, transparent 16.5%),
+    linear-gradient(180deg, #1e6a3b 0%, #176235 52%, #0f4f2a 100%);
+  box-shadow:
+    inset 0 -55px 70px rgba(0,0,0,.20),
+    inset 0 0 0 1px rgba(255,255,255,.05),
+    0 16px 38px rgba(0,0,0,.28);
+}
+
+.field-outfield-arc {
+  left: 8%;
+  right: 8%;
+  top: 5%;
+  height: 70%;
+  border: 2px solid rgba(241,245,249,.30);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 72% 72% 0 0;
+}
+
+.field-infield-dirt {
+  top: 63%;
+  width: 32%;
+  border-radius: 18%;
+  background: #a97848;
+  border-color: rgba(245,222,179,.58);
+}
+
+.field-infield-dirt::after {
+  inset: 25%;
+  background: #176235;
+}
+
+.field-foul-line {
+  bottom: 13.5%;
+  width: 50%;
+  background: rgba(255,255,255,.80);
+}
+.field-foul-left { transform: rotate(38deg); }
+.field-foul-right { transform: rotate(-38deg); }
+
+.field-mound {
+  top: 63%;
+  width: 28px;
+  height: 28px;
 }

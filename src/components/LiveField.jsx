@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const POSITIONS = {
   home: { x: 50, y: 86, label: "HOME" },
@@ -6,6 +6,26 @@ const POSITIONS = {
   second: { x: 50, y: 40, label: "2B" },
   third: { x: 27, y: 63, label: "3B" },
 };
+
+
+const BASEPATH_ORDER = ["home", "first", "second", "third"];
+
+function runnerRoute(from, to) {
+  if (!POSITIONS[from] || !POSITIONS[to] || from === to) return [];
+  const start = BASEPATH_ORDER.indexOf(from);
+  const end = BASEPATH_ORDER.indexOf(to);
+  if (start < 0 || end < 0) return [POSITIONS[from], POSITIONS[to]];
+
+  const route = [POSITIONS[from]];
+  let index = start;
+  let guard = 0;
+  while (index !== end && guard < BASEPATH_ORDER.length) {
+    index = (index + 1) % BASEPATH_ORDER.length;
+    route.push(POSITIONS[BASEPATH_ORDER[index]]);
+    guard += 1;
+  }
+  return route;
+}
 
 const BALL_RESULTS = [
   ["HIT", "Hit"],
@@ -55,10 +75,18 @@ export default function LiveField({
 }) {
   const fieldRef = useRef(null);
   const [drag, setDrag] = useState(null);
+  const [runnerAnimationId, setRunnerAnimationId] = useState(null);
   const fieldState = game?.fieldState || {};
   const ball = fieldState.ball || { x: 50, y: 86, visible: false, result: "HIT", eventId: 0 };
   const bases = game?.bases || { first: false, second: false, third: false };
   const runnerEvent = fieldState.runnerEvent || null;
+
+  useEffect(() => {
+    if (!runnerEvent?.id) return undefined;
+    setRunnerAnimationId(runnerEvent.id);
+    const timeout = window.setTimeout(() => setRunnerAnimationId(null), 1180);
+    return () => window.clearTimeout(timeout);
+  }, [runnerEvent?.id]);
 
   const fieldVars = useMemo(() => ({
     "--runner-main": battingColors?.main || "#f8fafc",
@@ -124,6 +152,19 @@ export default function LiveField({
 
   const eventFrom = runnerEvent?.from && POSITIONS[runnerEvent.from] ? POSITIONS[runnerEvent.from] : null;
   const eventTo = runnerEvent?.to && POSITIONS[runnerEvent.to] ? POSITIONS[runnerEvent.to] : null;
+  const activeRunnerAnimation = Boolean(runnerEvent?.id && runnerAnimationId === runnerEvent.id);
+  const route = eventFrom && eventTo ? runnerRoute(runnerEvent.from, runnerEvent.to) : [];
+  const routeClass = route.length >= 4 ? "route-3" : route.length === 3 ? "route-2" : "route-1";
+  const routeStyle = route.length ? {
+    "--from-x": `${route[0].x}%`,
+    "--from-y": `${route[0].y}%`,
+    "--via1-x": `${(route[1] || route[route.length - 1]).x}%`,
+    "--via1-y": `${(route[1] || route[route.length - 1]).y}%`,
+    "--via2-x": `${(route[2] || route[route.length - 1]).x}%`,
+    "--via2-y": `${(route[2] || route[route.length - 1]).y}%`,
+    "--to-x": `${route[route.length - 1].x}%`,
+    "--to-y": `${route[route.length - 1].y}%`,
+  } : {};
 
   return (
     <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"}`} style={fieldVars}>
@@ -191,7 +232,7 @@ export default function LiveField({
           </div>
         )}
 
-        {["first", "second", "third"].map((base) => bases[base] && (
+        {["first", "second", "third"].map((base) => bases[base] && !(activeRunnerAnimation && runnerEvent?.to === base) && (
           <div
             key={base}
             className={`field-runner ${drag?.kind === "runner" && drag.origin === base ? "dragging" : ""}`}
@@ -203,16 +244,11 @@ export default function LiveField({
           </div>
         ))}
 
-        {runnerEvent && eventFrom && eventTo && (
+        {runnerEvent && eventFrom && eventTo && activeRunnerAnimation && (
           <div
             key={runnerEvent.id}
-            className={`field-runner-ghost ${runnerEvent.scored ? "scored" : ""}`}
-            style={{
-              "--from-x": `${eventFrom.x}%`,
-              "--from-y": `${eventFrom.y}%`,
-              "--to-x": `${eventTo.x}%`,
-              "--to-y": `${eventTo.y}%`,
-            }}
+            className={`field-runner-ghost ${routeClass} ${runnerEvent.scored ? "scored" : ""}`}
+            style={routeStyle}
           >
             R
           </div>
