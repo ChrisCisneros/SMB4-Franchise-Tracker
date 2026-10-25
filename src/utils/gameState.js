@@ -10,6 +10,17 @@ export const emptyDailyRow = () => ({
   applied: false,
 });
 
+export const defaultFieldState = () => ({
+  ball: {
+    x: 50,
+    y: 86,
+    visible: false,
+    result: "HIT",
+    eventId: 0,
+  },
+  runnerEvent: null,
+});
+
 export const defaultCurrentGame = () => ({
   date: new Date().toISOString().slice(0, 10),
   awayTeamId: "",
@@ -26,6 +37,7 @@ export const defaultCurrentGame = () => ({
   balls: 0,
   strikes: 0,
   bases: { first: false, second: false, third: false },
+  fieldState: defaultFieldState(),
   status: "Not Started",
   gameType: "regular",
 playoffSeriesId: "",
@@ -86,6 +98,15 @@ export function safeCloneSnapshot(game) {
   return {
     ...game,
     bases: { ...game.bases },
+    fieldState: {
+      ...defaultFieldState(),
+      ...(game.fieldState || {}),
+      ball: {
+        ...defaultFieldState().ball,
+        ...(game.fieldState?.ball || {}),
+      },
+      runnerEvent: game.fieldState?.runnerEvent ? { ...game.fieldState.runnerEvent } : null,
+    },
     awayLineup: [...game.awayLineup],
     homeLineup: [...game.homeLineup],
     awayPositions: [...game.awayPositions],
@@ -104,6 +125,15 @@ export function makeSafeGame(game) {
     ...defaultCurrentGame(),
     ...game,
     bases: game?.bases || { first: false, second: false, third: false },
+    fieldState: {
+      ...defaultFieldState(),
+      ...(game?.fieldState || {}),
+      ball: {
+        ...defaultFieldState().ball,
+        ...(game?.fieldState?.ball || {}),
+      },
+      runnerEvent: game?.fieldState?.runnerEvent ? { ...game.fieldState.runnerEvent } : null,
+    },
     awayLineup: game?.awayLineup || Array(9).fill(""),
     homeLineup: game?.homeLineup || Array(9).fill(""),
     awayPositions: game?.awayPositions || ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"],

@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { BaseDiamond } from "../components/GameWidgets";
+import LiveField from "../components/LiveField";
 import { getVisibleInnings, renderInningCell } from "../utils/gameDisplay";
 import { gamesBack, pct, wildCardGamesBack, getPlayoffMarker } from "../utils/standingsUtils";
 import { WILD_CARD_TEAMS_PER_LEAGUE } from "../config/constants";
@@ -116,6 +117,16 @@ export default function DashboardPage({ ctx }) {
               <div className="v3-score-center">{isWorldSeriesGame(lastFinalGame)&&<div className="v3-trophy">🏆</div>}<div className="v3-scoreline"><b>{lastFinalGame.awayScore}</b><em>–</em><b>{lastFinalGame.homeScore}</b></div><div className="v3-game-state">FINAL</div><MiniPill>{lastFinalGame.date||'Latest result'}</MiniPill></div>
               <div className="v3-match-team"><TeamMark team={lastFinalHomeTeam}/><strong>{lastFinalHomeTeam.city} {lastFinalHomeTeam.name}</strong><span>{gameTeamRecordLabel(lastFinalGame,lastFinalHomeTeam)}</span></div>
             </div> : <div className="v3-opening-stage"><div className="v3-opening-ball">⚾</div><div><div className="v3-eyebrow">OPENING DAY MODE</div><h3>{activeSeason} is ready.</h3><p>Set the first matchup in Live Controls and the dashboard will become a live broadcast center.</p></div>{defendingChampion&&<div className="v3-defending"><span>Defending Champion</span><strong>🏆 {defendingChampion.abbr}</strong></div>}</div>}
+
+          {hasLiveMatchup && (
+            <div className="v3-dashboard-field-wrap">
+              <LiveField
+                game={currentGame}
+                battingColors={battingBaseColors}
+                compact
+              />
+            </div>
+          )}
 
           {dashboardScoreboardGame && dashboardScoreboardAwayTeam && dashboardScoreboardHomeTeam && <div className="v3-linescore-wrap">
             <div className="v3-linescore-row v3-linescore-head"><span>TEAM</span>{getVisibleInnings(dashboardScoreboardGame).map(n=><span key={`h-${n}`}>{n}</span>)}<span>R</span><span>H</span><span>E</span></div>

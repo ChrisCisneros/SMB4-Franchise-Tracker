@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { teamOptionLabel } from "../utils/standingsUtils";
 import { renderInningCell } from "../utils/gameDisplay";
+import LiveField from "../components/LiveField";
 
 export default function LivePage({ ctx }) {
   const [showSetup, setShowSetup] = useState(true);
   const [showMoments, setShowMoments] = useState(false);
-  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, currentGame, cycleLiveLook, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame } = ctx;
+  const [showFieldMode, setShowFieldMode] = useState(false);
+  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
 
   return (
     <div className="live-ipad-page">
@@ -34,6 +36,7 @@ export default function LivePage({ ctx }) {
               <button onClick={undoLastPlay}>↶ Undo</button>
               <button onClick={resetBallStrikeCount}>Reset Count</button>
               <button onClick={() => setShowSetup((value) => !value)}>{showSetup ? "Hide Setup" : "Game Setup"}</button>
+              <button className={showFieldMode ? "field-mode-toggle active" : "field-mode-toggle"} onClick={() => setShowFieldMode((value) => !value)}>{showFieldMode ? "Hide Field" : "Field Mode"}</button>
               <button className="live-finalize-shortcut" onClick={finalizeGame}>Finalize</button>
             </div>
           </div>
@@ -306,6 +309,19 @@ export default function LivePage({ ctx }) {
             </div>
           </div>
     
+          {showFieldMode && (
+            <LiveField
+              game={currentGame}
+              battingColors={battingBaseColors}
+              interactive
+              onRunnerMove={moveFieldRunner}
+              onBallDrop={dropFieldBall}
+              onBallResult={updateFieldBallResult}
+              onToggleBase={updateBases}
+              onClearBall={clearFieldBall}
+            />
+          )}
+
           <div className="live-pitch-deck">
             <div className="live-pitch-deck-status">
               <span className="operator-label">Pitch / Count</span>
