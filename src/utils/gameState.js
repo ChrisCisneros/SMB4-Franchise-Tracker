@@ -19,6 +19,7 @@ export const defaultFieldState = () => ({
     eventId: 0,
   },
   runnerEvent: null,
+  playEvent: null,
 });
 
 export const defaultCurrentGame = () => ({
@@ -106,6 +107,14 @@ export function safeCloneSnapshot(game) {
         ...(game.fieldState?.ball || {}),
       },
       runnerEvent: game.fieldState?.runnerEvent ? { ...game.fieldState.runnerEvent } : null,
+      playEvent: game.fieldState?.playEvent
+        ? {
+            ...game.fieldState.playEvent,
+            runnerMoves: Array.isArray(game.fieldState.playEvent.runnerMoves)
+              ? game.fieldState.playEvent.runnerMoves.map((move) => ({ ...move }))
+              : [],
+          }
+        : null,
     },
     awayLineup: [...game.awayLineup],
     homeLineup: [...game.homeLineup],
@@ -133,6 +142,14 @@ export function makeSafeGame(game) {
         ...(game?.fieldState?.ball || {}),
       },
       runnerEvent: game?.fieldState?.runnerEvent ? { ...game.fieldState.runnerEvent } : null,
+      playEvent: game?.fieldState?.playEvent
+        ? {
+            ...game.fieldState.playEvent,
+            runnerMoves: Array.isArray(game.fieldState.playEvent.runnerMoves)
+              ? game.fieldState.playEvent.runnerMoves.map((move) => ({ ...move }))
+              : [],
+          }
+        : null,
     },
     awayLineup: game?.awayLineup || Array(9).fill(""),
     homeLineup: game?.homeLineup || Array(9).fill(""),

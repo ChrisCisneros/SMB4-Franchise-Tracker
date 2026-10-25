@@ -5,13 +5,18 @@ const POSITIONS = {
   first: { x: 73, y: 63, label: "1B" },
   second: { x: 50, y: 40, label: "2B" },
   third: { x: 27, y: 63, label: "3B" },
+  pitcher: { x: 50, y: 62, label: "P" },
 };
-
 
 const BASEPATH_ORDER = ["home", "first", "second", "third"];
 
-function runnerRoute(from, to) {
-  if (!POSITIONS[from] || !POSITIONS[to] || from === to) return [];
+function runnerRoute(from, to, fullCycle = false) {
+  if (!POSITIONS[from] || !POSITIONS[to]) return [];
+  if (from === to && !fullCycle) return [];
+  if (from === "home" && to === "home" && fullCycle) {
+    return [POSITIONS.home, POSITIONS.first, POSITIONS.second, POSITIONS.third, POSITIONS.home];
+  }
+
   const start = BASEPATH_ORDER.indexOf(from);
   const end = BASEPATH_ORDER.indexOf(to);
   if (start < 0 || end < 0) return [POSITIONS[from], POSITIONS[to]];
@@ -53,6 +58,7 @@ function closestBase(point) {
   let best = null;
   let bestDistance = Infinity;
   Object.entries(POSITIONS).forEach(([key, pos]) => {
+    if (key === "pitcher") return;
     const distance = Math.hypot(point.x - pos.x, point.y - pos.y);
     if (distance < bestDistance) {
       best = key;
@@ -62,24 +68,52 @@ function closestBase(point) {
   return bestDistance <= 18 ? best : null;
 }
 
+function routeVars(move) {
+  const route = runnerRoute(move.from, move.to, move.fullCycle);
+  if (!route.length) return { route, className: "route-1", style: {} };
+  const last = route[route.length - 1];
+  const p1 = route[1] || last;
+  const p2 = route[2] || last;
+  const p3 = route[3] || last;
+  return {
+    route,
+    className: route.length >= 5 ? "route-4" : route.length === 4 ? "route-3" : route.length === 3 ? "route-2" : "route-1",
+    style: {
+      "--from-x": `${route[0].x}%`,
+      "--from-y": `${route[0].y}%`,
+      "--via1-x": `${p1.x}%`,
+      "--via1-y": `${p1.y}%`,
+      "--via2-x": `${p2.x}%`,
+      "--via2-y": `${p2.y}%`,
+      "--via3-x": `${p3.x}%`,
+      "--via3-y": `${p3.y}%`,
+      "--to-x": `${last.x}%`,
+      "--to-y": `${last.y}%`,
+    },
+  };
+}
+
 export default function LiveField({
   game,
   battingColors,
   interactive = false,
-  onRunnerMove,
-  onBallDrop,
-  onBallResult,
-  onToggleBase,
-  onClearBall,
+  onRunnerMove = undefined,
+  onBallDrop = undefined,
+  onBallResult = undefined,
+  onToggleBase = undefined,
+  onClearBall = undefined,
+  onAdvanceAll = undefined,
   compact = false,
 }) {
   const fieldRef = useRef(null);
   const [drag, setDrag] = useState(null);
   const [runnerAnimationId, setRunnerAnimationId] = useState(null);
+  const [playPhase, setPlayPhase] = useState("idle");
   const fieldState = game?.fieldState || {};
   const ball = fieldState.ball || { x: 50, y: 86, visible: false, result: "HIT", eventId: 0 };
   const bases = game?.bases || { first: false, second: false, third: false };
   const runnerEvent = fieldState.runnerEvent || null;
+  const playEvent = fieldState.playEvent || null;
 
   useEffect(() => {
     if (!runnerEvent?.id) return undefined;
@@ -87,6 +121,35 @@ export default function LiveField({
     const timeout = window.setTimeout(() => setRunnerAnimationId(null), 1180);
     return () => window.clearTimeout(timeout);
   }, [runnerEvent?.id]);
+
+  useEffect(() => {
+    if (!playEvent?.id) {
+      setPlayPhase("idle");
+      return undefined;
+    }
+
+    const kind = playEvent.kind || "batted";
+    setPlayPhase(kind === "runner" ? "runners" : kind === "log-only" ? "settle" : "pitch");
+    const timers = [];
+
+    if (kind === "batted") {
+      timers.push(window.setTimeout(() => setPlayPhase("contact"), 360));
+      timers.push(window.setTimeout(() => setPlayPhase("flight"), 560));
+      timers.push(window.setTimeout(() => setPlayPhase("runners"), 900));
+      timers.push(window.setTimeout(() => setPlayPhase("settle"), 2200));
+    } else if (kind === "pitch") {
+      timers.push(window.setTimeout(() => setPlayPhase("contact"), 420));
+      timers.push(window.setTimeout(() => setPlayPhase("runners"), 650));
+      timers.push(window.setTimeout(() => setPlayPhase("settle"), 1850));
+    } else if (kind === "pickoff") {
+      timers.push(window.setTimeout(() => setPlayPhase("flight"), 360));
+      timers.push(window.setTimeout(() => setPlayPhase("settle"), 1150));
+    } else if (kind === "runner") {
+      timers.push(window.setTimeout(() => setPlayPhase("settle"), 1450));
+    }
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [playEvent?.id]);
 
   const fieldVars = useMemo(() => ({
     "--runner-main": battingColors?.main || "#f8fafc",
@@ -104,7 +167,7 @@ export default function LiveField({
   };
 
   const startBallDrag = (event) => {
-    if (!interactive) return;
+    if (!interactive || playPhase !== "idle" && playPhase !== "settle") return;
     event.preventDefault();
     const rect = fieldRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -153,25 +216,29 @@ export default function LiveField({
   const eventFrom = runnerEvent?.from && POSITIONS[runnerEvent.from] ? POSITIONS[runnerEvent.from] : null;
   const eventTo = runnerEvent?.to && POSITIONS[runnerEvent.to] ? POSITIONS[runnerEvent.to] : null;
   const activeRunnerAnimation = Boolean(runnerEvent?.id && runnerAnimationId === runnerEvent.id);
-  const route = eventFrom && eventTo ? runnerRoute(runnerEvent.from, runnerEvent.to) : [];
-  const routeClass = route.length >= 4 ? "route-3" : route.length === 3 ? "route-2" : "route-1";
-  const routeStyle = route.length ? {
-    "--from-x": `${route[0].x}%`,
-    "--from-y": `${route[0].y}%`,
-    "--via1-x": `${(route[1] || route[route.length - 1]).x}%`,
-    "--via1-y": `${(route[1] || route[route.length - 1]).y}%`,
-    "--via2-x": `${(route[2] || route[route.length - 1]).x}%`,
-    "--via2-y": `${(route[2] || route[route.length - 1]).y}%`,
-    "--to-x": `${route[route.length - 1].x}%`,
-    "--to-y": `${route[route.length - 1].y}%`,
-  } : {};
+  const manualRoute = eventFrom && eventTo ? routeVars({ from: runnerEvent.from, to: runnerEvent.to, fullCycle: runnerEvent.fullCycle }) : null;
+
+  const playMoves = Array.isArray(playEvent?.runnerMoves) ? playEvent.runnerMoves : [];
+  const playingRunners = playPhase === "runners";
+  const hiddenPlayBases = new Set(playingRunners
+    ? playMoves.flatMap((move) => [move.from, !move.out && move.to !== "home" ? move.to : null]).filter((base) => ["first", "second", "third"].includes(base))
+    : []);
+
+  const playBallPosition = (() => {
+    if (!playEvent || ["idle", "settle"].includes(playPhase)) return null;
+    if (playEvent.kind === "runner" || playEvent.kind === "log-only") return null;
+    if (playPhase === "pitch") return POSITIONS.pitcher;
+    if (playPhase === "contact") return POSITIONS.home;
+    if (playPhase === "flight") return { x: playEvent.targetX ?? ball.x ?? 50, y: playEvent.targetY ?? ball.y ?? 30 };
+    return { x: playEvent.targetX ?? ball.x ?? 50, y: playEvent.targetY ?? ball.y ?? 30 };
+  })();
 
   return (
     <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"}`} style={fieldVars}>
       <div className="live-field-header">
         <div>
           <span className="live-field-kicker">LIVE FIELD</span>
-          <strong>{interactive ? "Drag runners + ball" : "GameCast view"}</strong>
+          <strong>{interactive ? "GameCast operator field" : "GameCast view"}</strong>
         </div>
         <div className="live-field-status">
           <span>{game?.half || "Top"} {game?.inning || 1}</span>
@@ -180,35 +247,43 @@ export default function LiveField({
       </div>
 
       {interactive && (
-        <div className="field-result-toolbar">
-          {BALL_RESULTS.map(([value, label]) => (
-            <button
-              type="button"
-              key={value}
-              className={(ball.result || "HIT") === value ? "active" : ""}
-              onClick={() => onBallResult?.(value)}
-            >
-              {label}
-            </button>
-          ))}
-          <button type="button" className="field-clear-ball" onClick={onClearBall}>Clear Ball</button>
-        </div>
+        <>
+          <div className="field-result-toolbar">
+            {BALL_RESULTS.map(([value, label]) => (
+              <button
+                type="button"
+                key={value}
+                className={(ball.result || "HIT") === value ? "active" : ""}
+                onClick={() => onBallResult?.(value)}
+              >
+                {label}
+              </button>
+            ))}
+            <button type="button" className="field-clear-ball" onClick={onClearBall}>Clear Ball</button>
+          </div>
+          <div className="field-runner-tools">
+            <button type="button" className="advance-all-button" onClick={onAdvanceAll}>Advance Everyone +1</button>
+            <span>Moves the batter to 1B and every occupied runner up one base.</span>
+          </div>
+        </>
       )}
 
       <div
         ref={fieldRef}
-        className="live-field"
+        className={`live-field play-phase-${playPhase}`}
         onPointerMove={moveDrag}
         onPointerUp={finishDrag}
         onPointerCancel={() => setDrag(null)}
       >
+        <div className="field-warning-track" />
         <div className="field-outfield-arc" />
         <div className="field-infield-dirt" />
+        <div className="field-grass-diamond" />
         <div className="field-foul-line field-foul-left" />
         <div className="field-foul-line field-foul-right" />
         <div className="field-mound">P</div>
 
-        {Object.entries(POSITIONS).map(([key, pos]) => (
+        {Object.entries(POSITIONS).filter(([key]) => key !== "pitcher").map(([key, pos]) => (
           <button
             type="button"
             key={key}
@@ -221,7 +296,7 @@ export default function LiveField({
           </button>
         ))}
 
-        {interactive && (
+        {interactive && !playingRunners && (
           <div
             className={`field-runner field-batter ${drag?.kind === "runner" && drag.origin === "batter" ? "dragging" : ""}`}
             style={runnerStyle("batter")}
@@ -232,7 +307,7 @@ export default function LiveField({
           </div>
         )}
 
-        {["first", "second", "third"].map((base) => bases[base] && !(activeRunnerAnimation && runnerEvent?.to === base) && (
+        {["first", "second", "third"].map((base) => bases[base] && !hiddenPlayBases.has(base) && !(activeRunnerAnimation && runnerEvent?.to === base) && (
           <div
             key={base}
             className={`field-runner ${drag?.kind === "runner" && drag.origin === base ? "dragging" : ""}`}
@@ -244,21 +319,45 @@ export default function LiveField({
           </div>
         ))}
 
-        {runnerEvent && eventFrom && eventTo && activeRunnerAnimation && (
+        {runnerEvent && manualRoute?.route.length > 0 && activeRunnerAnimation && (
           <div
             key={runnerEvent.id}
-            className={`field-runner-ghost ${routeClass} ${runnerEvent.scored ? "scored" : ""}`}
-            style={routeStyle}
+            className={`field-runner-ghost ${manualRoute.className} ${runnerEvent.scored ? "scored" : ""}`}
+            style={manualRoute.style}
           >
             R
           </div>
         )}
 
+        {playingRunners && playMoves.map((move, index) => {
+          const routed = routeVars(move);
+          if (!routed.route.length) return null;
+          return (
+            <div
+              key={`${playEvent.id}-${index}`}
+              className={`field-runner-ghost field-play-runner ${routed.className} ${move.scored ? "scored" : ""} ${move.out ? "runner-out" : ""}`}
+              style={{ ...routed.style, "--runner-delay": `${index * 70}ms` }}
+            >
+              {move.batter ? "B" : "R"}
+            </div>
+          );
+        })}
+
+        {playBallPosition && (
+          <div
+            key={`play-ball-${playEvent?.id}`}
+            className={`field-play-ball phase-${playPhase}`}
+            style={{ left: `${playBallPosition.x}%`, top: `${playBallPosition.y}%` }}
+          >
+            ⚾
+          </div>
+        )}
+
         <div
-          className={`field-ball ${interactive ? "draggable" : ""} ${drag?.kind === "ball" ? "dragging" : ""} ${ball?.visible || interactive ? "visible" : ""}`}
+          className={`field-ball ${interactive ? "draggable" : ""} ${drag?.kind === "ball" ? "dragging" : ""} ${ball?.visible || interactive ? "visible" : ""} ${playBallPosition ? "is-playing" : ""}`}
           style={ballStyle}
           onPointerDown={startBallDrag}
-          title={interactive ? "Drag the ball to where the play went" : ball?.result || "Ball"}
+          title={interactive ? "Drag the ball to the play destination" : ball?.result || "Ball"}
         >
           ⚾
           {ball?.visible && <span>{ball.result || "HIT"}</span>}
@@ -267,9 +366,9 @@ export default function LiveField({
 
       <div className="live-field-footer">
         {interactive ? (
-          <><span>Tip: drag a runner to another base. Drop a runner on HOME to score.</span><span>Ball placement is visual only.</span></>
+          <><span>Drag the ball to the destination, then use Start Play below.</span><span>The ball resets automatically after 10 seconds.</span></>
         ) : (
-          <><span>{game?.latestPlay || "Waiting for the next play."}</span><span>{ball?.visible ? `${ball.result || "HIT"} location` : "No ball location set"}</span></>
+          <><span>{game?.latestPlay || "Waiting for the next play."}</span><span>{playPhase !== "idle" && playPhase !== "settle" ? "Play in motion" : ball?.visible ? `${ball.result || "HIT"} location` : "Ready"}</span></>
         )}
       </div>
     </div>

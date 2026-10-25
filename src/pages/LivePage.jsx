@@ -7,7 +7,29 @@ export default function LivePage({ ctx }) {
   const [showSetup, setShowSetup] = useState(true);
   const [showMoments, setShowMoments] = useState(false);
   const [showFieldMode, setShowFieldMode] = useState(false);
-  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+  const [fieldPlayCategory, setFieldPlayCategory] = useState("hit");
+  const [fieldPlayType, setFieldPlayType] = useState("single");
+  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+
+  const fieldPlayGroups = {
+    hit: [
+      ["single", "Single"], ["double", "Double"], ["triple", "Triple"], ["homerun", "Home Run"],
+    ],
+    out: [
+      ["flyout", "Fly Out"], ["groundout", "Ground Out"], ["lineout", "Line Out"], ["popup", "Pop Up"],
+      ["fielderschoice", "Fielder's Choice"], ["doubleplay", "Double Play"], ["caughtstealing", "Caught Stealing"],
+    ],
+    other: [
+      ["walk", "Walk"], ["hitbypitch", "HBP"], ["error", "Error"], ["sacfly", "Sac Fly"],
+      ["pickoff1", "Pickoff 1B"], ["pickoff2", "Pickoff 2B"], ["pickoff3", "Pickoff 3B"],
+      ["awayballupheld", "Away Ball Upheld"], ["awayballoverturned", "Away Ball Overturned"],
+      ["awaystrikeupheld", "Away Strike Upheld"], ["awaystrikeoverturned", "Away Strike Overturned"],
+      ["homeballupheld", "Home Ball Upheld"], ["homeballoverturned", "Home Ball Overturned"],
+      ["homestrikeupheld", "Home Strike Upheld"], ["homestrikeoverturned", "Home Strike Overturned"],
+    ],
+  };
+
+  const selectedFieldPlayLabel = fieldPlayGroups[fieldPlayCategory]?.find(([type]) => type === fieldPlayType)?.[1] || "Play";
 
   return (
     <div className="live-ipad-page">
@@ -319,7 +341,59 @@ export default function LivePage({ ctx }) {
               onBallResult={updateFieldBallResult}
               onToggleBase={updateBases}
               onClearBall={clearFieldBall}
+              onAdvanceAll={advanceAllFieldRunners}
             />
+          )}
+
+          {showFieldMode && (
+            <div className="field-play-console">
+              <div className="field-play-console-head">
+                <div>
+                  <span className="operator-label">Animated Play</span>
+                  <strong>Drag the ball to the destination, choose the result, then start the play.</strong>
+                </div>
+                <div className="field-play-selected">Ready: <b>{selectedFieldPlayLabel}</b></div>
+              </div>
+
+              <div className="field-play-category-tabs">
+                {[
+                  ["hit", "Hits"], ["out", "Outs"], ["other", "Other"],
+                ].map(([category, label]) => (
+                  <button
+                    type="button"
+                    key={category}
+                    className={fieldPlayCategory === category ? "active" : ""}
+                    onClick={() => {
+                      setFieldPlayCategory(category);
+                      setFieldPlayType(fieldPlayGroups[category][0][0]);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="field-play-choice-grid">
+                {fieldPlayGroups[fieldPlayCategory].map(([type, label]) => (
+                  <button
+                    type="button"
+                    key={type}
+                    className={fieldPlayType === type ? "active" : ""}
+                    onClick={() => setFieldPlayType(type)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="field-start-play-button"
+                onClick={() => startAnimatedFieldPlay(fieldPlayCategory, fieldPlayType)}
+              >
+                ▶ Start Play · {selectedFieldPlayLabel}
+              </button>
+            </div>
           )}
 
           <div className="live-pitch-deck">
