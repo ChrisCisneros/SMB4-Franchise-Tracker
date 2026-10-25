@@ -1032,3 +1032,19 @@
   .field-play-marker.marker-strikeout,
   .field-play-marker.marker-calledstrikeout { min-width: 50px; height: 50px; font-size: 28px; }
 }
+
+/* DIRECT STRIKEOUT CONTROLS */
+.pitch-strikeout {
+  min-width: 116px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.pitch-strikeout-swinging {
+  background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%);
+}
+
+.pitch-strikeout-looking {
+  background: linear-gradient(180deg, #5b21b6 0%, #2e1065 100%);
+}

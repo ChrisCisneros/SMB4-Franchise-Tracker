@@ -411,6 +411,20 @@ export default function LivePage({ ctx }) {
             <button className="pitch-called" onClick={() => updateCount("called", 1)}>Called Strike</button>
             <button className="pitch-swing" onClick={() => updateCount("swinging", 1)}>Swinging</button>
             <button className="pitch-foul" onClick={() => updateCount("foul", 1)}>Foul</button>
+            <button
+              className="pitch-strikeout pitch-strikeout-swinging"
+              onClick={() => startAnimatedFieldPlay("out", "strikeout")}
+              title="Record a swinging strikeout immediately without tracking the strike count"
+            >
+              K Swinging
+            </button>
+            <button
+              className="pitch-strikeout pitch-strikeout-looking"
+              onClick={() => startAnimatedFieldPlay("out", "calledstrikeout")}
+              title="Record a called strikeout immediately without tracking the strike count"
+            >
+              ꓘ Looking
+            </button>
             <button onClick={() => updateCount("outs", 1)}>+ Out / Advance</button>
             <button onClick={resetBallStrikeCount}>Reset B/S</button>
             <button onClick={resetLiveCountAndBases}>Clear Count + Bases</button>
