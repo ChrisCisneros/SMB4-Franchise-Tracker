@@ -43,6 +43,26 @@ const BALL_RESULTS = [
   ["FOUL", "Foul"],
 ];
 
+const FIELD_POSITION_LABELS = [
+  { label: "LF", x: 22, y: 25 },
+  { label: "CF", x: 50, y: 15 },
+  { label: "RF", x: 78, y: 25 },
+  { label: "SS", x: 38, y: 47 },
+  { label: "2B", x: 62, y: 47 },
+  { label: "C", x: 50, y: 92 },
+];
+
+function playCue(type) {
+  const map = {
+    single: ["1B", "SINGLE"], double: ["2B", "DOUBLE"], triple: ["3B", "TRIPLE"], homerun: ["HR", "HOME RUN"],
+    flyout: ["OUT", "FLY OUT"], groundout: ["OUT", "GROUND OUT"], lineout: ["OUT", "LINE OUT"], popup: ["OUT", "POP OUT"],
+    fielderschoice: ["FC", "FIELDER'S CHOICE"], doubleplay: ["DP", "DOUBLE PLAY"], strikeout: ["K", "STRIKEOUT"], calledstrikeout: ["ꓘ", "CALLED STRIKEOUT"],
+    caughtstealing: ["OUT", "CAUGHT STEALING"], walk: ["BB", "WALK"], hitbypitch: ["HBP", "HIT BY PITCH"], error: ["E", "ERROR"],
+    sacfly: ["SF", "SAC FLY"], pickoff1: ["OUT", "PICKOFF 1B"], pickoff2: ["OUT", "PICKOFF 2B"], pickoff3: ["OUT", "PICKOFF 3B"],
+  };
+  return map[type] || [String(type || "PLAY").toUpperCase(), String(type || "Play").replace(/([a-z])([A-Z])/g, "$1 $2")];
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -140,6 +160,8 @@ export default function LiveField({
   const bases = game?.bases || { first: false, second: false, third: false };
   const runnerEvent = fieldState.runnerEvent || null;
   const playEvent = fieldState.playEvent || null;
+  const cueEvent = fieldState.cueEvent || null;
+  const [cueVisibleId, setCueVisibleId] = useState(null);
 
   useEffect(() => {
     if (!runnerEvent?.id) return undefined;
@@ -177,6 +199,13 @@ export default function LiveField({
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [playEvent?.id]);
+
+  useEffect(() => {
+    if (!cueEvent?.id) return undefined;
+    setCueVisibleId(cueEvent.id);
+    const timeout = window.setTimeout(() => setCueVisibleId(null), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [cueEvent?.id]);
 
   const fieldVars = useMemo(() => ({
     "--runner-main": battingColors?.main || "#f8fafc",
@@ -273,6 +302,15 @@ export default function LiveField({
     "--ball-late-y": `${targetY + 6}%`,
   };
 
+  const [cueGlyph, cueLabel] = playCue(playEvent?.type);
+  const scoringMoves = playMoves.filter((move) => move.scored).length;
+  const markerMove = playMoves.find((move) => move.out) || playMoves[0];
+  const markerBase = markerMove?.to && POSITIONS[markerMove.to] ? POSITIONS[markerMove.to] : null;
+  const markerPoint = playEvent?.kind === "runner" && markerBase ? markerBase : playEvent?.kind === "pickoff" ? { x: targetX, y: targetY } : { x: targetX, y: targetY };
+  const showPlayOverlay = Boolean(playEvent?.id && playPhase !== "idle");
+  const showTrail = Boolean(playEvent?.id && ["batted", "pickoff"].includes(playEvent?.kind));
+  const cueKind = cueEvent?.kind || "pitch";
+
   return (
     <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"}`} style={fieldVars}>
       <div className="live-field-header">
@@ -340,6 +378,17 @@ export default function LiveField({
         <div className="field-foul-line field-foul-left" />
         <div className="field-foul-line field-foul-right" />
         <div className="field-mound">P</div>
+
+        {FIELD_POSITION_LABELS.map((spot) => (
+          <span key={spot.label} className="field-position-label" style={{ left: `${spot.x}%`, top: `${spot.y}%` }}>{spot.label}</span>
+        ))}
+
+        {showTrail && (
+          <svg className="field-play-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="50" y1="86" x2={targetX} y2={targetY} />
+            <circle cx={targetX} cy={targetY} r="1.2" />
+          </svg>
+        )}
 
         {Object.entries(POSITIONS).filter(([key]) => key !== "pitcher").map(([key, pos]) => (
           <button
@@ -409,6 +458,35 @@ export default function LiveField({
           >
             ⚾
           </div>
+        )}
+
+        {showPlayOverlay && (
+          <>
+            <div key={`ribbon-${playEvent.id}`} className={`field-play-ribbon ribbon-${String(playEvent.type || "play")}`}>
+              <span>{cueGlyph}</span><strong>{cueLabel}</strong>
+            </div>
+            {!["single", "double", "triple"].includes(playEvent.type) && (
+              <div
+                key={`marker-${playEvent.id}`}
+                className={`field-play-marker marker-${String(playEvent.type || "play")}`}
+                style={{ left: `${markerPoint.x}%`, top: `${markerPoint.y}%` }}
+              >
+                {cueGlyph}
+              </div>
+            )}
+            {scoringMoves > 0 && (
+              <div key={`run-${playEvent.id}`} className="field-run-cue">{scoringMoves === 1 ? "RUN SCORES" : `${scoringMoves} RUNS SCORE`}</div>
+            )}
+            {playEvent.type === "homerun" && (
+              <div key={`hr-${playEvent.id}`} className="field-hr-burst" aria-hidden="true">
+                {Array.from({ length: 10 }, (_, i) => <i key={i} style={{ "--burst-i": i }} />)}
+              </div>
+            )}
+          </>
+        )}
+
+        {cueEvent?.id && cueVisibleId === cueEvent.id && (
+          <div key={`cue-${cueEvent.id}`} className={`field-pitch-cue cue-${cueKind}`}>{cueEvent.text}</div>
         )}
 
         <div

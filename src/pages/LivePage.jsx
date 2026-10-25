@@ -17,7 +17,7 @@ export default function LivePage({ ctx }) {
     ],
     out: [
       ["flyout", "Fly Out"], ["groundout", "Ground Out"], ["lineout", "Line Out"], ["popup", "Pop Up"],
-      ["fielderschoice", "Fielder's Choice"], ["doubleplay", "Double Play"], ["caughtstealing", "Caught Stealing"],
+      ["fielderschoice", "Fielder's Choice"], ["doubleplay", "Double Play"], ["strikeout", "Strikeout (K)"], ["calledstrikeout", "Called K (ꓘ)"], ["caughtstealing", "Caught Stealing"],
     ],
     other: [
       ["walk", "Walk"], ["hitbypitch", "HBP"], ["error", "Error"], ["sacfly", "Sac Fly"],

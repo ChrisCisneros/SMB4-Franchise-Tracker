@@ -777,3 +777,258 @@
   .field-command-layout { grid-template-columns: 1fr; }
   .field-command-layout .field-play-console { position: static; max-height: none; overflow: visible; }
 }
+
+/* V3 GameCast broadcast polish: field labels, ribbons, cues, trails, celebration moments */
+.field-position-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.48);
+  text-shadow: 0 1px 2px rgba(0,0,0,.55);
+  pointer-events: none;
+  user-select: none;
+}
+
+.field-play-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
+  overflow: visible;
+  opacity: .72;
+  animation: field-trail-fade 7s ease-out forwards;
+}
+.field-play-trail line {
+  stroke: rgba(255,255,255,.35);
+  stroke-width: .65;
+  stroke-dasharray: 2.4 2.2;
+  vector-effect: non-scaling-stroke;
+}
+.field-play-trail circle {
+  fill: rgba(255,255,255,.58);
+}
+@keyframes field-trail-fade {
+  0%, 60% { opacity: .72; }
+  100% { opacity: 0; }
+}
+
+.field-play-ribbon {
+  position: absolute;
+  z-index: 60;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: min(380px, 82%);
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(2,6,23,.88);
+  border: 1px solid rgba(255,255,255,.26);
+  box-shadow: 0 10px 30px rgba(0,0,0,.28);
+  backdrop-filter: blur(7px);
+  pointer-events: none;
+  animation: field-ribbon-life 7s ease forwards;
+}
+.field-play-ribbon span {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  font-size: 18px;
+  font-weight: 1000;
+}
+.field-play-ribbon strong {
+  font-size: 13px;
+  letter-spacing: .09em;
+}
+.field-play-ribbon.ribbon-homerun {
+  background: linear-gradient(135deg, rgba(127,29,29,.95), rgba(146,64,14,.93));
+  border-color: rgba(253,224,71,.72);
+}
+.field-play-ribbon.ribbon-strikeout,
+.field-play-ribbon.ribbon-calledstrikeout,
+.field-play-ribbon.ribbon-doubleplay {
+  background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,64,175,.86));
+}
+.field-play-ribbon.ribbon-error {
+  background: linear-gradient(135deg, rgba(127,29,29,.94), rgba(69,10,10,.92));
+}
+@keyframes field-ribbon-life {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.96); }
+  8%, 64% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(.98); }
+}
+
+.field-play-marker {
+  position: absolute;
+  z-index: 58;
+  transform: translate(-50%, -50%) scale(.7);
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  height: 46px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(2,6,23,.94);
+  border: 2px solid rgba(255,255,255,.76);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 1000;
+  box-shadow: 0 0 0 4px rgba(2,6,23,.25), 0 12px 25px rgba(0,0,0,.35);
+  pointer-events: none;
+  animation: field-marker-pop 7s ease forwards;
+}
+.field-play-marker.marker-strikeout,
+.field-play-marker.marker-calledstrikeout {
+  left: 50% !important;
+  top: 86% !important;
+  min-width: 60px;
+  height: 60px;
+  font-size: 34px;
+  border-color: #93c5fd;
+  color: #dbeafe;
+}
+.field-play-marker.marker-homerun {
+  min-width: 64px;
+  height: 64px;
+  font-size: 24px;
+  border-color: #fde047;
+  color: #fde047;
+}
+.field-play-marker.marker-error {
+  border-color: #fca5a5;
+  color: #fecaca;
+}
+.field-play-marker.marker-walk,
+.field-play-marker.marker-hitbypitch {
+  left: 50% !important;
+  top: 86% !important;
+}
+@keyframes field-marker-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.45); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); }
+  18%, 65% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+}
+
+.field-run-cue {
+  position: absolute;
+  z-index: 62;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(21,128,61,.94);
+  border: 1px solid rgba(134,239,172,.75);
+  color: #dcfce7;
+  font-weight: 1000;
+  font-size: 12px;
+  letter-spacing: .09em;
+  pointer-events: none;
+  animation: field-run-cue-life 4.2s ease forwards;
+}
+@keyframes field-run-cue-life {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.92); }
+  12%, 65% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-5px) scale(.98); }
+}
+
+.field-pitch-cue {
+  position: absolute;
+  z-index: 64;
+  left: 50%;
+  top: 76%;
+  transform: translate(-50%, -50%);
+  min-width: 92px;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(2,6,23,.93);
+  border: 1px solid rgba(148,163,184,.6);
+  font-weight: 1000;
+  letter-spacing: .06em;
+  pointer-events: none;
+  animation: field-pitch-cue-life 2.2s ease forwards;
+}
+.field-pitch-cue.cue-strikeout,
+.field-pitch-cue.cue-calledstrikeout {
+  top: 81%;
+  min-width: 78px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border-color: #93c5fd;
+  color: #dbeafe;
+  font-size: 38px;
+  line-height: 1;
+}
+.field-pitch-cue.cue-ball { color: #bbf7d0; border-color: #4ade80; }
+.field-pitch-cue.cue-called { color: #bfdbfe; border-color: #60a5fa; }
+.field-pitch-cue.cue-swinging { color: #fde68a; border-color: #f59e0b; }
+.field-pitch-cue.cue-foul { color: #fecaca; border-color: #f87171; }
+@keyframes field-pitch-cue-life {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.72); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  22%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+}
+
+.field-hr-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  overflow: hidden;
+}
+.field-hr-burst i {
+  --angle: calc(var(--burst-i) * 36deg);
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 7px;
+  height: 14px;
+  border-radius: 999px;
+  background: hsl(calc(var(--burst-i) * 31deg) 85% 63%);
+  transform-origin: 0 0;
+  animation: field-hr-confetti 2.3s ease-out forwards;
+  animation-delay: calc(var(--burst-i) * 35ms);
+}
+@keyframes field-hr-confetti {
+  0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scale(.3); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateY(-120px) scale(1); }
+}
+
+/* Give the dramatic result types a little more on-field personality. */
+.field-play-ball.phase-flight.motion-homer { filter: drop-shadow(0 0 10px rgba(253,224,71,.7)); }
+.field-play-ball.phase-flight.motion-ground { filter: drop-shadow(0 3px 2px rgba(0,0,0,.4)); }
+.field-play-ball.phase-flight.motion-liner { filter: drop-shadow(0 5px 5px rgba(0,0,0,.34)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .field-play-ribbon,
+  .field-play-marker,
+  .field-run-cue,
+  .field-pitch-cue,
+  .field-play-trail,
+  .field-hr-burst i { animation: none !important; opacity: 1; }
+}
+
+@media (max-width: 700px) {
+  .field-position-label { font-size: 8px; }
+  .field-play-ribbon { min-width: 88%; padding: 8px 11px; }
+  .field-play-ribbon strong { font-size: 11px; }
+  .field-play-marker { min-width: 38px; height: 38px; font-size: 15px; }
+  .field-play-marker.marker-strikeout,
+  .field-play-marker.marker-calledstrikeout { min-width: 50px; height: 50px; font-size: 28px; }
+}

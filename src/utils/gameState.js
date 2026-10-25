@@ -20,6 +20,7 @@ export const defaultFieldState = () => ({
   },
   runnerEvent: null,
   playEvent: null,
+  cueEvent: null,
   manualRunnerOverride: false,
 });
 

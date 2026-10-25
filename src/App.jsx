@@ -832,7 +832,7 @@ function fieldRunnerMovesForPlay(game, type) {
 
 function fieldAnimationKindForPlay(type) {
   if (["single", "double", "triple", "homerun", "flyout", "groundout", "lineout", "popup", "fielderschoice", "doubleplay", "error", "sacfly"].includes(type)) return "batted";
-  if (["walk", "hitbypitch"].includes(type)) return "pitch";
+  if (["walk", "hitbypitch", "strikeout", "calledstrikeout"].includes(type)) return "pitch";
   if (["pickoff1", "pickoff2", "pickoff3"].includes(type)) return "pickoff";
   if (type === "caughtstealing") return "runner";
   return "log-only";
@@ -843,7 +843,7 @@ function fieldBallResultForPlay(type) {
     single: "1B", double: "2B", triple: "3B", homerun: "HR",
     flyout: "OUT", groundout: "OUT", lineout: "OUT", popup: "OUT",
     fielderschoice: "OUT", doubleplay: "OUT", caughtstealing: "OUT",
-    error: "ERROR", sacfly: "OUT", walk: "BB", hitbypitch: "HBP",
+    error: "ERROR", sacfly: "OUT", walk: "BB", hitbypitch: "HBP", strikeout: "K", calledstrikeout: "ꓘ",
   };
   return map[type] || String(type || "PLAY").toUpperCase();
 }
@@ -1048,6 +1048,15 @@ function clearFieldBall() {
     });
   }
 
+  function setFieldCue(next, text, kind = "pitch") {
+    next.fieldState = {
+      ...defaultFieldState(),
+      ...(next.fieldState || {}),
+      ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
+      cueEvent: { id: Date.now(), text, kind },
+    };
+  }
+
   function updateCount(action, delta = 1) {
     clearBanner();
     commitGameUpdate((next) => {
@@ -1055,6 +1064,7 @@ function clearFieldBall() {
       if (action === "balls") {
         next.balls = Math.max(0, Math.min(4, next.balls + delta));
         addPitchToCurrentPitcher(next);
+        if (delta > 0) setFieldCue(next, "BALL", "ball");
         return;
       }
 
@@ -1074,12 +1084,15 @@ function clearFieldBall() {
       if (action === "foul") {
         if (next.strikes < 2) next.strikes += 1;
         addPitchToCurrentPitcher(next);
+        setFieldCue(next, "FOUL", "foul");
         return;
       }
 
       if (action === "swinging" || action === "called") {
         addPitchToCurrentPitcher(next);
+        setFieldCue(next, action === "swinging" ? "SWING" : "CALLED STRIKE", action);
         if (next.strikes >= 2) {
+          setFieldCue(next, action === "swinging" ? "K" : "ꓘ", action === "swinging" ? "strikeout" : "calledstrikeout");
           next.latestPlay = action === "swinging" ? `${currentBatter ? currentBatter.name : "Batter"} struck out swinging.` : `${currentBatter ? currentBatter.name : "Batter"} struck out looking.`;
           next.playLog = [next.latestPlay, ...next.playLog];
           clearCount(next);
@@ -1412,7 +1425,8 @@ if (pitchCountTypes.has(type)) {
         type === "groundout" ? "GO" :
         type === "lineout" ? "LO" :
         type === "popup" ? "POP" :
-        type === "strikeout" || type === "calledstrikeout" ? "K" :
+        type === "strikeout" ? "K" :
+        type === "calledstrikeout" ? "ꓘ" :
         "OUT"
     };
   });
