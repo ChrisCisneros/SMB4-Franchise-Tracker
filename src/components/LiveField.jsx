@@ -303,20 +303,18 @@ export default function LiveField({
   const naturalMidY = (86 + targetY) / 2;
   const arcLift = playMotion === "homer" ? 42 : playMotion === "popup" ? 46 : playMotion === "fly" ? 35 : playMotion === "triple" ? 27 : playMotion === "double" ? 22 : playMotion === "single" ? 12 : playMotion === "liner" ? 6 : playMotion === "ground" ? -1 : 8;
   const controlPoint = { x: midX, y: Math.max(5, naturalMidY - arcLift) };
-  const q1 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .16);
-  const q2 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .34);
-  const q3 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .52);
-  const q4 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .70);
-  const q5 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .86);
+  const curveSamples = Array.from({ length: 9 }, (_, i) => curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, (i + 1) / 10));
   const ballAnimationVars = {
     "--ball-target-x": `${targetX}%`, "--ball-target-y": `${targetY}%`,
-    "--ball-q1-x": `${q1.x}%`, "--ball-q1-y": `${q1.y}%`,
-    "--ball-q2-x": `${q2.x}%`, "--ball-q2-y": `${q2.y}%`,
-    "--ball-q3-x": `${q3.x}%`, "--ball-q3-y": `${q3.y}%`,
-    "--ball-q4-x": `${q4.x}%`, "--ball-q4-y": `${q4.y}%`,
-    "--ball-q5-x": `${q5.x}%`, "--ball-q5-y": `${q5.y}%`,
+    ...curveSamples.reduce((vars, point, index) => ({
+      ...vars,
+      [`--ball-q${index + 1}-x`]: `${point.x}%`,
+      [`--ball-q${index + 1}-y`]: `${point.y}%`,
+    }), {}),
   };
-  const trailPath = `M 50 86 Q ${controlPoint.x.toFixed(2)} ${controlPoint.y.toFixed(2)} ${targetX.toFixed(2)} ${targetY.toFixed(2)}`;
+  const trailPath = playMotion === "ground"
+    ? `M 50 86 Q ${controlPoint.x.toFixed(2)} ${controlPoint.y.toFixed(2)} ${targetX.toFixed(2)} ${targetY.toFixed(2)}`
+    : `M 50 86 Q ${controlPoint.x.toFixed(2)} ${controlPoint.y.toFixed(2)} ${targetX.toFixed(2)} ${targetY.toFixed(2)}`;
 
   const [cueGlyph, cueLabel] = playCue(playEvent?.type);
   const scoringMoves = playMoves.filter((move) => move.scored).length;

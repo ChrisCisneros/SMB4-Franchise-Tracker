@@ -1,4 +1,5 @@
 import { defaultCurrentGame } from "../utils/gameState";
+import { getScheduledGameNight } from "../utils/gameNightUtils";
 import {
   advancePlayoffWinner, getPlayoffSeries, getWinsNeededForSeries,
   makeSafePlayoffBracket, setPlayoffSeries
@@ -131,6 +132,9 @@ export default function createGameFinalizationController({
     const homeWon = currentGame.homeScore > currentGame.awayScore;
     const awayWon = currentGame.awayScore > currentGame.homeScore;
     const margin = currentGame.homeScore - currentGame.awayScore;
+    const priorRegularFinals = (data.games || []).filter((g) => g?.status === "Final" && (g.gameType || "regular") !== "playoff" && (g.seasonName || data.activeSeasonName) === (data.activeSeasonName || g.seasonName)).length;
+    const seasonGameNumber = Number(currentGame.seasonGameNumber || 0) || Math.min(40, priorRegularFinals + 1);
+    const promotionSnapshot = currentGame.gameType === "playoff" ? null : getScheduledGameNight(data, seasonGameNumber);
     const finishedGame = {
   ...currentGame,
   id: crypto.randomUUID(),
@@ -138,6 +142,8 @@ export default function createGameFinalizationController({
   winningPitcherId,
   losingPitcherId,
   seasonName: data.activeSeasonName || "Season 4",
+  seasonGameNumber,
+  promotion: promotionSnapshot ? { ...promotionSnapshot } : null,
   finalizedAt: new Date().toISOString(),
   winnerTeamId: awayWon ? currentGame.awayTeamId : homeWon ? currentGame.homeTeamId : "",
   loserTeamId: awayWon ? currentGame.homeTeamId : homeWon ? currentGame.awayTeamId : "",

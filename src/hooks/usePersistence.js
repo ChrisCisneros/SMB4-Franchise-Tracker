@@ -124,7 +124,7 @@ export default function usePersistence({ data, setData }) {
     return onValue(extrasRef, (snapshot) => {
       const value = snapshot.val();
       if (!value || typeof value !== "object") return;
-      setData((prev) => ({ ...prev, leagueExtras: { awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [], rebrands: [], retiredNumbers: [], prospects: [], milestones: [], openingDay: "", seasonTagline: "", powerRankSnapshots: [], standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [], hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [], leagueCalendar: [], storylines: [], bracketPredictions: [], ...value } }));
+      setData((prev) => ({ ...prev, leagueExtras: { awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [], rebrands: [], retiredNumbers: [], prospects: [], milestones: [], openingDay: "", seasonTagline: "", powerRankSnapshots: [], standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [], hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [], leagueCalendar: [], storylines: [], bracketPredictions: [], officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL", seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [], worldMoments: [], rivalryNames: {}, gameNightSchedule: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [], ...value } }));
     });
   }, [setData]);
 

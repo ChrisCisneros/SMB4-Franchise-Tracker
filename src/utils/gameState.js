@@ -45,6 +45,7 @@ export const defaultCurrentGame = () => ({
   fieldState: defaultFieldState(),
   status: "Not Started",
   gameType: "regular",
+  seasonGameNumber: 0,
 playoffSeriesId: "",
   awayLook: { mode: "primary", index: 0 },
   homeLook: { mode: "primary", index: 0 },
@@ -97,7 +98,10 @@ export const defaultData = {
     standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
     hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
     leagueCalendar: [], storylines: [], bracketPredictions: [],
-    officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL"
+    officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
+    seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
+    worldMoments: [],
+      rivalryNames: {}, gameNightSchedule: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: []
   },
 };
 

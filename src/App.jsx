@@ -38,12 +38,14 @@ import {
 } from "./utils/standingsUtils";
 import { getDisplayGameState, getVisibleInnings, renderInningCell } from "./utils/gameDisplay";
 import { BaseDiamond, ChallengeBars, CountControls } from "./components/GameWidgets";
+import WorldPulseRibbon from './components/WorldPulseRibbon';
 import usePersistence from "./hooks/usePersistence";
 import createAdminActions from "./actions/createAdminActions";
 import createSeasonActions from "./actions/createSeasonActions";
 import createPlayoffController from "./controllers/createPlayoffController";
 import createDailyResultsController from "./controllers/createDailyResultsController";
 import createGameFinalizationController from "./controllers/createGameFinalizationController";
+import { currentSeasonDay } from "./utils/seasonCalendarUtils";
 
 export default function App() {
   const [data, setData] = useState(getInitialData);
@@ -929,6 +931,9 @@ function startAnimatedFieldPlay(category, type) {
     beneficiarySide: ["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"].includes(type) ? (currentGame.half === "Top" ? "home" : "away") : (currentGame.half === "Top" ? "away" : "home"),
     inning: currentGame.inning,
     half: currentGame.half,
+    outsBefore: currentGame.outs,
+    awayScoreBefore: currentGame.awayScore,
+    homeScoreBefore: currentGame.homeScore,
   };
 
   setData((prev) => {
@@ -1086,8 +1091,8 @@ function clearFieldBall() {
       ...defaultFieldState(),
       ...(next.fieldState || {}),
       ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
-      cueEvent: { id, text, kind, side: battingSide, inning: next.inning, half: next.half },
-      ...(["strikeout", "calledstrikeout"].includes(kind) ? { socialEvent: { id, type: kind, category: "out", side: battingSide, battingSide, fieldingSide, beneficiarySide: fieldingSide, inning: next.inning, half: next.half } } : {}),
+      cueEvent: { id, text, kind, side: battingSide, battingSide, fieldingSide, beneficiarySide: ["strikeout", "calledstrikeout"].includes(kind) ? fieldingSide : battingSide, inning: next.inning, half: next.half, outsBefore: next.outs },
+      ...(["strikeout", "calledstrikeout"].includes(kind) ? { socialEvent: { id, type: kind, category: "out", side: battingSide, battingSide, fieldingSide, beneficiarySide: fieldingSide, inning: next.inning, half: next.half, outsBefore: next.outs, awayScoreBefore: next.awayScore, homeScoreBefore: next.homeScore } } : {}),
     };
   }
 
@@ -1330,10 +1335,13 @@ function isWorldSeriesGame(game) {
 
   function markLive() {
     clearBanner();
-    setData((prev) => ({
-      ...prev,
-      currentGame: { ...prev.currentGame, inningStatus: "", status: "Live" },
-    }));
+    const scheduled = currentSeasonDay(data, teams);
+    setData((prev) => {
+      const nextGame = { ...prev.currentGame, inningStatus: "", status: "Live" };
+      if ((nextGame.gameType || "regular") !== "playoff" && !Number(nextGame.seasonGameNumber || 0) && scheduled?.gameNumber) nextGame.seasonGameNumber = scheduled.gameNumber;
+      syncCurrentGameToFirebase(nextGame);
+      return { ...prev, currentGame: nextGame };
+    });
   }
 
   function applyQuickPlay(category, type, options = {}) {
@@ -1350,7 +1358,7 @@ function isWorldSeriesGame(game) {
       next.fieldState = {
         ...defaultFieldState(),
         ...(next.fieldState || {}),
-        socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: options.inning || next.inning, half: options.half || next.half },
+        socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: options.inning || next.inning, half: options.half || next.half, outsBefore: next.outs, awayScoreBefore: next.awayScore, homeScoreBefore: next.homeScore },
       };
       const pitchCountTypes = new Set([
   "single",
@@ -1632,6 +1640,14 @@ if (pitchCountTypes.has(type)) {
       if (category !== "out" || !text.includes("Score update")) {
         next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
       }
+      if (next.fieldState?.socialEvent?.id === socialEventId) {
+        next.fieldState.socialEvent = {
+          ...next.fieldState.socialEvent,
+          outsAfter: next.outs,
+          awayScoreAfter: next.awayScore,
+          homeScoreAfter: next.homeScore,
+        };
+      }
       next.fieldState = {
         ...defaultFieldState(),
         ...(next.fieldState || {}),
@@ -1878,9 +1894,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.12</span>
+    <span className="version-pill version-pill-v3">v4.13</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.12 · The Culture Update · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.13 · Living Season · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1905,6 +1921,7 @@ const dashboardStories = [
   {controlsUnlocked && <button className="league-office-nav-button" onClick={() => setPage("office")}>League Office</button>}
   
 </div>
+<WorldPulseRibbon data={data} teams={teams} playoffPicture={playoffPicture} page={page} />
 
 
       {!controlsUnlocked && (

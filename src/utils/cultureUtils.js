@@ -38,13 +38,21 @@ export function buildLocalBusinesses(teams=[]){
 
 export function buildGiveawayMarket(data={},teams=[]){
   const schedule=data.leagueExtras?.gameNightSchedule||{};
-  return Object.values(schedule).filter(Boolean).map((promo,i)=>{
+  const current=Object.values(schedule).filter(Boolean).map(p=>({...p,seasonName:data.activeSeasonName||'Current Season',archived:false}));
+  const archived=(data.games||[]).filter(g=>g?.promotion).map(g=>({...g.promotion,gameNumber:g.seasonGameNumber||g.promotion?.gameNumber,seasonName:g.seasonName||'Archived Season',archived:true,playedAt:g.finalizedAt||g.date||''}));
+  const unique=new Map();
+  [...archived,...current].forEach((promo,i)=>{
+    const key=`${promo.seasonName}-${promo.gameNumber}-${promo.id||promo.name}`;
+    if(!unique.has(key))unique.set(key,promo);
+  });
+  return [...unique.values()].map((promo,i)=>{
     const base=promo.type==='giveaway'?18:9;
-    const demand=safe(promo.hype)*5+safe(promo.attendance)*4+seeded(`${promo.id}-${promo.gameNumber}`)*35;
+    const ageBoost=promo.archived?8+Math.min(18,(data.seasonHistory||[]).length*3):0;
+    const demand=safe(promo.hype)*5+safe(promo.attendance)*4+seeded(`${promo.id}-${promo.gameNumber}-${promo.seasonName}`)*35+ageBoost;
     const value=base+demand*1.4;
-    const scarcity=demand>65?'COLLECTOR':demand>48?'HOT':demand>30?'LIMITED':'COMMON';
-    return {...promo,marketValue:fmtMoney(value),scarcity,listings:Math.max(4,Math.round(10+seeded(`list-${promo.gameNumber}`)*70))};
-  }).sort((a,b)=>safe(b.hype)+safe(b.attendance)-safe(a.hype)-safe(a.attendance));
+    const scarcity=demand>72?'COLLECTOR':demand>52?'HOT':demand>32?'LIMITED':'COMMON';
+    return {...promo,marketValue:fmtMoney(value),scarcity,listings:Math.max(4,Math.round(10+seeded(`list-${promo.gameNumber}-${promo.seasonName}`)*70))};
+  }).sort((a,b)=>(b.archived?1:0)-(a.archived?1:0)||safe(b.hype)+safe(b.attendance)-safe(a.hype)-safe(a.attendance));
 }
 
 export function buildWorldState(data={},teams=[],playoffPicture=[],now=Date.now()){
@@ -160,4 +168,46 @@ export function buildGameThreadArchive(data={},teams=[]){
     const peak=Math.round(5000+drama*420+seeded(g.id||`${i}`)*12000);
     return {id:g.id||`thread-${i}`,away,home,score:`${away?.abbr||'AWY'} ${g.awayScore} – ${home?.abbr||'HME'} ${g.homeScore}`,label:g.walkoff?'WALK-OFF THREAD':safe(g.inning)>9?'EXTRA-INNING THREAD':drama>=28?'INSTANT-CLASSIC THREAD':'GAME THREAD',peak,drama};
   });
+}
+
+export function buildAnalystRecords(data={},teams=[]){
+  const analysts=[
+    {id:'maya',name:'Maya Cruz',style:'numbers'},
+    {id:'tommy',name:'Tommy Lane',style:'momentum'},
+    {id:'rico',name:'Rico Hayes',style:'history'},
+    {id:'cole',name:'Cole Briggs',style:'hot-take'},
+  ];
+  const teamMap=new Map(teams.map(t=>[t.id,t]));
+  const finals=(data.games||[]).filter(g=>g?.status==='Final'&&g.awayTeamId&&g.homeTeamId);
+  return analysts.map(a=>{
+    let wins=0,losses=0;
+    const receipts=[];
+    finals.forEach(g=>{
+      const away=teamMap.get(g.awayTeamId),home=teamMap.get(g.homeTeamId);if(!away||!home)return;
+      const lean=seeded(`${a.id}-${g.id||g.finalizedAt||g.date}`);
+      let pickTeam=lean<.5?away:home;
+      if(a.style==='numbers')pickTeam=(safe(away.runDiff)>=safe(home.runDiff)?away:home);
+      if(a.style==='momentum')pickTeam=(String(away.streak||'').startsWith('W')&&!String(home.streak||'').startsWith('W'))?away:(String(home.streak||'').startsWith('W')&&!String(away.streak||'').startsWith('W'))?home:pickTeam;
+      const winnerId=g.winnerTeamId||(safe(g.awayScore)>safe(g.homeScore)?g.awayTeamId:g.homeTeamId);
+      const hit=pickTeam.id===winnerId; if(hit)wins++; else losses++;
+      if(receipts.length<5)receipts.push({gameId:g.id,pick:pickTeam.abbr,winner:teamMap.get(winnerId)?.abbr||'—',hit,score:`${away.abbr} ${g.awayScore} – ${home.abbr} ${g.homeScore}`});
+    });
+    return {...a,wins,losses,pct:wins+losses?wins/(wins+losses):0,receipts};
+  }).sort((a,b)=>b.pct-a.pct||b.wins-a.wins);
+}
+
+export function buildCultureDebates(data={},teams=[],playoffPicture=[]){
+  if(!teams.length)return [];
+  const sorted=[...teams].sort((a,b)=>safe(b.wins)/(safe(b.wins)+safe(b.losses)||1)-safe(a.wins)/(safe(a.wins)+safe(a.losses)||1));
+  const rd=[...teams].sort((a,b)=>safe(b.runDiff)-safe(a.runDiff));
+  const profiles=buildTeamCultureProfiles(data,teams,playoffPicture);
+  const rival=[...profiles].filter(x=>x.rivalry).sort((a,b)=>safe(b.rivalry?.heat)-safe(a.rivalry?.heat))[0];
+  const hype=[...profiles].sort((a,b)=>safe(b.hype)-safe(a.hype))[0];
+  const out=[];
+  if(sorted[0]&&rd[0]&&sorted[0].id!==rd[0].id)out.push({topic:'POWER-RANKING ARGUMENT',title:`Who is actually better: ${sorted[0].abbr} or ${rd[0].abbr}?`,detail:`${sorted[0].abbr} owns the record; ${rd[0].abbr} owns the run-differential case.`});
+  if(rival?.rivalry){const foe=rival.hatedOpponent;out.push({topic:'RIVALRY DEBATE',title:`Does ${rival.team.abbr}-${foe?.abbr||'???'} deserve a rivalry name yet?`,detail:`${Math.round(rival.rivalry.heat||0)} heat across ${rival.rivalry.games||0} recorded meetings.`});}
+  if(hype)out.push({topic:'CONTENDER OR HYPE?',title:`Are you buying the ${hype.team.abbr} buzz?`,detail:`Fan hype is ${Math.round(hype.hype||0)}/100. The timeline has opinions.`});
+  const bubble=(playoffPicture||[]).find(x=>x.rank===8)||(playoffPicture||[])[7];
+  if(bubble?.team)out.push({topic:'PLAYOFF FORMAT',title:`Is ${bubble.team.abbr} really the line between October and home?`,detail:'Bubble-team discourse has officially entered the chat.'});
+  return out.slice(0,4);
 }

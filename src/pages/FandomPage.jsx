@@ -3,7 +3,8 @@ import { getTeamColorsByAbbr } from '../config/teamColors';
 import { buildAnalystDesk,buildFanPoll,buildFanUniverse,buildMerch,buildProgramming,buildSocialChatter,getSeasonPulse } from '../utils/fandomUtils';
 import { buildFanClubs,buildFanTraditions,buildLegacyDebates,buildLivingFeed,buildMediaUniverse,buildPlayerFanPages } from '../utils/livingWorldUtils';
 import { buildGameDaySocial } from '../utils/gameDaySocialUtils';
-import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,buildGameNightCalendar,getScheduledGameNight } from '../utils/gameNightUtils';
+import { getScheduledGameNight } from '../utils/gameNightUtils';
+import SeasonCalendar from '../components/SeasonCalendar';
 import GameDaySocial from '../components/GameDaySocial';
 import { buildBallparkCulture,buildCultureAwards,buildCultureTrends,buildFanSurvey,buildGameThreadArchive,buildGiveawayMarket,buildLocalBusinesses,buildSocialGrowth,buildTeamCultureProfiles,buildTicketMarket,buildWorldState } from '../utils/cultureUtils';
 
@@ -46,7 +47,6 @@ export default function FandomPage({ctx}){
   const selectedClubs=fanClubs.filter(c=>c.team.id===selectedId);
   const selectedPlayers=playerPages.filter(p=>p.team?.id===selectedId).slice(0,8);
   const selectedTradition=traditions.find(t=>t.team.id===selectedId);
-  const gameNightCalendar=useMemo(()=>buildGameNightCalendar(data,teams),[data,teams]);
   const selectedGameNight=getScheduledGameNight(data,promoGame);
 
   const worldState=useMemo(()=>buildWorldState(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
@@ -64,23 +64,13 @@ export default function FandomPage({ctx}){
   const cultureTrends=useMemo(()=>buildCultureTrends(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const threadArchive=useMemo(()=>buildGameThreadArchive(data,teams),[data,teams]);
 
-  const saveGameNight=(gameNumber,promo)=>{
-    const nextExtras={...(data.leagueExtras||{}),gameNightSchedule:{...(data.leagueExtras?.gameNightSchedule||{})}};
-    if(promo)nextExtras.gameNightSchedule[String(gameNumber)]={...promo,gameNumber:Number(gameNumber),source:promo.source||'manual'};
-    else delete nextExtras.gameNightSchedule[String(gameNumber)];
-    setData(prev=>({...prev,leagueExtras:nextExtras}));
-    syncLeagueExtrasToFirebase?.(nextExtras);
-  };
-  const assignRandomNight=()=>saveGameNight(promoGame,autoGameNightFor(data,teams,promoGame));
-  const autoFillSeason=()=>{const nextExtras={...(data.leagueExtras||{}),gameNightSchedule:autoFillGameNights(data,teams)};setData(prev=>({...prev,leagueExtras:nextExtras}));syncLeagueExtrasToFirebase?.(nextExtras);};
-
   useEffect(()=>{if(feedPaused)return undefined;const t=setInterval(()=>setNow(Date.now()),8000);return()=>clearInterval(t)},[feedPaused]);
   useEffect(()=>setMerchOffset(0),[selectedId]);
   useEffect(()=>{const t=setInterval(()=>setMerchOffset(x=>x+1),75000);return()=>clearInterval(t)},[selectedProducts.length]);
 
   return <div className="fandom-page" style={fandomStyle}>
     <section className="card fandom-hero">
-      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.12 · THE CULTURE UPDATE</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
+      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.13 · LIVING SEASON</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
       <div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>Day {pulse.dayInWeek} of 5 · {pulse.phase}</span></div>
     </section>
 
@@ -91,7 +81,8 @@ export default function FandomPage({ctx}){
     <section className="card fan-game-night-planner">
       <div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2><p className="fan-section-subtitle">The public schedule is here for fans to browse. Promotions feed chatter, official posts, merch buzz and simulated crowd interest.</p></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label>{controlsUnlocked?<><button type="button" onClick={()=>setPage?.('office')}>Open League Office →</button></>:<span className="fan-calendar-lock">🔒 League Office controlled</span>}</div></div>
       {selectedGameNight&&<div className="fan-tonight-promo"><span>{selectedGameNight.icon||'🎟️'}</span><div><small>GAME {promoGame}</small><strong>{selectedGameNight.name}</strong><p>{selectedGameNight.giveaway||'Special game-day event'}</p></div></div>}
-      <div className="fan-promo-calendar">{Array.from({length:8},(_,weekIdx)=>{const days=gameNightCalendar.slice(weekIdx*5,weekIdx*5+5);return <section className="fan-calendar-week" key={`week-${weekIdx+1}`}><div className="fan-calendar-week-head"><strong>WEEK {weekIdx+1}</strong><span>Games {weekIdx*5+1}–{weekIdx*5+5}</span>{weekIdx===3&&<em>ALL-STAR BREAK →</em>}</div><div className="fan-calendar-week-games">{days.map(day=><button type="button" key={day.gameNumber} className={`${day.id?'scheduled':''} ${day.gameNumber===promoGame?'today':''}`} onClick={()=>setPromoGame(day.gameNumber)}><b>GAME {day.gameNumber}</b><span>{day.icon||'·'}</span><small>{day.name||'Open Night'}</small></button>)}</div></section>})}</div>
+      <SeasonCalendar data={data} teams={teams} selectedGameNumber={promoGame} onSelectGame={setPromoGame}/>
+      <div className="fan-calendar-print-row"><span>League Office controls Game Days, matchups, promotions and ceremonies.</span><button type="button" onClick={()=>window.print()}>🖨 Print Season Calendar</button></div>
     </section>
 
     <section className="card culture-world-board">
