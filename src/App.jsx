@@ -1900,7 +1900,7 @@ const dashboardStories = [
     <h1>SMB4 Franchise Central</h1>
     <span className="version-pill version-pill-v3">v4.13.1</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.13.1 · Living Season · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.13.3 · Living Season · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
