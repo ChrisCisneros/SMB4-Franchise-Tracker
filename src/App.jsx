@@ -11,6 +11,7 @@ import HistoryPage from "./pages/HistoryPage";
 import LeagueRecordsPage from "./pages/LeagueRecordsPage";
 import NewsPage from "./pages/NewsPage";
 import V4CenterPage from "./pages/V4CenterPage";
+import FandomPage from "./pages/FandomPage";
 import LeagueHubPage from "./pages/LeagueHubPage";
 import BracketAdminPage from "./pages/BracketAdminPage";
 import AdminPage from "./pages/AdminPage";
@@ -1872,6 +1873,7 @@ const dashboardStories = [
   <button onClick={() => setPage("news")}>News</button>
   <button onClick={() => setPage("league")}>League Hub</button>
   <button className="v4-nav-button" onClick={() => setPage("v4")}>V4 Center</button>
+  <button className="fandom-nav-button" onClick={() => setPage("fandom")}>Fandom</button>
 
   {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
   {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
@@ -1919,6 +1921,7 @@ const dashboardStories = [
       {page === "records" && <LeagueRecordsPage ctx={pageContext} />}
       {page === "news" && <NewsPage ctx={pageContext} />}
       {page === "v4" && <V4CenterPage ctx={pageContext} />}
+      {page === "fandom" && <FandomPage ctx={pageContext} />}
       {page === "league" && <LeagueHubPage ctx={pageContext} />}
       {page === "bracketAdmin" && controlsUnlocked && <BracketAdminPage ctx={pageContext} />}
 

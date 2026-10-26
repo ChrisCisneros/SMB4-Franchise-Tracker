@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { buildNewsFeed } from "../utils/newsUtils";
+import { buildFanPoll, buildSocialChatter, getSeasonPulse } from "../utils/fandomUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -66,6 +67,9 @@ export default function NewsPage({ ctx }) {
   const [factOffset, setFactOffset] = useState(0);
   const [tickerOffset, setTickerOffset] = useState(0);
   const stories = useMemo(() => buildNewsFeed(data, teams), [data, teams]);
+  const fanPoll = useMemo(() => buildFanPoll(data, teams, ctx.playoffPicture || [], Date.now()), [data, teams, ctx.playoffPicture, featureOffset]);
+  const social = useMemo(() => buildSocialChatter(data, teams, ctx.playoffPicture || [], Date.now()).slice(0,4), [data, teams, ctx.playoffPicture, tickerOffset]);
+  const pulse = useMemo(() => getSeasonPulse(data, teams), [data, teams]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
   const factStories = filtered.filter((story) => story.kind === "fact");
   const editorialStories = filtered.filter((story) => story.kind !== "fact");
@@ -113,6 +117,8 @@ export default function NewsPage({ ctx }) {
         <div><span className="news-live-dot"/><strong>SMB NETWORK LIVE</strong><small>Featured stories rotate every 2 minutes</small></div>
         <div className="news-network-chips"><span>{currentCount} current</span><span>{factCount} facts & nuggets</span><span>{stories.length} total stories</span></div>
       </section>
+
+      <section className="news-fandom-strip card"><div><div className="news-kicker">FAN & MEDIA PULSE · WEEK {pulse.week}</div><h3>{fanPoll.question}</h3><div className="news-fan-mini-poll">{fanPoll.options.slice(0,4).map(o=><span key={o.team.id}><b>{o.team.abbr}</b> {o.pct}%</span>)}</div></div><div className="news-social-wire">{social.slice(0,2).map((x,i)=><p key={i}><b>{x.handle}</b> {x.text}</p>)}</div></section>
 
       <div className="news-toolbar"><div className="news-section-title"><span>Newsroom</span><strong>{filter === "All" ? "Top Stories" : filter}</strong></div><div className="news-filter-row">{FILTERS.map((item)=><button key={item} className={filter===item?"news-filter-active":""} onClick={()=>setFilter(item)}>{item}</button>)}</div></div>
 

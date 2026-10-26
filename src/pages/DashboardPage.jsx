@@ -10,6 +10,7 @@ import { buildDashboardAlerts, buildGameRecords } from "../utils/historyUtils";
 import { buildLeagueRecords } from "../utils/recordsUtils";
 import { buildNoHitWatch, buildV4TeamMetrics, buildWinProbability, buildGamesThatMatter } from "../utils/v4Utils";
 import { buildHeadToHead } from "../utils/historyUtils";
+import { buildFanUniverse, buildFanPoll, buildMerch, getSeasonPulse } from "../utils/fandomUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -30,6 +31,10 @@ export default function DashboardPage({ ctx }) {
 
   const activeSeason = data.activeSeasonName || "Season 4";
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
+  const featuredMerch = useMemo(()=>buildMerch(data,teams,playoffPicture).sort((a,b)=>String(a.tag).localeCompare(String(b.tag)))[0],[data,teams,playoffPicture]);
   const v4Prob = useMemo(()=>buildWinProbability(currentGame,teams),[currentGame,teams]);
   const v4NoHit = useMemo(()=>buildNoHitWatch(currentGame,teams),[currentGame,teams]);
   const v4Importance = useMemo(()=>buildGamesThatMatter(currentGame,v4Metrics),[currentGame,v4Metrics]);
@@ -93,7 +98,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.0</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.5</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -168,6 +173,8 @@ export default function DashboardPage({ ctx }) {
         <div className="card v3-rail-card"><div className="v3-rail-head"><div><span>POWER FIVE</span><h3>League Rankings</h3></div><button onClick={()=>setPage?.('league')}>All</button></div><div className="v3-power-mini">{power.map((t,i)=><div key={t.id}><b>{i+1}</b><strong>{t.abbr}</strong><span>{t.wins}-{t.losses}</span><small>{t.runDiff>=0?'+':''}{t.runDiff} RD</small></div>)}</div></div>
 
         <div className="card v3-rail-card v3-franchise-focus"><div className="v3-rail-head"><div><span>FRANCHISE FOCUS</span><h3>{favoriteTeam?.abbr || '—'}</h3></div>{favoriteMarker&&<MiniPill tone="gold">{favoriteMarker}</MiniPill>}</div>{favoriteTeam?<><div className="v3-focus-record"><strong>{favoriteTeam.wins}-{favoriteTeam.losses}</strong><span>{pct(favoriteTeam.wins,favoriteTeam.losses)}</span></div><div className="v3-focus-grid"><div><span>Division</span><strong>#{favoriteDivisionRank||'—'}</strong></div><div><span>RD</span><strong>{favoriteTeam.runDiff>0?'+':''}{favoriteTeam.runDiff||0}</strong></div><div><span>Games Left</span><strong>{favoriteGamesLeft}</strong></div></div><p>{favoriteDivisionRank===1?`Leading the ${favoriteTeam.league} ${favoriteTeam.division}${favoriteDivisionChaser?` over ${favoriteDivisionChaser.abbr}`:''}.`:`${gamesBack(favoriteTeam,favoriteDivisionLeader)} GB in the division.`}</p></>:<p className="muted">No franchise selected.</p>}</div>
+
+        <div className="card v3-rail-card dashboard-fandom-card"><div className="v3-rail-head"><div><span>FAN PULSE</span><h3>Week {seasonPulse.week} · {seasonPulse.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Fandom →</button></div><div className="dashboard-fan-mood"><strong>{fanUniverse.leagueMood}</strong><span>{fanPoll.question}</span></div>{fanPoll.options.slice(0,2).map(o=><div className="dashboard-fan-poll" key={o.team.id}><b>{o.team.abbr}</b><i><em style={{width:`${o.pct}%`}}/></i><span>{o.pct}%</span></div>)}{featuredMerch&&<div className="dashboard-merch-ad"><small>{featuredMerch.tag}</small><strong>{featuredMerch.name}</strong><span>Visit Team Store →</span></div>}</div>
 
         <div className="card v3-rail-card"><div className="v3-rail-head"><div><span>RECORD WATCH</span><h3>V3 Game Book</h3></div><button onClick={()=>setPage?.('league')}>Archive</button></div>{alerts.length?alerts.map((a,i)=><div className="v3-alert-row" key={i}><span>{a.label}</span><strong>{a.value}</strong><small>{a.detail}</small></div>):<div className="v3-empty-compact">Finalize games to unlock live game records.</div>}</div>
       </aside>
