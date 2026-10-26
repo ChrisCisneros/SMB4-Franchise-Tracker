@@ -1,3 +1,4 @@
+import { pickSocialPhrase } from './socialPhraseBank';
 import { buildFanUniverse, getSeasonPulse, NETWORK_PERSONALITIES } from './fandomUtils';
 import { buildHeadToHead } from './historyUtils';
 
@@ -32,14 +33,14 @@ export function buildFanClubs(data={},teams=[],playoffPicture=[]){
   const {teamStates}=buildFanUniverse(data,teams,playoffPicture);
   return teamStates.flatMap((state,idx)=>{
     const base=hash(state.team.id||state.team.abbr);
-    return [0,1].map(i=>({
+    return [0,1,2,3].map(i=>({
       id:`club-${state.team.id}-${i}`,
       team:state.team,
       name:`${state.team.abbr} ${TEAM_PAGE_NAMES[(base+i*3)%TEAM_PAGE_NAMES.length]}`,
       handle:teamHandle(state.team,i),
       archetype:FAN_ARCHETYPES[(base+i)%FAN_ARCHETYPES.length],
       followers:Math.round(1400+state.marketHeat*185+state.history.titles*5200+i*730),
-      bio:i===0?`Independent ${state.team.abbr} fan page. Scoreboard watching, receipts, and unreasonable optimism.`:`For ${state.team.abbr} fans who remember everything and forgive almost nothing.`,
+      bio:[`Independent ${state.team.abbr} fan page. Scoreboard watching, receipts, and unreasonable optimism.`,`For ${state.team.abbr} fans who remember everything and forgive almost nothing.`,`Stats, lineup debates, ballpark chatter and the occasional terrible prediction.`,`Unofficial supporters group. Road trips, rituals, memes and way too much emotional investment.`][i%4],
       mood:state.mood,
       heat:state.marketHeat,
     }));
@@ -147,6 +148,14 @@ export function buildLivingFeed(data={},teams=[],playoffPicture=[],now=Date.now(
     const s=p.stats; const stat=s.hr?`${s.hr} HR`:s.hits?`${s.hits} H`:s.wins?`${s.wins} W`:'the vibes';
     const txt=pick([`${p.player.name} appreciation post. That is it. That is the post.`,`The ${p.player.name} agenda remains undefeated. We have ${stat} worth of receipts.`,`If ${p.player.name} has a million fans, I am one. If there is one, it is me.`,`Posting ${p.player.name} propaganda until morale improves.`],`player-${bucket}-${p.id}`);
     posts.push({id:`player-${bucket}-${p.id}`,kind:'player',handle:p.handle,name:p.name,team:p.team,text:txt,tone:'up',badge:`PLAYER FAN PAGE · ${p.followers.toLocaleString()} followers`,time:'now'});
+  });
+
+  const ambientCats=['stadium','home','work','food','merch','family','travel','casual','oldhead','newfan','superstition','pets','radio','quiet'];
+  shuffle(focus,`ambient-${bucket}`).slice(0,4).forEach((state,i)=>{
+    const cat=ambientCats[(hash(`${state.team.id}-${bucket}-${i}`)+bucket+i)%ambientCats.length];
+    const identities={stadium:['Upper Deck Dispatch','@UpperDeckDispatch','AT THE PARK'],home:['Couch Crew','@CouchCrew','WATCHING AT HOME'],work:['Definitely Working','@BoxScoreAtWork','SCORE CHECKER'],food:['Ballpark Bites','@BallparkBites','FOOD ACCOUNT'],merch:['Jersey Closet','@JerseyCloset','MERCH COLLECTOR'],family:['Baseball Family','@FirstPitchFamily','FAMILY SECTION'],travel:['Road Trip Baseball','@RoadTripBaseball','TRAVELING FAN'],casual:['Just Checking In','@JustCheckingScore','CASUAL FAN'],oldhead:['Scorebook Forever','@ScorebookForever','OLD-HEAD'],newfan:['Learning Baseball','@LearningTheGame','NEW FAN'],superstition:['Rally Rituals','@DontMoveTheHat','SUPERSTITIOUS'],pets:['Ballpark Dogs','@DogsLoveBaseball','PET ACCOUNT'],radio:['Call-In Line','@LateNightBaseball','RADIO CALLER'],quiet:['Cheap Seats Chat','@CheapSeatsChat','FAN CHAT']};
+    const [name,handle,badge]=identities[cat]||identities.quiet;
+    posts.push({id:`ambient-${bucket}-${state.team.id}-${cat}`,kind:'fan',handle,name,team:state.team,text:pickSocialPhrase(cat,`${state.team.id}-${i}`,bucket),tone:'neutral',badge,time:'now'});
   });
 
   const latest=(data.games||[]).filter(g=>g?.status==='Final').slice(-1)[0];

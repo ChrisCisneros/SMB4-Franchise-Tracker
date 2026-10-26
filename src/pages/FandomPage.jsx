@@ -3,6 +3,7 @@ import { getTeamColorsByAbbr } from '../config/teamColors';
 import { buildAnalystDesk,buildFanPoll,buildFanUniverse,buildMerch,buildProgramming,buildSocialChatter,getSeasonPulse } from '../utils/fandomUtils';
 import { buildFanClubs,buildFanTraditions,buildLegacyDebates,buildLivingFeed,buildMediaUniverse,buildPlayerFanPages } from '../utils/livingWorldUtils';
 import { buildGameDaySocial } from '../utils/gameDaySocialUtils';
+import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,buildGameNightCalendar,getScheduledGameNight } from '../utils/gameNightUtils';
 import GameDaySocial from '../components/GameDaySocial';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
@@ -11,13 +12,14 @@ const fmtPct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const shortNum=n=>n>=1000000?`${(n/1000000).toFixed(1)}M`:n>=1000?`${(n/1000).toFixed(1)}K`:String(n||0);
 
 export default function FandomPage({ctx}){
-  const {data,teams,playoffPicture,favoriteTeam}=ctx;
+  const {data,teams,playoffPicture,favoriteTeam,setData,syncLeagueExtrasToFirebase}=ctx;
   const [now,setNow]=useState(Date.now());
   const [teamId,setTeamId]=useState('');
   const [merchOffset,setMerchOffset]=useState(0);
   const [feedFilter,setFeedFilter]=useState('all');
   const [feedPaused,setFeedPaused]=useState(false);
   const [cultureView,setCultureView]=useState('clubs');
+  const [promoGame,setPromoGame]=useState(1);
   const pulse=useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
   const universe=useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const poll=useMemo(()=>buildFanPoll(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
@@ -43,6 +45,18 @@ export default function FandomPage({ctx}){
   const selectedClubs=fanClubs.filter(c=>c.team.id===selectedId);
   const selectedPlayers=playerPages.filter(p=>p.team?.id===selectedId).slice(0,8);
   const selectedTradition=traditions.find(t=>t.team.id===selectedId);
+  const gameNightCalendar=useMemo(()=>buildGameNightCalendar(data,teams),[data,teams]);
+  const selectedGameNight=getScheduledGameNight(data,promoGame);
+
+  const saveGameNight=(gameNumber,promo)=>{
+    const nextExtras={...(data.leagueExtras||{}),gameNightSchedule:{...(data.leagueExtras?.gameNightSchedule||{})}};
+    if(promo)nextExtras.gameNightSchedule[String(gameNumber)]={...promo,gameNumber:Number(gameNumber),source:promo.source||'manual'};
+    else delete nextExtras.gameNightSchedule[String(gameNumber)];
+    setData(prev=>({...prev,leagueExtras:nextExtras}));
+    syncLeagueExtrasToFirebase?.(nextExtras);
+  };
+  const assignRandomNight=()=>saveGameNight(promoGame,autoGameNightFor(data,teams,promoGame));
+  const autoFillSeason=()=>{const nextExtras={...(data.leagueExtras||{}),gameNightSchedule:autoFillGameNights(data,teams)};setData(prev=>({...prev,leagueExtras:nextExtras}));syncLeagueExtrasToFirebase?.(nextExtras);};
 
   useEffect(()=>{if(feedPaused)return undefined;const t=setInterval(()=>setNow(Date.now()),8000);return()=>clearInterval(t)},[feedPaused]);
   useEffect(()=>setMerchOffset(0),[selectedId]);
@@ -50,12 +64,18 @@ export default function FandomPage({ctx}){
 
   return <div className="fandom-page" style={fandomStyle}>
     <section className="card fandom-hero">
-      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.10 · LIVE GAME THREAD</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
+      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.11 · BALLPARK LIFE</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
       <div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>Day {pulse.dayInWeek} of 5 · {pulse.phase}</span></div>
     </section>
 
     <section className="fan-week-strip card">
       {Array.from({length:8},(_,i)=>{const w=i+1;const start=(w-1)*5+1,end=w*5;return <div key={w} className={w===pulse.week?'active':w<pulse.week?'done':''}><b>W{w}</b><span>Games {start}–{end}</span><small>{w===1?'Opening':w===4?'All-Star':w===8?'Pennant Race':w<4?'Build-up':'Second Half'}</small></div>})}
+    </section>
+
+    <section className="card fan-game-night-planner">
+      <div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2><p className="fan-section-subtitle">Assign any of the 40 game days a theme manually, or let Franchise Central surprise you. Scheduled nights feed the social chatter, official club posts, merch buzz and simulated crowd interest.</p></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label><button type="button" onClick={assignRandomNight}>🎲 Surprise Me</button><button type="button" onClick={autoFillSeason}>✨ Auto-Fill Season</button>{selectedGameNight&&<button type="button" className="ghost" onClick={()=>saveGameNight(promoGame,null)}>Clear</button>}</div></div>
+      <div className="fan-promo-picker">{GAME_NIGHT_BANK.map(p=><button type="button" key={p.id} className={selectedGameNight?.id===p.id?'active':''} onClick={()=>saveGameNight(promoGame,{...p,source:'manual'})}><span>{p.icon}</span><b>{p.name}</b><small>{p.giveaway}</small></button>)}</div>
+      <div className="fan-promo-calendar">{gameNightCalendar.map(day=><button type="button" key={day.gameNumber} className={`${day.id?'scheduled':''} ${day.gameNumber===pulse.day?'today':''}`} onClick={()=>setPromoGame(day.gameNumber)}><b>{day.gameNumber}</b><span>{day.icon||'·'}</span><small>{day.name||'Open Night'}</small></button>)}</div>
     </section>
 
     {gameDaySocial.phase!=='idle' && <div className="fandom-gameday-wrap"><GameDaySocial social={gameDaySocial} /></div>}

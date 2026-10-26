@@ -21,6 +21,7 @@ export const defaultFieldState = () => ({
   runnerEvent: null,
   playEvent: null,
   cueEvent: null,
+  socialEvent: null,
   manualRunnerOverride: false,
 });
 

@@ -101,3 +101,25 @@
 @keyframes gdsTimelineIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:1100px){.gds-dashboard-posts{max-height:430px}}
 @media(prefers-reduced-motion:reduce){.game-day-social.is-dashboard-compact .gds-post.is-new{animation:none}}
+
+/* V4.11 social universe + game-night calendar */
+.gds-promo-night{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;padding:6px 8px;border:1px solid rgba(251,191,36,.24);border-radius:10px;background:linear-gradient(90deg,rgba(245,158,11,.12),rgba(236,72,153,.06));max-width:620px}
+.gds-promo-night>span{font-size:15px}.gds-promo-night strong{font-size:9px;color:#fde68a;letter-spacing:.04em}.gds-promo-night small{font-size:7px;color:#a9b7cc}
+.game-day-social.is-dashboard-compact .gds-promo-night{margin-top:4px;padding:4px 6px;gap:5px}.game-day-social.is-dashboard-compact .gds-promo-night>span{font-size:11px}.game-day-social.is-dashboard-compact .gds-promo-night strong{font-size:7px}.game-day-social.is-dashboard-compact .gds-promo-night small{display:none}
+
+.fan-game-night-planner{overflow:hidden}
+.fan-game-night-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.fan-game-night-actions label{display:flex;align-items:center;gap:6px;color:#8ca2c0;font-size:9px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.fan-game-night-actions select,.fan-game-night-actions button{border:1px solid rgba(148,163,184,.24);background:#091426;color:#f8fafc;border-radius:9px;padding:8px 10px;font-size:8px;font-weight:900}
+.fan-game-night-actions button{cursor:pointer;background:linear-gradient(135deg,rgba(124,58,237,.82),rgba(219,39,119,.78));border-color:rgba(216,180,254,.34)}
+.fan-game-night-actions button.ghost{background:#0b1728;color:#9fb0c8}
+.fan-promo-picker{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:12px;max-height:245px;overflow:auto;padding-right:3px}
+.fan-promo-picker button{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:'icon name' 'icon detail';gap:2px 7px;align-items:center;text-align:left;min-width:0;border:1px solid rgba(148,163,184,.15);border-radius:11px;padding:8px;background:rgba(5,14,28,.66);color:#e6edf7;cursor:pointer}
+.fan-promo-picker button:hover,.fan-promo-picker button.active{border-color:var(--fandom-border,#a855f7);box-shadow:0 0 0 1px color-mix(in srgb,var(--fandom-main,#7c3aed) 30%,transparent);background:color-mix(in srgb,var(--fandom-main,#7c3aed) 12%,#071326)}
+.fan-promo-picker button>span{grid-area:icon;font-size:20px}.fan-promo-picker button>b{grid-area:name;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fan-promo-picker button>small{grid-area:detail;font-size:6px;line-height:1.25;color:#7188a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fan-promo-calendar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;margin-top:12px}
+.fan-promo-calendar button{min-width:0;min-height:60px;display:grid;align-content:center;justify-items:center;gap:1px;border:1px solid rgba(148,163,184,.12);border-radius:9px;background:#081324;color:#7d91af;cursor:pointer;overflow:hidden;padding:4px}
+.fan-promo-calendar button>b{font-size:8px}.fan-promo-calendar button>span{font-size:13px;line-height:1.1}.fan-promo-calendar button>small{display:block;width:100%;font-size:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.fan-promo-calendar button.scheduled{color:#f8fafc;border-color:rgba(236,72,153,.34);background:linear-gradient(145deg,rgba(124,58,237,.16),rgba(219,39,119,.1))}.fan-promo-calendar button.today{outline:2px solid #38bdf8;outline-offset:1px}
+@media(max-width:1200px){.fan-promo-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.fan-promo-calendar{grid-template-columns:repeat(8,minmax(0,1fr))}}
+@media(max-width:760px){.fan-game-night-actions{justify-content:flex-start}.fan-promo-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.fan-promo-calendar{grid-template-columns:repeat(5,minmax(0,1fr))}}

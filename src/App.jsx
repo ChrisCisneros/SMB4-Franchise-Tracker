@@ -1075,11 +1075,15 @@ function clearFieldBall() {
   }
 
   function setFieldCue(next, text, kind = "pitch") {
+    const battingSide = next.half === "Top" ? "away" : "home";
+    const fieldingSide = battingSide === "away" ? "home" : "away";
+    const id = Date.now();
     next.fieldState = {
       ...defaultFieldState(),
       ...(next.fieldState || {}),
       ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
-      cueEvent: { id: Date.now(), text, kind, side: next.half === "Top" ? "away" : "home", inning: next.inning, half: next.half },
+      cueEvent: { id, text, kind, side: battingSide, inning: next.inning, half: next.half },
+      ...(["strikeout", "calledstrikeout"].includes(kind) ? { socialEvent: { id, type: kind, category: "out", side: battingSide, battingSide, fieldingSide, beneficiarySide: fieldingSide, inning: next.inning, half: next.half } } : {}),
     };
   }
 
@@ -1333,6 +1337,17 @@ function isWorldSeriesGame(game) {
     const preserveRunners = Boolean(options.preserveRunners);
     const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
+      const socialBattingSide = next.half === "Top" ? "away" : "home";
+      const socialFieldingSide = socialBattingSide === "away" ? "home" : "away";
+      const offensiveTypes = new Set(["single","double","triple","homerun","walk","hitbypitch","error","sacfly"]);
+      const defensiveTypes = new Set(["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"]);
+      const beneficiarySide = offensiveTypes.has(type) ? socialBattingSide : defensiveTypes.has(type) ? socialFieldingSide : socialBattingSide;
+      const socialEventId = Date.now();
+      next.fieldState = {
+        ...defaultFieldState(),
+        ...(next.fieldState || {}),
+        socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: next.inning, half: next.half },
+      };
       const pitchCountTypes = new Set([
   "single",
   "double",
@@ -1859,9 +1874,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.10</span>
+    <span className="version-pill version-pill-v3">v4.11</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.10 · Live Game Thread · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.11 · Ballpark Life · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
