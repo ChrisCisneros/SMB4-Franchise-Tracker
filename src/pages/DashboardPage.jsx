@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { BaseDiamond } from "../components/GameWidgets";
 import LiveField from "../components/LiveField";
 import { getVisibleInnings, renderInningCell } from "../utils/gameDisplay";
@@ -10,7 +10,8 @@ import { buildDashboardAlerts, buildGameRecords } from "../utils/historyUtils";
 import { buildLeagueRecords } from "../utils/recordsUtils";
 import { buildNoHitWatch, buildV4TeamMetrics, buildWinProbability, buildGamesThatMatter } from "../utils/v4Utils";
 import { buildHeadToHead } from "../utils/historyUtils";
-import { buildFanUniverse, buildFanPoll, buildMerch, getSeasonPulse } from "../utils/fandomUtils";
+import { buildFanUniverse, buildFanPoll, buildMerch, buildSocialChatter, getSeasonPulse } from "../utils/fandomUtils";
+import { getTeamColorsByAbbr } from "../config/teamColors";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -29,12 +30,21 @@ export default function DashboardPage({ ctx }) {
     scoreFlashSide, teams, tightestDivisionRace, worstRecordTeam, data, setPage
   } = ctx;
 
+  const [dashboardClock,setDashboardClock]=useState(Date.now());
+  const [merchSlide,setMerchSlide]=useState(0);
+  const [tickerSlide,setTickerSlide]=useState(0);
+  useEffect(()=>{const t=setInterval(()=>setDashboardClock(Date.now()),30000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
-  const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
+  const fanChatter = useMemo(()=>buildSocialChatter(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
-  const featuredMerch = useMemo(()=>buildMerch(data,teams,playoffPicture).sort((a,b)=>String(a.tag).localeCompare(String(b.tag)))[0],[data,teams,playoffPicture]);
+  const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
+  const dashboardMerch = merchPool.length ? Array.from({length:Math.min(3,merchPool.length)},(_,i)=>merchPool[(merchSlide+i)%merchPool.length]) : [];
   const v4Prob = useMemo(()=>buildWinProbability(currentGame,teams),[currentGame,teams]);
   const v4NoHit = useMemo(()=>buildNoHitWatch(currentGame,teams),[currentGame,teams]);
   const v4Importance = useMemo(()=>buildGamesThatMatter(currentGame,v4Metrics),[currentGame,v4Metrics]);
@@ -65,6 +75,16 @@ export default function DashboardPage({ ctx }) {
   const v4Opening = avgGamesPerTeam <= 1;
   const v4Championship = isPlayoffLiveGame && ["finals","worldSeries"].includes(currentGame.playoffSeriesId);
   const v4Theme = v4Championship ? "championship" : isPlayoffLiveGame ? "playoff" : (v4Rivalry?.games||0)>=2 ? "rivalry" : v4Midseason ? "allstar" : v4Opening ? "opening" : "regular";
+  const tickerItems = useMemo(()=>{
+    const items=[
+      ...news.slice(0,4).map(x=>`${x.category}: ${x.headline}`),
+      fanPoll.options[0] ? `FAN POLL: ${fanPoll.options[0].team.abbr} leads "${fanPoll.question}" at ${fanPoll.options[0].pct}%` : null,
+      fanChatter[0] ? `SMB SOCIAL: ${fanChatter[0].handle} — ${fanChatter[0].text}` : null,
+      featuredMerch ? `TEAM STORE: ${featuredMerch.name} · ${featuredMerch.tag}` : null,
+      `WEEK ${seasonPulse.week}: ${seasonPulse.phase}`
+    ].filter(Boolean);
+    return items;
+  },[news,fanPoll,fanChatter,featuredMerch,seasonPulse]);
   const opponentRows = useMemo(() => {
     if (!favoriteTeam) return [];
     const teamMap = new Map(teams.map((team) => [team.id, team]));
@@ -109,6 +129,12 @@ export default function DashboardPage({ ctx }) {
       </div>
     </section>
 
+    <section className="dashboard-universe-plaza">
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>THE HOME OF YOUR LEAGUE</small></div>
+      <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
+      <button type="button" className="dashboard-plaza-shop" onClick={()=>setPage?.('fandom')}>TEAM STORE + FAN ZONE →</button>
+    </section>
+
     {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
 
     <section className="card dashboard-v4-intel">
@@ -120,6 +146,11 @@ export default function DashboardPage({ ctx }) {
       {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
     </section>
     {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
+
+    {dashboardMerch.length>0 && <section className="dashboard-market-row">
+      <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
+      {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
+    </section>}
 
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
