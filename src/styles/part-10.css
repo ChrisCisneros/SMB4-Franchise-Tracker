@@ -539,3 +539,45 @@
 .universe-page{display:grid;gap:18px}.universe-hero{display:flex;justify-content:space-between;gap:24px;align-items:center;background:linear-gradient(135deg,#07111f,#111827 55%,#172554)}.universe-kicker{font-size:11px;font-weight:950;letter-spacing:.16em;color:#93c5fd}.universe-hero h2{font-size:34px;margin:4px 0 6px}.universe-hero p{margin:0;color:#cbd5e1}.universe-hero-stats,.universe-tabs{display:flex;gap:8px;flex-wrap:wrap}.universe-pill{padding:7px 11px;border:1px solid #334155;background:#020617;border-radius:999px;font-size:12px;font-weight:800}.universe-tabs{padding:4px 0}.universe-tabs button{background:#1e293b}.universe-tabs .active-tab{background:#2563eb}.universe-section{display:grid;gap:16px}.profile-selector{display:grid;grid-template-columns:1fr minmax(260px,420px);align-items:end;gap:18px}.franchise-profile-hero{display:grid;grid-template-columns:130px 1fr auto;gap:22px;align-items:center}.profile-abbr{height:100px;border-radius:24px;display:grid;place-items:center;background:#020617;border:1px solid #334155;font-size:42px;font-weight:950}.profile-trophy-count{font-size:30px;font-weight:950}.universe-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.universe-stat{display:grid;gap:6px}.universe-stat span{font-size:11px;text-transform:uppercase;color:#93c5fd;font-weight:900}.universe-stat strong{font-size:24px}.universe-scroll-list{max-height:360px;overflow:auto;padding-right:6px}.universe-list-row{display:flex;justify-content:space-between;gap:16px;padding:11px 2px;border-bottom:1px solid #1f2937}.power-list{display:grid}.power-row{display:grid;grid-template-columns:52px 90px 100px 120px 90px 1fr;gap:10px;align-items:center;padding:12px 4px;border-bottom:1px solid #1f2937}.power-rank{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#1e3a8a;font-weight:950}.universe-section-title{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.award-grid,.hall-grid,.rivalry-grid,.trophy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.award-card,.hall-card,.rivalry-card,.trophy-team{padding:16px;border-radius:18px;background:#0f172a;border:1px solid #334155}.award-card span,.award-card small{display:block;color:#93c5fd}.award-card h4,.hall-card h4{margin:8px 0}.timeline-list{display:grid;gap:0}.timeline-item{display:grid;grid-template-columns:24px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid #1f2937}.timeline-dot{width:12px;height:12px;border-radius:50%;background:#60a5fa;margin-top:5px;box-shadow:0 0 0 5px rgba(96,165,250,.12)}.timeline-item h4{margin:2px 0}.timeline-item p{margin:3px 0;color:#cbd5e1}.universe-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}.trophy-team{text-align:center}.trophy-abbr{font-size:28px;font-weight:950;margin-bottom:8px}.rivalry-matchup{display:flex;justify-content:center;gap:12px;align-items:center;font-size:22px}.hall-plaque{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#78350f;border:1px solid #f59e0b;font-size:26px}.season-feature-team{font-size:42px;font-weight:950;margin:12px 0 18px}.universe-empty{padding:22px;text-align:center;color:#94a3b8;border:1px dashed #334155;border-radius:16px}.playoff-hub-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.playoff-hub-stat{padding:14px;border-radius:16px;background:#0f172a;border:1px solid #334155}.playoff-hub-stat span{display:block;color:#93c5fd;font-size:11px;font-weight:900;text-transform:uppercase}.playoff-hub-stat strong{display:block;font-size:20px;margin-top:4px}@media(max-width:1000px){.universe-stat-grid{grid-template-columns:1fr 1fr}.universe-two-col,.profile-selector,.franchise-profile-hero{grid-template-columns:1fr}.power-row{grid-template-columns:40px 70px 80px 1fr}.power-row span:nth-of-type(4),.power-row small{display:none}.universe-hero{flex-direction:column;align-items:flex-start}.playoff-hub-strip{grid-template-columns:1fr}}
 
 .profile-selector{grid-template-columns:1fr minmax(260px,420px)}.profile-selector .profile-team-picker{grid-column:1/-1}.profile-team-picker{display:flex;gap:7px;flex-wrap:wrap}.profile-team-picker button{padding:7px 11px;background:#1e293b}.profile-team-picker .active-tab{background:#2563eb}
+
+/* V3 newsroom expansion: facts desk */
+.news-facts-section { display:grid; gap:14px; margin-top:18px; }
+.news-fact-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.news-fact-card { position:relative; overflow:hidden; background:linear-gradient(155deg,#0f172a,#08111f); border:1px solid #263449; border-radius:20px; padding:16px; min-height:220px; }
+.news-fact-card::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:#64748b; }
+.news-fact-card.news-tone-current::before { background:#3b82f6; }
+.news-fact-card.news-tone-record::before { background:#22c55e; }
+.news-fact-card.news-tone-postseason::before { background:#8b5cf6; }
+.news-fact-value { font-size:38px; font-weight:950; letter-spacing:-.04em; line-height:1; margin-top:16px; color:#f8fafc; }
+.news-fact-label { margin-top:5px; color:#93c5fd; font-size:11px; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
+.news-fact-card h4 { margin:14px 0 7px; font-size:17px; line-height:1.2; }
+.news-fact-card p { margin:0; color:#aebbd0; font-size:13px; line-height:1.45; }
+.news-fact-card .news-team-row { margin-top:12px; }
+@media (max-width:1200px){ .news-fact-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:650px){ .news-fact-grid{grid-template-columns:1fr;} }
+
+/* V3 24/7 NEWS NETWORK ROTATION */
+.news-ticker-live .news-ticker-label { gap:7px; display:flex; align-items:center; justify-content:center; }
+.news-ticker-live .news-ticker-label i,
+.news-live-dot { width:7px; height:7px; border-radius:999px; background:#fff; box-shadow:0 0 0 4px rgba(255,255,255,.12); animation:news-live-pulse 1.4s ease-in-out infinite; }
+@keyframes news-live-pulse { 50% { opacity:.45; transform:scale(.82); } }
+.news-ticker-live strong { animation:news-wire-in .32s ease both; }
+@keyframes news-wire-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+.news-network-strip { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:12px 15px; border:1px solid #29364a; border-radius:14px; background:linear-gradient(90deg,#09111d,#0f172a); }
+.news-network-strip > div:first-child { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.news-network-strip strong { font-size:11px; letter-spacing:.08em; }
+.news-network-strip small { color:#718096; font-weight:700; }
+.news-live-dot { background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.14); }
+.news-network-chips { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
+.news-network-chips span { padding:5px 8px; border:1px solid #2b394d; border-radius:999px; background:#0b1220; color:#9fb0c5; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; }
+.news-rotating-grid .news-lead-story { animation:news-feature-in .45s ease both; }
+@keyframes news-feature-in { from { opacity:.25; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.news-all-stories { margin-top:2px; display:grid; gap:14px; }
+.news-all-story-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; max-height:430px; overflow:auto; padding-right:4px; }
+.news-all-story { min-height:96px; display:grid; align-content:start; gap:6px; text-align:left; border-radius:12px; background:#0b1220; border:1px solid #263449; padding:11px 12px; color:#dce6f2; }
+.news-all-story:hover { background:#111c2f; border-color:#3c5271; }
+.news-all-story span { color:#93c5fd; font-size:8px; font-weight:950; text-transform:uppercase; letter-spacing:.09em; }
+.news-all-story strong { font-size:12px; line-height:1.3; }
+.news-all-story small { color:#64748b; font-size:9px; }
+@media (max-width:1000px) { .news-network-strip { align-items:flex-start; flex-direction:column; } .news-network-chips { justify-content:flex-start; } .news-all-story-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:650px) { .news-all-story-grid { grid-template-columns:1fr; } }

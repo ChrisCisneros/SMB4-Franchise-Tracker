@@ -1,13 +1,23 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { buildNewsFeed } from "../utils/newsUtils";
 
-const FILTERS = ["All", "Current", "Postseason", "Record Book", "Archive"];
+const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
+const FEATURE_ROTATE_MS = 120000;
+const FACT_ROTATE_MS = 90000;
+const TICKER_ROTATE_MS = 14000;
 
 function storyBucket(story) {
-  if (["Game Final", "League Watch", "Pennant Race"].includes(story.category)) return "Current";
+  if (["Game Final", "League Watch", "Pennant Race", "Hot & Cold", "Milestone Watch", "Race to October", "Transactions", "Injury Report"].includes(story.category)) return "Current";
+  if (["By the Numbers", "Did You Know?", "History Lesson", "Franchise Spotlight"].includes(story.category) || story.kind === "fact") return "Facts";
   if (["Championship", "Postseason"].includes(story.category)) return "Postseason";
-  if (story.category === "Record Book") return "Record Book";
+  if (["Record Book", "V3 Record Alert"].includes(story.category)) return "Record Book";
   return "Archive";
+}
+
+function rotateList(list, offset) {
+  if (!list.length) return [];
+  const safe = ((offset % list.length) + list.length) % list.length;
+  return [...list.slice(safe), ...list.slice(0, safe)];
 }
 
 function StoryMeta({ story }) {
@@ -21,51 +31,30 @@ function StoryMeta({ story }) {
 
 function TeamTags({ story }) {
   if (!story.teams?.length) return null;
-
-  return (
-    <div className="news-team-row">
-      {story.teams.map((abbr) => (
-        <span key={`${story.id}-${abbr}`}>{abbr}</span>
-      ))}
-    </div>
-  );
+  return <div className="news-team-row">{story.teams.map((abbr) => <span key={`${story.id}-${abbr}`}>{abbr}</span>)}</div>;
 }
 
 function LeadStory({ story }) {
-  return (
-    <article className={`news-lead-story news-tone-${story.tone || "archive"}`}>
-      <div className="news-lead-overlay" />
-      <div className="news-lead-content">
-        <StoryMeta story={story} />
-        <div className="news-breaking-label">Top Story</div>
-        <h3>{story.headline}</h3>
-        <p>{story.dek}</p>
-        <TeamTags story={story} />
-      </div>
-    </article>
-  );
+  return <article className={`news-lead-story news-tone-${story.tone || "archive"}`}><div className="news-lead-overlay"/><div className="news-lead-content"><StoryMeta story={story}/><div className="news-breaking-label">Featured on SMB Network</div><h3>{story.headline}</h3><p>{story.dek}</p><TeamTags story={story}/></div></article>;
 }
 
 function SideStory({ story }) {
-  return (
-    <article className={`news-side-story news-tone-${story.tone || "archive"}`}>
-      <StoryMeta story={story} />
-      <h3>{story.headline}</h3>
-      <p>{story.dek}</p>
-      <TeamTags story={story} />
-    </article>
-  );
+  return <article className={`news-side-story news-tone-${story.tone || "archive"}`}><StoryMeta story={story}/><h3>{story.headline}</h3><p>{story.dek}</p><TeamTags story={story}/></article>;
 }
 
 function HeadlineStory({ story }) {
+  return <article className={`news-headline-row news-tone-${story.tone || "archive"}`}><div className="news-headline-copy"><StoryMeta story={story}/><h3>{story.headline}</h3><p>{story.dek}</p></div><TeamTags story={story}/></article>;
+}
+
+function FactCard({ story }) {
   return (
-    <article className={`news-headline-row news-tone-${story.tone || "archive"}`}>
-      <div className="news-headline-copy">
-        <StoryMeta story={story} />
-        <h3>{story.headline}</h3>
-        <p>{story.dek}</p>
-      </div>
-      <TeamTags story={story} />
+    <article className={`news-fact-card news-tone-${story.tone || "archive"}`}>
+      <StoryMeta story={story}/>
+      <div className="news-fact-value">{story.factValue || "•"}</div>
+      <div className="news-fact-label">{story.factLabel || story.category}</div>
+      <h4>{story.headline}</h4>
+      <p>{story.dek}</p>
+      <TeamTags story={story}/>
     </article>
   );
 }
@@ -73,113 +62,69 @@ function HeadlineStory({ story }) {
 export default function NewsPage({ ctx }) {
   const { data, teams } = ctx;
   const [filter, setFilter] = useState("All");
-
+  const [featureOffset, setFeatureOffset] = useState(0);
+  const [factOffset, setFactOffset] = useState(0);
+  const [tickerOffset, setTickerOffset] = useState(0);
   const stories = useMemo(() => buildNewsFeed(data, teams), [data, teams]);
-  const filtered = filter === "All"
-    ? stories
-    : stories.filter((story) => storyBucket(story) === filter);
-
-  const lead = filtered[0] || null;
-  const sideStories = filtered.slice(1, 3);
-  const latestStories = filtered.slice(3);
-
-  const archiveCount = stories.filter((story) => {
-    const bucket = storyBucket(story);
-    return bucket === "Archive" || bucket === "Postseason";
-  }).length;
-  const recordCount = stories.filter((story) => storyBucket(story) === "Record Book").length;
+  const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
+  const factStories = filtered.filter((story) => story.kind === "fact");
+  const editorialStories = filtered.filter((story) => story.kind !== "fact");
+  const rotatedEditorial = rotateList(editorialStories.length ? editorialStories : factStories, featureOffset);
+  const rotatedFacts = rotateList(factStories, factOffset);
+  const lead = rotatedEditorial[0] || null;
+  const sideStories = rotatedEditorial.slice(1, 3);
+  const latestStories = rotatedEditorial.slice(3);
+  const tickerStories = stories.length ? stories : filtered;
+  const ticker = tickerStories.length ? tickerStories[tickerOffset % tickerStories.length] : null;
   const currentCount = stories.filter((story) => storyBucket(story) === "Current").length;
+  const factCount = stories.filter((story) => storyBucket(story) === "Facts").length;
+  const historyCount = stories.filter((story) => ["Archive","Postseason","Record Book"].includes(storyBucket(story))).length;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setFeatureOffset((n) => n + 1), FEATURE_ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setFactOffset((n) => n + 4), FACT_ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTickerOffset((n) => n + 1), TICKER_ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setFeatureOffset(0);
+    setFactOffset(0);
+  }, [filter]);
 
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block">
-          <div className="news-network-mark">SMB</div>
-          <div>
-            <div className="news-kicker">SMB4 League Network</div>
-            <h2>League News</h2>
-            <p>The latest from around the franchise: races, postseason history, champions, and the record book.</p>
-          </div>
-        </div>
-
-        <div className="news-masthead-stats">
-          <div><strong>{currentCount}</strong><span>Current</span></div>
-          <div><strong>{archiveCount}</strong><span>History</span></div>
-          <div><strong>{recordCount}</strong><span>Records</span></div>
-        </div>
+        <div className="news-brand-block"><div className="news-network-mark">SMB</div><div><div className="news-kicker">SMB4 League Network</div><h2>League News</h2><p>A constantly rotating feed of headlines, races, records, history, weird stats and league-wide baseball nonsense.</p></div></div>
+        <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 
-      {!!stories.length && (
-        <div className="news-ticker" aria-label="Top league headline">
-          <span className="news-ticker-label">Latest</span>
-          <strong>{stories[0].headline}</strong>
-          <span className="news-ticker-date">{stories[0].dateLabel}</span>
-        </div>
-      )}
+      {!!ticker && <div className="news-ticker news-ticker-live" aria-label="SMB Network live ticker"><span className="news-ticker-label"><i/>LIVE</span><strong key={ticker.id}>{ticker.headline}</strong><span className="news-ticker-date">{ticker.dateLabel}</span></div>}
 
-      <div className="news-toolbar">
-        <div className="news-section-title">
-          <span>Newsroom</span>
-          <strong>{filter === "All" ? "Top Stories" : filter}</strong>
-        </div>
+      <section className="news-network-strip">
+        <div><span className="news-live-dot"/><strong>SMB NETWORK LIVE</strong><small>Featured stories rotate every 2 minutes</small></div>
+        <div className="news-network-chips"><span>{currentCount} current</span><span>{factCount} facts & nuggets</span><span>{stories.length} total stories</span></div>
+      </section>
 
-        <div className="news-filter-row">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              className={filter === item ? "news-filter-active" : ""}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="news-toolbar"><div className="news-section-title"><span>Newsroom</span><strong>{filter === "All" ? "Top Stories" : filter}</strong></div><div className="news-filter-row">{FILTERS.map((item)=><button key={item} className={filter===item?"news-filter-active":""} onClick={()=>setFilter(item)}>{item}</button>)}</div></div>
 
-      {!lead ? (
-        <div className="card news-empty-state">
-          <div className="news-kicker">News Desk</div>
-          <h3>No headlines in this section yet.</h3>
-          <p className="muted">As games are played and seasons are archived, this section will fill itself in.</p>
-        </div>
-      ) : (
-        <>
-          <section className="news-top-grid">
-            <LeadStory story={lead} />
+      {!lead ? <div className="card news-empty-state"><div className="news-kicker">News Desk</div><h3>No headlines in this section yet.</h3><p className="muted">As the season develops, this desk will fill itself with league stories and facts.</p></div> : <>
+        <section className="news-top-grid news-rotating-grid"><LeadStory key={`lead-${lead.id}`} story={lead}/><div className="news-side-stack">{sideStories.length ? sideStories.map((story)=><SideStory key={story.id} story={story}/>) : <aside className="news-desk-note card"><div className="news-kicker">League Desk</div><h3>The news cycle never stops.</h3><p>The lead story changes automatically while the full story pool stays available below.</p></aside>}</div></section>
 
-            <div className="news-side-stack">
-              {sideStories.length ? (
-                sideStories.map((story) => <SideStory key={story.id} story={story} />)
-              ) : (
-                <aside className="news-desk-note card">
-                  <div className="news-kicker">News Desk</div>
-                  <h3>The league now has a memory.</h3>
-                  <p>Championships and record-book stories stay in the feed while current-season stories update as the league changes.</p>
-                  <p className="muted">Full game-by-game news will become possible once finalized-game history is added.</p>
-                </aside>
-              )}
-            </div>
-          </section>
+        {!!rotatedFacts.length && <section className="news-facts-section"><div className="news-section-heading"><div><div className="news-kicker">Numbers & Nuggets</div><h3>Rotating Facts Desk</h3></div><span>refreshes every 90 sec · {factStories.length} in pool</span></div><div className="news-fact-grid">{rotatedFacts.slice(0,8).map((story)=><FactCard key={story.id} story={story}/>)}</div></section>}
 
-          {!!latestStories.length && (
-            <section className="news-latest-section">
-              <div className="news-section-heading">
-                <div>
-                  <div className="news-kicker">Around the League</div>
-                  <h3>Latest Headlines</h3>
-                </div>
-                <span>{latestStories.length} stor{latestStories.length === 1 ? "y" : "ies"}</span>
-              </div>
+        {!!latestStories.length && <section className="news-latest-section"><div className="news-section-heading"><div><div className="news-kicker">Around the League</div><h3>News Wire</h3></div><span>{latestStories.length} more stor{latestStories.length===1?"y":"ies"}</span></div><div className="news-headline-list">{latestStories.map((story)=><HeadlineStory key={story.id} story={story}/>)}</div></section>}
 
-              <div className="news-headline-list">
-                {latestStories.map((story) => (
-                  <HeadlineStory key={story.id} story={story} />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
-      )}
+        {!!stories.length && <section className="news-all-stories card"><div className="news-section-heading"><div><div className="news-kicker">Full Archive</div><h3>All Stories & Nuggets</h3></div><span>{stories.length} total</span></div><div className="news-all-story-grid">{stories.map((story)=><button type="button" key={`all-${story.id}`} className="news-all-story" onClick={()=>{ const idx=editorialStories.findIndex((s)=>s.id===story.id); if(idx>=0)setFeatureOffset(idx); }}><span>{story.category}</span><strong>{story.headline}</strong><small>{story.dateLabel}</small></button>)}</div></section>}
+      </>}
     </div>
   );
 }
