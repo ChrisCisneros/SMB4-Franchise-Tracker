@@ -60,3 +60,60 @@
 @media(max-width:1050px){.dashboard-universe-plaza{grid-template-columns:auto 1fr}.dashboard-plaza-shop{grid-column:1/-1;border-left:0;border-top:1px solid #334155;padding:10px}.dashboard-market-row{grid-template-columns:1fr 1fr}.dashboard-market-label{grid-column:1/-1}}
 @media(max-width:650px){.fandom-page,.dashboard-v3-home{padding:3px;border-radius:18px}.fan-team-switcher{padding-bottom:10px}.dashboard-universe-plaza{grid-template-columns:1fr}.dashboard-network-brand{min-width:0}.dashboard-universe-ticker{grid-template-columns:1fr;gap:3px}.dashboard-market-row{grid-template-columns:1fr}.dashboard-market-label{grid-column:auto}.dashboard-v3-home .v3-dashboard-masthead{padding:20px}.dashboard-v3-home .v3-dashboard-masthead:after{font-size:32px}}
 .fan-portal-now{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:4px 9px;width:fit-content;max-width:100%;margin-top:16px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--fandom-border,#334155) 55%,#334155);border-radius:14px;background:rgba(2,6,23,.52);backdrop-filter:blur(8px)}.fan-portal-now .fan-team-badge{grid-row:1/3;height:38px;min-width:52px}.fan-portal-now>span{font-size:7px;font-weight:950;letter-spacing:.12em;color:#94a3b8}.fan-portal-now>strong{font-size:11px}.fan-portal-now>small{grid-column:2/-1;color:#94a3b8;font-size:8px}
+
+/* V4.5 containment hotfix — prevent wide Fandom children from escaping the portal shell */
+.fandom-page{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.fandom-page > *,
+.fandom-page .card,
+.fandom-page section,
+.fandom-page article,
+.fandom-page div{
+  min-width:0;
+  box-sizing:border-box;
+}
+.fandom-hero{
+  width:100%;
+  max-width:100%;
+  overflow:hidden;
+}
+.fandom-hero > div:first-child{min-width:0;flex:1 1 auto}
+.fan-week-badge{flex:0 1 230px;min-width:180px;max-width:100%}
+.fan-week-strip{
+  width:100%;
+  max-width:100%;
+  grid-template-columns:repeat(8,minmax(0,1fr));
+  overflow:hidden;
+}
+.fan-week-strip>div{min-width:0;overflow:hidden}
+.fan-grid-2{
+  width:100%;
+  max-width:100%;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.fan-analyst-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.fan-merch-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.fan-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.fan-team-switcher{width:100%;max-width:100%;min-width:0}
+.fan-section-head,.fan-store-head,.fan-team-title,.fan-show,.fan-poll,.fan-ticket,.fan-ad-strip{min-width:0}
+.fan-section-head>*,.fan-store-head>*,.fan-team-title>*,.fan-show>*,.fan-poll>*,.fan-ticket>*,.fan-ad-strip>*{min-width:0}
+.fan-portal-now{overflow:hidden}
+.fan-portal-now>strong,.fan-portal-now>small,.fandom-hero p,.fan-show span,.fan-post p,.fan-merch-card h3{overflow-wrap:anywhere}
+@media(max-width:1100px){
+  .fan-grid-2{grid-template-columns:minmax(0,1fr)}
+  .fan-week-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .fan-analyst-grid,.fan-merch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:780px){
+  .fandom-hero{flex-direction:column;align-items:stretch}
+  .fan-week-badge{width:100%;min-width:0;flex-basis:auto}
+}
+@media(max-width:650px){
+  .fan-week-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fan-metric-grid,.fan-analyst-grid,.fan-merch-grid{grid-template-columns:minmax(0,1fr)}
+}
