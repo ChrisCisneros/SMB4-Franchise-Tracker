@@ -125,6 +125,14 @@ function ballMotion(type) {
   return "standard";
 }
 
+function curvePoint(start, control, end, t) {
+  const mt = 1 - t;
+  return {
+    x: (mt * mt * start.x) + (2 * mt * t * control.x) + (t * t * end.x),
+    y: (mt * mt * start.y) + (2 * mt * t * control.y) + (t * t * end.y),
+  };
+}
+
 function runnerPhaseDelay(type) {
   if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1580;
   if (type === "lineout") return 1480;
@@ -290,17 +298,25 @@ export default function LiveField({
   const playMotion = ballMotion(playEvent?.type);
   const targetX = Number(playEvent?.targetX ?? ball.x ?? 50);
   const targetY = Number(playEvent?.targetY ?? ball.y ?? 30);
+  const startPoint = { x: 50, y: 86 };
   const midX = (50 + targetX) / 2;
   const naturalMidY = (86 + targetY) / 2;
-  const arcLift = playMotion === "homer" ? 34 : playMotion === "popup" ? 38 : playMotion === "fly" ? 28 : playMotion === "triple" ? 23 : playMotion === "double" ? 18 : playMotion === "single" ? 10 : playMotion === "liner" ? 5 : 0;
+  const arcLift = playMotion === "homer" ? 42 : playMotion === "popup" ? 46 : playMotion === "fly" ? 35 : playMotion === "triple" ? 27 : playMotion === "double" ? 22 : playMotion === "single" ? 12 : playMotion === "liner" ? 6 : playMotion === "ground" ? -1 : 8;
+  const controlPoint = { x: midX, y: Math.max(5, naturalMidY - arcLift) };
+  const q1 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .16);
+  const q2 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .34);
+  const q3 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .52);
+  const q4 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .70);
+  const q5 = curvePoint(startPoint, controlPoint, { x: targetX, y: targetY }, .86);
   const ballAnimationVars = {
-    "--ball-target-x": `${targetX}%`,
-    "--ball-target-y": `${targetY}%`,
-    "--ball-mid-x": `${midX}%`,
-    "--ball-mid-y": `${Math.max(7, naturalMidY - arcLift)}%`,
-    "--ball-late-x": `${midX + (targetX - midX) * 0.55}%`,
-    "--ball-late-y": `${targetY + 6}%`,
+    "--ball-target-x": `${targetX}%`, "--ball-target-y": `${targetY}%`,
+    "--ball-q1-x": `${q1.x}%`, "--ball-q1-y": `${q1.y}%`,
+    "--ball-q2-x": `${q2.x}%`, "--ball-q2-y": `${q2.y}%`,
+    "--ball-q3-x": `${q3.x}%`, "--ball-q3-y": `${q3.y}%`,
+    "--ball-q4-x": `${q4.x}%`, "--ball-q4-y": `${q4.y}%`,
+    "--ball-q5-x": `${q5.x}%`, "--ball-q5-y": `${q5.y}%`,
   };
+  const trailPath = `M 50 86 Q ${controlPoint.x.toFixed(2)} ${controlPoint.y.toFixed(2)} ${targetX.toFixed(2)} ${targetY.toFixed(2)}`;
 
   const [cueGlyph, cueLabel] = playCue(playEvent?.type);
   const scoringMoves = playMoves.filter((move) => move.scored).length;
@@ -385,8 +401,8 @@ export default function LiveField({
 
         {showTrail && (
           <svg className="field-play-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <line x1="50" y1="86" x2={targetX} y2={targetY} />
-            <circle cx={targetX} cy={targetY} r="1.2" />
+            <path d={trailPath} />
+            <circle cx={targetX} cy={targetY} r="1.35" />
           </svg>
         )}
 

@@ -1,0 +1,39 @@
+import React,{useState} from 'react';
+import LivePage from './LivePage';
+import QuickPage from './QuickPage';
+import DailyPage from './DailyPage';
+import BracketAdminPage from './BracketAdminPage';
+import AdminPage from './AdminPage';
+import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,buildGameNightCalendar,getScheduledGameNight } from '../utils/gameNightUtils';
+
+const TABS=[['live','Game Operations'],['quick','Quick Results'],['daily','Daily Results'],['bracket','Bracket Control'],['admin','League Admin'],['calendar','Season & Calendar'],['history','History & Records'],['world','Media & World']];
+
+export default function ModeratorHubPage({ctx}){
+  const {data,teams,setData,syncLeagueExtrasToFirebase}=ctx;
+  const [tab,setTab]=useState('live');
+  const [gameNumber,setGameNumber]=useState(1);
+  const extras=data.leagueExtras||{};
+  const calendar=buildGameNightCalendar(data,teams);
+  const selected=getScheduledGameNight(data,gameNumber);
+  const saveExtras=next=>{setData(p=>({...p,leagueExtras:next}));syncLeagueExtrasToFirebase?.(next)};
+  const saveNight=(n,promo)=>{const next={...extras,gameNightSchedule:{...(extras.gameNightSchedule||{})}};if(promo)next.gameNightSchedule[String(n)]={...promo,gameNumber:Number(n),source:promo.source||'manual'};else delete next.gameNightSchedule[String(n)];saveExtras(next)};
+  const surprise=()=>saveNight(gameNumber,autoGameNightFor(data,teams,gameNumber));
+  const autoFill=()=>saveExtras({...extras,gameNightSchedule:autoFillGameNights(data,teams)});
+
+  const addItem=(key,item)=>saveExtras({...extras,[key]:[{id:crypto.randomUUID(),createdAt:new Date().toISOString(),...item},...(extras[key]||[])]});
+  const addHistory=()=>{const title=window.prompt('Historical event title:');if(!title)return;addItem('manualEvents',{date:window.prompt('Date / season:','')||'',teamAbbr:window.prompt('Team abbreviation (optional):','')||'',title,note:window.prompt('What happened?','')||''})};
+  const addRecord=()=>{const title=window.prompt('Custom league record:');if(!title)return;addItem('customRecords',{title,holder:window.prompt('Record holder:','')||'',value:window.prompt('Record value:','')||'',note:window.prompt('Context / season:','')||''})};
+  const addAchievement=()=>{const teamAbbr=window.prompt('Team abbreviation:');if(!teamAbbr)return;addItem('achievements',{teamAbbr,title:window.prompt('Achievement title:','')||'',note:window.prompt('Why they earned it:','')||''})};
+  const addStoryline=()=>{const title=window.prompt('Storyline headline:');if(!title)return;addItem('storylines',{title,status:'Active',note:window.prompt('Storyline details:','')||''})};
+  const addCommentary=()=>{const text=window.prompt('Manual commentary:');if(!text)return;addItem('commentary',{text,date:new Date().toLocaleString()})};
+  const addWorldMoment=()=>{const title=window.prompt('World moment headline:');if(!title)return;addItem('worldMoments',{type:window.prompt('Type (CROWD / MERCH / CULTURE / EVENT):','CULTURE')||'CULTURE',icon:window.prompt('Emoji/icon:','✨')||'✨',title,detail:window.prompt('What happened?','')||''})};
+  const setBrand=()=>{const name=window.prompt('Official league name:',extras.officialLeagueName||'Super Mega Baseball League');if(!name)return;const abbr=window.prompt('League abbreviation:',extras.officialLeagueAbbr||'SMBL');saveExtras({...extras,officialLeagueName:name,officialLeagueAbbr:abbr||'SMBL'})};
+  return <div className="league-office-page">
+    <section className="card league-office-hero"><div><span>AUTHORIZED PERSONNEL</span><h1>League Office</h1><p>Game operations, season administration, promotions, history and the living-world controls all live here now.</p></div><b>COMMISSIONER MODE</b></section>
+    <div className="league-office-tabs">{TABS.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
+    {tab==='live'&&<LivePage ctx={ctx}/>} {tab==='quick'&&<QuickPage ctx={ctx}/>} {tab==='daily'&&<DailyPage ctx={ctx}/>} {tab==='bracket'&&<BracketAdminPage ctx={ctx}/>} {tab==='admin'&&<AdminPage ctx={ctx}/>} 
+    {tab==='calendar'&&<section className="card league-office-calendar"><div className="office-section-head"><div><span>SEASON & CALENDAR</span><h2>Game Night Planner</h2><p>Only the League Office can change promotions. Public pages are view-only.</p></div><div><label>Game <select value={gameNumber} onChange={e=>setGameNumber(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1}>{i+1}</option>)}</select></label><button onClick={surprise}>🎲 Surprise Me</button><button onClick={autoFill}>✨ Auto-Fill Season</button>{selected&&<button className="ghost" onClick={()=>saveNight(gameNumber,null)}>Clear</button>}</div></div><div className="fan-promo-picker">{GAME_NIGHT_BANK.map(p=><button key={p.id} className={selected?.id===p.id?'active':''} onClick={()=>saveNight(gameNumber,{...p,source:'manual'})}><span>{p.icon}</span><b>{p.name}</b><small>{p.giveaway}</small></button>)}</div><div className="fan-promo-calendar">{calendar.map(day=><button key={day.gameNumber} className={`${day.id?'scheduled':''} ${day.gameNumber===gameNumber?'today':''}`} onClick={()=>setGameNumber(day.gameNumber)}><b>{day.gameNumber}</b><span>{day.icon||'·'}</span><small>{day.name||'Open Night'}</small></button>)}</div></section>}
+    {tab==='history'&&<section className="card league-office-world"><div className="office-section-head"><div><span>HISTORY & RECORDS</span><h2>Permanent League Memory</h2><p>Add the simulated/classic moments the automatic game history cannot know.</p></div><div><button onClick={addHistory}>Add History Event</button><button onClick={addRecord}>Add Custom Record</button><button onClick={addAchievement}>Add Achievement</button></div></div><div className="office-world-grid"><div><span>Manual Events</span><strong>{(extras.manualEvents||[]).length}</strong><small>league/franchise moments</small></div><div><span>Custom Records</span><strong>{(extras.customRecords||[]).length}</strong><small>manual record-book entries</small></div><div><span>Achievements</span><strong>{(extras.achievements||[]).length}</strong><small>franchise cabinet honors</small></div><div><span>Classic Games</span><strong>{(extras.manualClassics||[]).length}</strong><small>simulated classics saved</small></div></div></section>}
+    {tab==='world'&&<section className="card league-office-world"><div className="office-section-head"><div><span>MEDIA & WORLD</span><h2>Living Universe Controls</h2><p>Branding, narratives and presentation controls for the simulated public world.</p></div><div><button onClick={setBrand}>Edit League Identity</button><button onClick={addStoryline}>Add Storyline</button><button onClick={addCommentary}>Add Commentary</button><button onClick={addWorldMoment}>Trigger World Moment</button></div></div><div className="office-world-grid"><div><span>Official League</span><strong>{extras.officialLeagueName||'Super Mega Baseball League'}</strong><small>@{extras.officialLeagueAbbr||'SMBL'}</small></div><div><span>Promotion Nights</span><strong>{Object.keys(extras.gameNightSchedule||{}).length}</strong><small>of 40 game days scheduled</small></div><div><span>Storylines</span><strong>{(extras.storylines||[]).length}</strong><small>tracked league narratives</small></div><div><span>Commentary Notes</span><strong>{(extras.commentary||[]).length}</strong><small>manual broadcast notes</small></div></div></section>}
+  </div>;
+}

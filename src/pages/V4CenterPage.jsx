@@ -3,6 +3,7 @@ import { getTeamColorsByAbbr } from '../config/teamColors';
 import { buildLeagueRecords } from '../utils/recordsUtils';
 import { buildDynasties } from '../utils/universeUtils';
 import { buildPlayerCareerBoard, buildHeadToHead } from '../utils/historyUtils';
+import { makeSafePlayoffBracket } from '../utils/playoffUtils';
 import {
   buildAnchorPicks, buildBestGames, buildCinderellaRuns, buildFakeFanPolls,
   buildFirstMilestones, buildGameExcitement, buildGamesThatMatter, buildLeagueFirsts,
@@ -47,6 +48,15 @@ export default function V4CenterPage({ctx}){
   const nicknames=useMemo(()=>buildTeamNicknames(metrics),[metrics]);
   const careers=useMemo(()=>buildPlayerCareerBoard(data.players||[],data.seasonHistory||[]),[data.players,data.seasonHistory]);
   const rivalries=useMemo(()=>buildHeadToHead(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
+  const bannerHistory=useMemo(()=>[...(data.seasonHistory||[])].reverse().map((season,index)=>{
+    const bracket=makeSafePlayoffBracket(season.playoffBracket);
+    const seasonTeams=season.teams||[];
+    const team=(id)=>seasonTeams.find(t=>t.id===id)||teams.find(t=>t.id===id)||null;
+    const al=team(bracket.al?.lc?.winnerTeamId);
+    const nl=team(bracket.nl?.lc?.winnerTeamId);
+    const champ=team(season.championTeamId||bracket.finals?.winnerTeamId);
+    return {id:season.id||`season-${index}`,name:season.name||`Season ${index+1}`,al,nl,champ};
+  }),[data.seasonHistory,teams]);
   const currentRivalry=currentGame?.awayTeamId&&currentGame?.homeTeamId?rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)):null;
   const avgGames=teams.length?teams.reduce((s,t)=>s+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0;
   const midseason=avgGames>=18&&avgGames<=24;
@@ -97,7 +107,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className="v4-page">
     <section className={`card v4-hero v4-theme-${theme.toLowerCase().replace(/\s+/g,'-')}`}>
-      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.0</div><h1>League Command Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
+      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.12</div><h1>League Command Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
       <div className="v4-hero-pills"><Pill tone="live">V4 LIVE</Pill><Pill>{theme}</Pill><Pill>{(data.games||[]).length} games stored</Pill><Pill>{(data.seasonHistory||[]).length} seasons archived</Pill></div>
     </section>
     <nav className="v4-tabbar">{TABS.map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
@@ -121,8 +131,9 @@ export default function V4CenterPage({ctx}){
     </div>}
 
     {tab==='legacy'&&<div className="v4-stack">
-      <section className="card"><SectionTitle kicker="BANNER ROOM" title="Every Pennant Has a Story" detail="World Series, league pennants, division crowns and #1 seeds from the archive."/>
-        <div className="v4-banner-room">{records.teamStats.filter(t=>t.championships||t.wsAppearances||t.divisionTitles||t.topSeeds).sort((a,b)=>b.championships-a.championships||b.wsAppearances-a.wsAppearances).map(t=><div className="v4-banner-cluster" key={t.teamId}><strong>{t.abbr}</strong><div>{t.championships>0&&<span className="gold">🏆 {t.championships}× WORLD</span>}{t.wsAppearances>0&&<span>🚩 {t.wsAppearances}× PENNANT</span>}{t.divisionTitles>0&&<span>DIV {t.divisionTitles}</span>}{t.topSeeds>0&&<span>#1 {t.topSeeds}</span>}</div></div>)}</div>
+      <section className="card v412-banner-hall"><SectionTitle kicker="HALL OF BANNERS & AWARDS" title="Pennants on the Wall. Trophies in the Case." detail="A horizontal season-by-season hall modeled after the physical display: league winners earn banners; the World Series winner gets the trophy."/>
+        {bannerHistory.length?<div className="v412-banner-corridor">{bannerHistory.map(season=><article className="v412-season-hardware" key={season.id}><div className="v412-season-label"><small>ARCHIVED</small><strong>{season.name}</strong></div><div className="v412-pennant-row"><div className="v412-pennant al"><span>AMERICAN LEAGUE</span><strong>{season.al?.abbr||'TBD'}</strong><small>LEAGUE CHAMPION</small></div><div className="v412-pennant nl"><span>NATIONAL LEAGUE</span><strong>{season.nl?.abbr||'TBD'}</strong><small>LEAGUE CHAMPION</small></div></div><div className="v412-world-trophy"><span>🏆</span><div><small>WORLD SERIES CHAMPION</small><strong>{season.champ?.abbr||'TBD'}</strong><p>{season.champ?`${season.champ.city||''} ${season.champ.name||''}`.trim():'Awaiting archive'}</p></div></div></article>)}</div>:<Empty>Archive a completed postseason and this hall will begin filling itself.</Empty>}
+        <div className="v412-hall-summary">{records.teamStats.filter(t=>t.championships||t.wsAppearances).sort((a,b)=>b.championships-a.championships||b.wsAppearances-a.wsAppearances).map(t=><div key={t.teamId}><strong>{t.abbr}</strong><span>🏆 {t.championships||0} · 🚩 {t.wsAppearances||0}</span></div>)}</div>
       </section>
       <section className="card"><SectionTitle kicker="TROPHY MAP" title="League Hardware Map"/><div className="v4-trophy-map">{teams.map(t=>{const s=records.teamStats.find(x=>x.teamId===t.id)||{};return <div key={t.id} className={s.championships?'has-title':''}><TeamChip team={t}/><strong>{s.championships||0}</strong><small>titles</small><span>{s.playoffAppearances||0} PO · {s.wsAppearances||0} WS</span></div>})}</div></section>
       <div className="v4-grid-3"><div className="card"><SectionTitle kicker="CINDERELLA RUNS" title="Underdogs Who Wouldn't Leave"/>{cinderellas.length?cinderellas.map((x,i)=><div className="v4-list-row" key={i}><strong>#{x.seed} {x.team?.abbr||'TBD'}</strong><span>{x.season} · {x.type}</span></div>):<Empty>No 5–8 seed has reached the World Series in archived data yet.</Empty>}</div><div className="card"><SectionTitle kicker="DYNASTY SCORE" title="League Royalty"/>{dynasties.slice(0,8).map((d,i)=><div className="v4-ranking" key={d.teamId}><b>#{i+1}</b><strong>{d.abbr}</strong><span>{d.dynastyScore} pts · {d.championships} titles</span></div>)}</div><div className="card"><SectionTitle kicker="TEAM ERAS" title="Windows of Contention"/>{eras.slice(0,8).map((e,i)=><div className="v4-list-row" key={i}><strong>{e.abbr}</strong><span>{e.start} → {e.end} · {e.playoffs} PO · {e.titles} titles</span></div>)}</div></div>

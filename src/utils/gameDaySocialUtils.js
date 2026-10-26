@@ -191,7 +191,14 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
       `Tonight's matchup is set: ${foe.abbr} vs ${team.abbr}. Gates are open — come make some noise.`,
       `Game day gear is live in the ${team.abbr} Team Store. Rep the colors from first pitch to final out.`,
       `${(rivalry?.heat||0)>=45?'Rivalry night. ':''}Limited game-day ticket inventory is available now.`,
-      `Warmups are underway. Drop your score prediction below and get ready for ${team.abbr} baseball.`
+      `Warmups are underway. Drop your score prediction below and get ready for ${team.abbr} baseball.`,
+      `The lights are on, the gates are busy, and ${team.abbr} baseball is almost here.`,
+      `Tonight's essentials: your colors, your voice, and absolutely no reasonable expectations.`,
+      `First pitch is coming. Limited seats remain for fans still making last-minute decisions.`,
+      `New game-day arrivals just hit the Team Store. Yes, we noticed you looking.`,
+      `Welcome back to the ballpark. Make some noise when the club takes the field.`,
+      `Pregame roll call: where are you watching ${team.abbr} tonight?`,
+      `The concourse is filling up. The countdown to first pitch is officially on.`
     ];
     if(promo)promoLines.unshift(`${promo.icon||'🎟️'} ${promo.name} tonight. ${promo.giveaway||'Special game-day event'} — arrive early.`);
     return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(promoLines,`${key}-promo`),time:'pregame'};
@@ -200,10 +207,18 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
     const won=game.winnerTeamId===team.id||(team.id===game.awayTeamId?safe(game.awayScore)>safe(game.homeScore):safe(game.homeScore)>safe(game.awayScore));
     const lines=won?[
       `FINAL: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. That's a ${team.abbr} WIN.`,
-      `W secured. Highlights are rolling and the ${team.abbr} postgame collection is live in the Team Store.`
+      `W secured. Highlights are rolling and the ${team.abbr} postgame collection is live in the Team Store.`,
+      `That's ballgame. Thank you for bringing the noise from first pitch to final out.`,
+      `WIN. Save the scorecard, replay the highlights, and we'll see you next game.`,
+      `Another one for the win column. Game-used emotions may not be returned.`,
+      `Postgame shop is open. Celebrate responsibly. Or don't. We understand.`
     ]:[
       `FINAL: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. We'll be back.`,
-      `Final from the ballpark. Thank you to every ${team.abbr} fan who showed up and stayed loud.`
+      `Final from the ballpark. Thank you to every ${team.abbr} fan who showed up and stayed loud.`,
+      `Not our night. Appreciate everyone who stayed with us to the final out.`,
+      `Final. We turn the page and get ready for the next one.`,
+      `Thank you, ${team.abbr} fans. Same colors, next game, fresh chance.`,
+      `The result stings. The next first pitch is already waiting.`
     ];
     return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-final`),time:'postgame'};
   }
@@ -228,6 +243,11 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
       `Stay with us. ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))} — ${inningText(game)}.`,
       `${team.abbr} game-day merch is available now in the Team Store.`,
       `${state?.atmosphere||'GAME DAY'} energy tonight. Keep it loud, ${team.abbr} fans.`,
+      `Midgame check-in: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. Plenty of baseball left.`,
+      `Spotted around the park: a whole lot of ${team.abbr} colors. Keep them coming.`,
+      `Need a late-game layer? Team Store pickup stays open through the final innings.`,
+      `Tonight's crowd has been on it from the first pitch.`,
+      `Tag your game-day view. We are collecting the best fan photos tonight.`,
       ...(promo?[`${promo.icon||'🎟️'} ${promo.name} is happening tonight. ${promo.giveaway||'Check the concourse for details.'}`]:[])
     ];
     return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(slow,`${key}-slow`),time:'live'};
@@ -277,7 +297,7 @@ function ambientGameDayPost(team,foe,phase,bucket,slot,promo){
   const categories=['stadium','home','work','food','merch','family','travel','casual','oldhead','newfan','superstition','pets','quiet'];
   let category=categories[(hash(`${team.id}-${bucket}-${slot}`)+bucket+slot)%categories.length];
   if(promo?.id==='dog')category='pets';
-  if(promo?.type==='giveaway')category=slot%2?'merch':'stadium';
+  if(promo?.type==='giveaway')category=slot%3===0?'reseller':slot%3===1?'collector':'merch';
   const identities={
     stadium:['Upper Deck Correspondent',`@Section${100+((hash(team.id)+slot)%300)}`,'AT THE PARK'],
     home:['Couch Scorekeeper',`@${team.abbr}FromHome`,'WATCHING AT HOME'],
@@ -291,6 +311,24 @@ function ambientGameDayPost(team,foe,phase,bucket,slot,promo){
     newfan:['New to Baseball',`@LearningTheGame`,'NEW FAN'],
     superstition:[`${team.abbr} Rally Rituals`,`@DontMoveTheHat`,'SUPERSTITIOUS'],
     pets:['Ballpark Dogs',`@DogsLoveBaseball`,'PET ACCOUNT'],
+    parking:['Lot C Dispatch',`@ParkingLotBaseball`,'PARKING LOT'],
+    gates:['Gate Line Report',`@GateLineReport`,'AT THE GATES'],
+    seats:['Section Neighbors',`@SectionNeighbors`,'IN THE SEATS'],
+    reseller:['Giveaway Market',`@GateFlippers`,'RESELLER WATCH'],
+    collector:['Promo Collector',`@GiveawayTracker`,'COLLECTOR'],
+    vendor:['Concourse Vendor',`@HotDogGuy118`,'STADIUM VENDOR'],
+    localbiz:['Neighborhood Baseball',`@LocalGameDay`,'LOCAL BUSINESS'],
+    mascot:['Mascot Watch',`@MascotWatch`,'MASCOT DESK'],
+    foulball:['Foul Ball Patrol',`@FoulBallPatrol`,'BALLPARK CHAOS'],
+    watchparty:['Watch Party',`@GameOnEveryScreen`,'WATCH PARTY'],
+    transit:['Transit to the Park',`@TrainFullOfJerseys`,'GETTING THERE'],
+    uniforms:['Uniform Department',`@UniformDiscourse`,'UNIFORM NERD'],
+    autograph:['Rail Crew',`@PregameAutographs`,'AUTOGRAPH HUNTER'],
+    seasonticket:['Same Seats Society',`@SameSeatsEveryGame`,'SEASON TICKET HOLDER'],
+    photos:['Ballpark Frames',`@BallparkFrames`,'STADIUM PHOTOGRAPHY'],
+    wave:['Wave Discourse',`@WaveDebate`,'IMPORTANT NONSENSE'],
+    scoreboard:['Big Screen Watch',`@ScoreboardMoments`,'IN-GAME ENTERTAINMENT'],
+    callin:['Postgame Call-In',`@PhoneLinesOpen`,'RADIO CALLER'],
     quiet:['The Cheap Seats',`@CheapSeatsChat`,'FAN CHAT'],
   };
   const [name,handle,badge]=identities[category]||identities.quiet;

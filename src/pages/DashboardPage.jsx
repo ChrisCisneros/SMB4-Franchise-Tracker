@@ -15,6 +15,7 @@ import { buildLivingFeed } from "../utils/livingWorldUtils";
 import { buildGameDaySocial } from "../utils/gameDaySocialUtils";
 import GameDaySocial from "../components/GameDaySocial";
 import { getTeamColorsByAbbr } from "../config/teamColors";
+import { buildWorldState } from "../utils/cultureUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -47,6 +48,7 @@ export default function DashboardPage({ ctx }) {
   const livingFeed = useMemo(()=>buildLivingFeed(data,teams,playoffPicture,dashboardClock,favoriteTeam?.id).slice(0,3),[data,teams,playoffPicture,dashboardClock,favoriteTeam?.id]);
   const gameDaySocial = useMemo(()=>buildGameDaySocial(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
+  const worldState = useMemo(()=>buildWorldState(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
   const dashboardMerch = merchPool.length ? Array.from({length:Math.min(3,merchPool.length)},(_,i)=>merchPool[(merchSlide+i)%merchPool.length]) : [];
@@ -123,7 +125,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.7</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.12</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -133,6 +135,7 @@ export default function DashboardPage({ ctx }) {
         <div className="v3-status-pills"><MiniPill tone="live">V4 LIVE</MiniPill><MiniPill>{gameRecords.games.length} archived games</MiniPill>{openingCountdown!==null&&openingCountdown>=0&&<MiniPill>{openingCountdown===0?'Opening Day':`${openingCountdown} days to Opening Day`}</MiniPill>}{defendingChampion&&<MiniPill tone="gold">🏆 {defendingChampion.abbr} defending champ</MiniPill>}</div>
       </div>
     </section>
+    <section className="dashboard-world-pulse"><div className="dashboard-world-live"><i/> WORLD PULSE</div><div className="dashboard-world-moments">{worldState.moments.map((m,i)=><span key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</span>)}</div><div className="dashboard-world-tags">{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
 
     <section className="dashboard-universe-plaza">
       <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>THE HOME OF YOUR LEAGUE</small></div>

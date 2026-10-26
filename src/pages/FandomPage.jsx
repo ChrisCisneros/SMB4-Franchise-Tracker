@@ -5,6 +5,7 @@ import { buildFanClubs,buildFanTraditions,buildLegacyDebates,buildLivingFeed,bui
 import { buildGameDaySocial } from '../utils/gameDaySocialUtils';
 import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,buildGameNightCalendar,getScheduledGameNight } from '../utils/gameNightUtils';
 import GameDaySocial from '../components/GameDaySocial';
+import { buildBallparkCulture,buildCultureAwards,buildCultureTrends,buildFanSurvey,buildGameThreadArchive,buildGiveawayMarket,buildLocalBusinesses,buildSocialGrowth,buildTeamCultureProfiles,buildTicketMarket,buildWorldState } from '../utils/cultureUtils';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,value))}%`}}/></div>}
@@ -12,7 +13,7 @@ const fmtPct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const shortNum=n=>n>=1000000?`${(n/1000000).toFixed(1)}M`:n>=1000?`${(n/1000).toFixed(1)}K`:String(n||0);
 
 export default function FandomPage({ctx}){
-  const {data,teams,playoffPicture,favoriteTeam,setData,syncLeagueExtrasToFirebase}=ctx;
+  const {data,teams,playoffPicture,favoriteTeam,setData,syncLeagueExtrasToFirebase,controlsUnlocked,setPage}=ctx;
   const [now,setNow]=useState(Date.now());
   const [teamId,setTeamId]=useState('');
   const [merchOffset,setMerchOffset]=useState(0);
@@ -48,6 +49,21 @@ export default function FandomPage({ctx}){
   const gameNightCalendar=useMemo(()=>buildGameNightCalendar(data,teams),[data,teams]);
   const selectedGameNight=getScheduledGameNight(data,promoGame);
 
+  const worldState=useMemo(()=>buildWorldState(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
+  const ballparkCulture=useMemo(()=>buildBallparkCulture(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const cultureAwards=useMemo(()=>buildCultureAwards(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const localBusinesses=useMemo(()=>buildLocalBusinesses(teams),[teams]);
+  const giveawayMarket=useMemo(()=>buildGiveawayMarket(data,teams),[data,teams]);
+  const selectedCulture=ballparkCulture.find(x=>x.team.id===selectedId);
+  const teamCultureProfiles=useMemo(()=>buildTeamCultureProfiles(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const selectedProfile=teamCultureProfiles.find(x=>x.team.id===selectedId);
+  const ticketMarket=useMemo(()=>buildTicketMarket(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const selectedTickets=ticketMarket.find(x=>x.team.id===selectedId);
+  const socialGrowth=useMemo(()=>buildSocialGrowth(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const fanSurvey=useMemo(()=>buildFanSurvey(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const cultureTrends=useMemo(()=>buildCultureTrends(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const threadArchive=useMemo(()=>buildGameThreadArchive(data,teams),[data,teams]);
+
   const saveGameNight=(gameNumber,promo)=>{
     const nextExtras={...(data.leagueExtras||{}),gameNightSchedule:{...(data.leagueExtras?.gameNightSchedule||{})}};
     if(promo)nextExtras.gameNightSchedule[String(gameNumber)]={...promo,gameNumber:Number(gameNumber),source:promo.source||'manual'};
@@ -64,7 +80,7 @@ export default function FandomPage({ctx}){
 
   return <div className="fandom-page" style={fandomStyle}>
     <section className="card fandom-hero">
-      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.11 · BALLPARK LIFE</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
+      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.12 · THE CULTURE UPDATE</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
       <div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>Day {pulse.dayInWeek} of 5 · {pulse.phase}</span></div>
     </section>
 
@@ -73,10 +89,36 @@ export default function FandomPage({ctx}){
     </section>
 
     <section className="card fan-game-night-planner">
-      <div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2><p className="fan-section-subtitle">Assign any of the 40 game days a theme manually, or let Franchise Central surprise you. Scheduled nights feed the social chatter, official club posts, merch buzz and simulated crowd interest.</p></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label><button type="button" onClick={assignRandomNight}>🎲 Surprise Me</button><button type="button" onClick={autoFillSeason}>✨ Auto-Fill Season</button>{selectedGameNight&&<button type="button" className="ghost" onClick={()=>saveGameNight(promoGame,null)}>Clear</button>}</div></div>
-      <div className="fan-promo-picker">{GAME_NIGHT_BANK.map(p=><button type="button" key={p.id} className={selectedGameNight?.id===p.id?'active':''} onClick={()=>saveGameNight(promoGame,{...p,source:'manual'})}><span>{p.icon}</span><b>{p.name}</b><small>{p.giveaway}</small></button>)}</div>
-      <div className="fan-promo-calendar">{gameNightCalendar.map(day=><button type="button" key={day.gameNumber} className={`${day.id?'scheduled':''} ${day.gameNumber===pulse.day?'today':''}`} onClick={()=>setPromoGame(day.gameNumber)}><b>{day.gameNumber}</b><span>{day.icon||'·'}</span><small>{day.name||'Open Night'}</small></button>)}</div>
+      <div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2><p className="fan-section-subtitle">The public schedule is here for fans to browse. Promotions feed chatter, official posts, merch buzz and simulated crowd interest.</p></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label>{controlsUnlocked?<><button type="button" onClick={()=>setPage?.('office')}>Open League Office →</button></>:<span className="fan-calendar-lock">🔒 League Office controlled</span>}</div></div>
+      {selectedGameNight&&<div className="fan-tonight-promo"><span>{selectedGameNight.icon||'🎟️'}</span><div><small>GAME {promoGame}</small><strong>{selectedGameNight.name}</strong><p>{selectedGameNight.giveaway||'Special game-day event'}</p></div></div>}
+      <div className="fan-promo-calendar">{gameNightCalendar.map(day=><button type="button" key={day.gameNumber} className={`${day.id?'scheduled':''} ${day.gameNumber===promoGame?'today':''}`} onClick={()=>setPromoGame(day.gameNumber)}><b>{day.gameNumber}</b><span>{day.icon||'·'}</span><small>{day.name||'Open Night'}</small></button>)}</div>
     </section>
+
+    <section className="card culture-world-board">
+      <div className="fan-section-head"><div><div className="fan-kicker">WORLD PULSE</div><h2>What's Happening Around the Baseball World</h2><p className="fan-section-subtitle">Shared culture moments give Dashboard, Fandom and the public league the same heartbeat.</p></div><div className="culture-trends">{worldState.trending.map(x=><span key={x}>{x}</span>)}</div></div>
+      <div className="culture-moment-grid">{worldState.moments.map((m,i)=><article key={`${m.type}-${i}`}><span>{m.icon}</span><div><small>{m.type}</small><strong>{m.title}</strong><p>{m.detail}</p></div></article>)}</div>
+    </section>
+
+    <div className="culture-grid-3">
+      <section className="card culture-ballpark-card"><div className="fan-kicker">BALLPARK IDENTITY</div><h2>{selected?.team?.abbr||'Club'} Fan Culture</h2>{selectedCulture?<><div className="culture-big-label">{selectedCulture.identity}</div><div className="culture-meter-row"><span>Loudness</span><Meter value={selectedCulture.loud}/><b>{selectedCulture.loud}</b></div><div className="culture-meter-row"><span>Loyalty</span><Meter value={selectedCulture.loyalty}/><b>{selectedCulture.loyalty}</b></div><div className="culture-meter-row"><span>Food Buzz</span><Meter value={selectedCulture.food}/><b>{selectedCulture.food}</b></div><div className="culture-meter-row"><span>Friendly</span><Meter value={selectedCulture.friendly}/><b>{selectedCulture.friendly}</b></div></>:null}</section>
+      <section className="card culture-market-card"><div className="fan-kicker">SECONDARY MARKET</div><h2>Giveaway Gremlins</h2>{giveawayMarket.length?giveawayMarket.slice(0,5).map(x=><div className="culture-market-row" key={`${x.id}-${x.gameNumber}`}><span>{x.icon||'🎁'}</span><div><strong>Game {x.gameNumber} · {x.name}</strong><small>{x.scarcity} · {x.listings} fake listings</small></div><b>{x.marketValue}</b></div>):<p className="muted">Schedule giveaway nights and the collector market will wake up.</p>}</section>
+      <section className="card culture-business-card"><div className="fan-kicker">LOCAL BASEBALL ECONOMY</div><h2>Businesses in the Conversation</h2>{localBusinesses.filter(x=>!selectedId||x.team.id===selectedId).slice(0,4).map(x=><div className="culture-business-post" key={x.id}><strong>{x.name}</strong><small>{x.handle} · {x.type}</small><p>{x.text}</p></div>)}</section>
+    </div>
+
+    <section className="card culture-awards-card"><div className="fan-section-head"><div><div className="fan-kicker">CULTURE POWER BOARD</div><h2>If the Season Ended Tonight...</h2></div></div><div className="culture-awards-grid">{cultureAwards.map(x=><div key={x.award}><small>{x.award}</small><strong>{x.winner?.team?.abbr||'—'}</strong><span>{x.value}</span></div>)}</div></section>
+
+    <div className="culture-grid-3">
+      <section className="card culture-identity-card"><div className="fan-kicker">FANBASE IDENTITY</div><h2>{selected?.team?.abbr||'Club'} Culture File</h2>{selectedProfile?<div className="culture-identity-list"><div><span>Identity</span><strong>{selectedProfile.identity}</strong></div><div><span>Favorite Team to Beat</span><strong>{selectedProfile.favoriteOpponent?.abbr||'Still developing'}</strong></div><div><span>Public Enemy</span><strong>{selectedProfile.villain?.name||selectedProfile.hatedOpponent?.abbr||'Nobody yet'}</strong></div><div><span>Cult Hero</span><strong>{selectedProfile.hero?.name||'Waiting for a hero'}</strong></div><div><span>Fan Mood</span><strong>{selectedProfile.mood}</strong></div></div>:null}</section>
+      <section className="card culture-ticket-card"><div className="fan-kicker">TICKET & CROWD MARKET</div><h2>{selected?.team?.abbr||'Club'} Demand</h2>{selectedTickets?<><div className="culture-demand"><strong>{selectedTickets.demand}</strong><span>/100 · {selectedTickets.label}</span></div><Meter value={selectedTickets.demand}/><div className="culture-identity-list"><div><span>Sellout Streak</span><strong>{selectedTickets.selloutStreak||'—'}</strong></div><div><span>Road Invasion</span><strong>{selectedTickets.roadInvasion||0}%</strong></div></div></>:null}</section>
+      <section className="card culture-growth-card"><div className="fan-kicker">SOCIAL ACCOUNT GROWTH</div><h2>Who Owns the Timeline?</h2>{socialGrowth.slice(0,5).map(x=><div className="culture-growth-row" key={x.team.id}><TeamBadge team={x.team}/><div><strong>@{x.team.abbr}Faithful</strong><small>{x.reputation}</small></div><b>{shortNum(x.followers)}</b><em className={x.weekly>=0?'up':'down'}>{x.weekly>=0?'+':''}{x.weekly}/wk</em></div>)}</section>
+    </div>
+
+    <div className="culture-grid-2">
+      <section className="card culture-trend-card"><div className="fan-kicker">TRENDING AROUND THE LEAGUE</div><h2>Memes, Hashtags & Running Arguments</h2>{cultureTrends.map(x=><div className="culture-trend-row" key={x.tag}><strong>{x.tag}</strong><span>{x.status}</span><p>{x.detail}</p></div>)}</section>
+      <section className="card culture-survey-card"><div className="fan-kicker">ANNUAL FAN SURVEY · LIVE SAMPLE</div><h2>The Fans Have Opinions</h2><div className="culture-survey-grid">{fanSurvey.map(x=><div key={x.q}><small>{x.q}</small><strong>{x.winner}</strong><span>{x.detail}</span></div>)}</div></section>
+    </div>
+
+    <section className="card culture-thread-archive"><div className="fan-section-head"><div><div className="fan-kicker">GAME THREAD ARCHIVE</div><h2>The Internet Remembers</h2><p className="fan-section-subtitle">Recent finals get a cultural afterlife: peak simulated audience, drama level and thread identity.</p></div></div><div className="culture-thread-scroll">{threadArchive.length?threadArchive.map(x=><article key={x.id}><small>{x.label}</small><strong>{x.score}</strong><span>Peak watching {shortNum(x.peak)}</span><em>Drama {Math.min(100,Math.round(x.drama))}/100</em></article>):<p className="muted">Finalize games and the archive will start collecting game threads.</p>}</div></section>
 
     {gameDaySocial.phase!=='idle' && <div className="fandom-gameday-wrap"><GameDaySocial social={gameDaySocial} /></div>}
 

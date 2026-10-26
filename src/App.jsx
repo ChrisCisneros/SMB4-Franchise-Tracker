@@ -12,6 +12,7 @@ import LeagueRecordsPage from "./pages/LeagueRecordsPage";
 import NewsPage from "./pages/NewsPage";
 import V4CenterPage from "./pages/V4CenterPage";
 import FandomPage from "./pages/FandomPage";
+import ModeratorHubPage from "./pages/ModeratorHubPage";
 import LeagueHubPage from "./pages/LeagueHubPage";
 import BracketAdminPage from "./pages/BracketAdminPage";
 import AdminPage from "./pages/AdminPage";
@@ -923,6 +924,9 @@ function startAnimatedFieldPlay(category, type) {
       : fieldRunnerMovesForPlay(currentGame, type),
     manualRunnerOverride,
     side: currentGame.half === "Top" ? "away" : "home",
+    battingSide: currentGame.half === "Top" ? "away" : "home",
+    fieldingSide: currentGame.half === "Top" ? "home" : "away",
+    beneficiarySide: ["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"].includes(type) ? (currentGame.half === "Top" ? "home" : "away") : (currentGame.half === "Top" ? "away" : "home"),
     inning: currentGame.inning,
     half: currentGame.half,
   };
@@ -949,7 +953,7 @@ function startAnimatedFieldPlay(category, type) {
 
   const logDelay = fieldPlayLogDelay(type, kind);
   fieldPlayLogTimerRef.current = window.setTimeout(() => {
-    applyQuickPlay(category, type, { preserveRunners: manualRunnerOverride });
+    applyQuickPlay(category, type, { preserveRunners: manualRunnerOverride, battingSide: event.battingSide, fieldingSide: event.fieldingSide, beneficiarySide: event.beneficiarySide, inning: event.inning, half: event.half });
     fieldPlayLogTimerRef.current = null;
   }, logDelay);
 
@@ -1337,16 +1341,16 @@ function isWorldSeriesGame(game) {
     const preserveRunners = Boolean(options.preserveRunners);
     const batterId = currentBatter?.id;
     commitGameUpdate((next) => {
-      const socialBattingSide = next.half === "Top" ? "away" : "home";
-      const socialFieldingSide = socialBattingSide === "away" ? "home" : "away";
+      const socialBattingSide = options.battingSide || (next.half === "Top" ? "away" : "home");
+      const socialFieldingSide = options.fieldingSide || (socialBattingSide === "away" ? "home" : "away");
       const offensiveTypes = new Set(["single","double","triple","homerun","walk","hitbypitch","error","sacfly"]);
       const defensiveTypes = new Set(["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"]);
-      const beneficiarySide = offensiveTypes.has(type) ? socialBattingSide : defensiveTypes.has(type) ? socialFieldingSide : socialBattingSide;
+      const beneficiarySide = options.beneficiarySide || (offensiveTypes.has(type) ? socialBattingSide : defensiveTypes.has(type) ? socialFieldingSide : socialBattingSide);
       const socialEventId = Date.now();
       next.fieldState = {
         ...defaultFieldState(),
         ...(next.fieldState || {}),
-        socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: next.inning, half: next.half },
+        socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: options.inning || next.inning, half: options.half || next.half },
       };
       const pitchCountTypes = new Set([
   "single",
@@ -1874,9 +1878,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.11</span>
+    <span className="version-pill version-pill-v3">v4.12</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.11 · Ballpark Life · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.12 · The Culture Update · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1898,11 +1902,7 @@ const dashboardStories = [
   <button className="v4-nav-button" onClick={() => setPage("v4")}>V4 Center</button>
   <button className="fandom-nav-button" onClick={() => setPage("fandom")}>Fandom</button>
 
-  {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
-  {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
-  {controlsUnlocked && <button onClick={() => setPage("daily")}>Daily</button>}
-  {controlsUnlocked && <button onClick={() => setPage("quick")}>Quick</button>}
-  {controlsUnlocked && <button onClick={() => setPage("bracketAdmin")}>Bracket Admin</button>}
+  {controlsUnlocked && <button className="league-office-nav-button" onClick={() => setPage("office")}>League Office</button>}
   
 </div>
 
@@ -1946,6 +1946,7 @@ const dashboardStories = [
       {page === "v4" && <V4CenterPage ctx={pageContext} />}
       {page === "fandom" && <FandomPage ctx={pageContext} />}
       {page === "league" && <LeagueHubPage ctx={pageContext} />}
+      {page === "office" && controlsUnlocked && <ModeratorHubPage ctx={pageContext} />}
       {page === "bracketAdmin" && controlsUnlocked && <BracketAdminPage ctx={pageContext} />}
 
       {page === "admin" && controlsUnlocked && <AdminPage ctx={pageContext} />}
