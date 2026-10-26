@@ -40,13 +40,20 @@ function close(game){return Math.abs(safe(game?.awayScore)-safe(game?.homeScore)
 function battingTeam(game,away,home){return game?.half==='Bottom'?home:away}
 function fieldingTeam(game,away,home){return game?.half==='Bottom'?away:home}
 function winningTeam(game,away,home){return safe(game?.awayScore)>safe(game?.homeScore)?away:safe(game?.homeScore)>safe(game?.awayScore)?home:null}
-function playType(game){return game?.fieldState?.playEvent?.type||''}
+function explicitEvent(game){return game?.fieldState?.playEvent||game?.fieldState?.runnerEvent||game?.fieldState?.cueEvent||null}
+function eventSide(game){return explicitEvent(game)?.side||null}
+function eventBattingTeam(game,away,home){const side=eventSide(game);return side==='away'?away:side==='home'?home:battingTeam(game,away,home)}
+function eventFieldingTeam(game,away,home){const side=eventSide(game);return side==='away'?home:side==='home'?away:fieldingTeam(game,away,home)}
+function playType(game){const p=game?.fieldState?.playEvent?.type;if(p)return p;const cue=game?.fieldState?.cueEvent?.kind;return ['strikeout','calledstrikeout'].includes(cue)?cue:''}
 function runnerEvent(game){return game?.fieldState?.runnerEvent||null}
 function runsOnPlay(game){return (game?.fieldState?.playEvent?.runnerMoves||[]).filter(m=>m?.scored).length+(runnerEvent(game)?.scored?1:0)}
 function playLabel(type){return ({homerun:'HOME RUN',single:'SINGLE',double:'DOUBLE',triple:'TRIPLE',strikeout:'STRIKEOUT',calledstrikeout:'CALLED STRIKEOUT',doubleplay:'DOUBLE PLAY',caughtstealing:'CAUGHT STEALING',walk:'WALK',hitbypitch:'HBP',error:'ERROR',sacfly:'SAC FLY',fielderschoice:"FIELDER'S CHOICE",flyout:'FLYOUT',groundout:'GROUNDOUT',lineout:'LINEOUT',popup:'POP OUT'})[type]||''}
 function eventKey(game){return `${game?.fieldState?.playEvent?.id||game?.fieldState?.runnerEvent?.id||game?.fieldState?.cueEvent?.id||0}-${game?.awayScore}-${game?.homeScore}-${game?.inning}-${game?.half}-${game?.outs}`}
+function eventToken(game){const e=explicitEvent(game);return e?.id?`event-${e.id}`:`state-${game?.awayScore}-${game?.homeScore}-${game?.inning}-${game?.half}-${game?.outs}`}
+function eventEndedHalf(game){const side=eventSide(game);if(!side)return false;const current=game?.half==='Bottom'?'home':'away';return side!==current&&safe(game?.outs)===0}
+function eventInningText(game){const e=explicitEvent(game);const n=safe(e?.inning)||safe(game?.inning)||1;const half=e?.half|| (e?.side==='home'?'Bottom':e?.side==='away'?'Top':game?.half);return `${half==='Bottom'?'Bottom':'Top'} ${n}`}
 function eventBeneficiary(game,away,home){
-  const type=playType(game); const batting=battingTeam(game,away,home); const fielding=fieldingTeam(game,away,home);
+  const type=playType(game); const batting=eventBattingTeam(game,away,home); const fielding=eventFieldingTeam(game,away,home);
   if(['single','double','triple','homerun','walk','hitbypitch','error','sacfly'].includes(type)||runsOnPlay(game)>0)return batting;
   if(['flyout','groundout','lineout','popup','strikeout','calledstrikeout','doubleplay','caughtstealing','pickoff1','pickoff2','pickoff3'].includes(type))return fielding;
   if(runnerEvent(game)?.source==='stolen-base')return batting;
@@ -54,7 +61,7 @@ function eventBeneficiary(game,away,home){
 }
 function isBigPlay(game){
   const type=playType(game); const scored=runsOnPlay(game)>0;
-  return ['homerun','triple','doubleplay'].includes(type)||scored||Boolean(game?.walkoffCandidate)||(late(game)&&close(game)&&['double','strikeout','calledstrikeout','caughtstealing'].includes(type))||(late(game)&&close(game)&&safe(game?.outs)>=2)||(safe(game?.inning)>=10)||Boolean(runnerEvent(game)?.scored);
+  return ['homerun','triple','doubleplay'].includes(type)||scored||Boolean(game?.walkoffCandidate)||(['strikeout','calledstrikeout'].includes(type)&&eventEndedHalf(game))||(late(game)&&close(game)&&['double','strikeout','calledstrikeout','caughtstealing'].includes(type))||(late(game)&&close(game)&&safe(game?.outs)>=2)||(safe(game?.inning)>=10)||Boolean(runnerEvent(game)?.scored);
 }
 function teamOfficial(team){return {name:`${team.city||''} ${team.name||team.abbr}`.trim(),handle:`@${team.abbr}Baseball`,badge:'✓ OFFICIAL TEAM',team,kind:'team-official',tone:'team-official'};}
 
@@ -64,40 +71,84 @@ function warmupLines(team,foe,rivalry,key){
     `Lineup card, snacks, unreasonable confidence. We are ready for ${team.abbr} baseball.`,
     `I have already decided this game will define my entire mood. Very healthy behavior.`,
     `${team.abbr} fans checking in. What are we feeling before first pitch?`,
-    `Warmups are underway and I am talking myself into a masterpiece.`
+    `Warmups are underway and I am talking myself into a masterpiece.`,
+    `I would like one calm baseball game. I understand this request will be ignored.`,
+    `Prediction: ${team.abbr} wins and I spend three hours pretending I was never worried.`,
+    `The pregame optimism has reached irresponsible levels.`,
+    `Checking in early so I can claim I believed before things got weird.`,
+    `Nothing has happened yet and I am already pacing. Baseball is back.`,
+    `I need first pitch immediately. The waiting is worse than the actual stress.`,
+    `Today's agenda: score first, add on, do not make me learn new forms of anxiety.`,
+    `Every fanbase thinks tonight is the night. Ours is obviously correct.`,
+    `Pregame take I may regret later: I like this matchup for ${team.abbr}.`,
+    `One clean first inning and I promise to become completely reasonable. Probably.`
   ];
-  if((rivalry?.heat||0)>=35)lines.push(`${foe.abbr} again. Good. I wanted the stressful version of baseball tonight.`);
+  if((rivalry?.heat||0)>=35)lines.push(`${foe.abbr} again. Good. I wanted the stressful version of baseball tonight.`,`Rivalry night means every harmless single will be treated like a declaration of war.`,`Saving screenshots now. Somebody is getting receipts after this one.`);
   return pick(lines,key);
 }
 function liveLines(team,foe,game,isBatting,key){
   const diff=team.id===game.awayTeamId?safe(game.awayScore)-safe(game.homeScore):safe(game.homeScore)-safe(game.awayScore);
-  const type=playType(game); const bases=occupied(game.bases); const runs=runsOnPlay(game); const lines=[];
-  if(type==='homerun'&&isBatting)lines.push(`THAT BALL IS GONE. ${team.abbr} TWITTER, PLEASE BE NORMAL FOR FIVE SECONDS.`);
-  if(type==='homerun'&&!isBatting)lines.push(`I would like to unsubscribe from home runs hit by ${foe.abbr}.`);
-  if(type==='triple'&&isBatting)lines.push(`A TRIPLE??? We are running until the earth stops spinning.`);
-  if(type==='double'&&isBatting&&late(game))lines.push(`That double just changed the whole inning. Keep pushing.`);
-  if(type==='single'&&isBatting&&runs)lines.push(`BASE HIT. RUN IN. Keep the line moving.`);
-  if(['strikeout','calledstrikeout'].includes(type)&&!isBatting)lines.push(type==='calledstrikeout'?`BACKWARDS K. Paint it and frame it.`:`BIG K. Needed every bit of that.`);
-  if(['strikeout','calledstrikeout'].includes(type)&&isBatting)lines.push(`You cannot leave that at-bat there. Reset and go get the next one.`);
-  if(type==='doubleplay'&&!isBatting)lines.push(`TURN TWO. Absolutely gorgeous.`);
-  if(type==='doubleplay'&&isBatting)lines.push(`A double play is a personal attack.`);
-  if(type==='caughtstealing'&&!isBatting)lines.push(`THROWN OUT. Do not run on us.`);
-  if(type==='caughtstealing'&&isBatting)lines.push(`Okay maybe we simply never speak of that steal attempt again.`);
-  if(runnerEvent(game)?.source==='stolen-base'&&isBatting)lines.push(runnerEvent(game)?.scored?`STEALING HOME??? ABSOLUTE CHAOS.`:`TAKE THE BAG. Love the aggression.`);
-  if(type==='walk'&&isBatting)lines.push(`Take your base. Make them pay for it.`);
-  if(type==='hitbypitch'&&isBatting)lines.push(`Free baserunner. Fine. Put it on the scoreboard.`);
-  if(type==='error'&&isBatting)lines.push(`Pressure creates mistakes. Keep moving.`);
-  if(game.walkoffCandidate&&team.id===game.homeTeamId)lines.push(`DID WE JUST WALK THIS OFF??? THE PLACE IS ERUPTING.`);
-  if(safe(game.inning)>=10)lines.push(`Extra innings. I have work tomorrow. Nobody involved cares.`);
-  if(late(game)&&close(game))lines.push(`${inningText(game)}. ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. My heart rate is not league approved.`);
-  if(bases>=2&&isBatting)lines.push(`${bases===3?'BASES LOADED':'Traffic everywhere'} with ${game.outs} out${game.outs===1?'':'s'}. Please cash this in.`);
-  if(bases>=2&&!isBatting)lines.push(`There are too many runners on base. I dislike this development.`);
-  if(diff>=4)lines.push(`I am choosing to enjoy this lead and absolutely not think about baseball's capacity for violence.`);
-  if(diff<=-4)lines.push(`Okay, the comeback starts with one baserunner. I have moved into bargaining.`);
-  if(diff>0&&late(game))lines.push(`Protect. The. Lead.`);
-  if(diff<0&&late(game))lines.push(`We need a rally immediately. Not in ten minutes. Now.`);
-  if(diff===0&&late(game))lines.push(`Tie game late. Nobody breathe.`);
-  if(!lines.length)lines.push(isBatting?`Every pitch feels like something is about to happen.`:`Need a clean inning here. No nonsense.`);
+  const type=playType(game); const bases=occupied(game.bases); const runs=runsOnPlay(game); const lines=[]; const ended=eventEndedHalf(game);
+  if(type==='homerun'&&isBatting)lines.push(
+    `THAT BALL IS GONE. ${team.abbr} INTERNET, PLEASE BE NORMAL FOR FIVE SECONDS.`,
+    `NO DOUBTER. I stood up before it landed.`,
+    `GOODBYE BASEBALL. HELLO UNREASONABLE CONFIDENCE.`,
+    `I am watching that swing twelve more times. Minimum.`,
+    `The sound off the bat told the entire story.`,
+    `Put that baseball on a missing-person poster.`,
+    `That thing left in a HURRY.`,
+    `Somebody check on the people who were still finding their seats.`,
+    `We are so unbelievably back.`,
+    `I have seen enough. Build the statue.`
+  );
+  if(type==='homerun'&&!isBatting)lines.push(
+    `I would like to unsubscribe from home runs hit by ${foe.abbr}.`,
+    `That pitch can never be thrown again. Please erase it from the playbook.`,
+    `Cool. Great. Love giving baseballs free air travel.`,
+    `I knew it was gone immediately and still watched in disbelief.`,
+    `Somewhere there was a better pitch selection. We did not choose it.`,
+    `I am choosing to blame the dimensions, the weather, and several cosmic forces.`,
+    `Well that escalated quickly.`,
+    `Can we get the ball back and pretend none of that happened?`
+  );
+  if(type==='triple'&&isBatting)lines.push(`A TRIPLE??? We are running until the earth stops spinning.`,`Three bags! Baseball needs more triples and specifically more triples for us.`,`That ball found grass and suddenly everybody was sprinting.`);
+  if(type==='double'&&isBatting)lines.push(`Two bags. Keep the pressure on.`,`That double opened this inning right up.`,`Gap shot! Now make it hurt.`);
+  if(type==='single'&&isBatting&&runs)lines.push(`BASE HIT. RUN IN. Keep the line moving.`,`That is a beautiful little piece of situational baseball.`,`Nothing fancy. Just put the run on the board.`);
+  if(['strikeout','calledstrikeout'].includes(type)&&!isBatting){
+    if(ended)lines.push(`K TO END THE INNING. Exhale.`,`STRIKE THREE. INNING OVER. That is how you shut the door.`,`Huge K. Threat erased. Everybody unclench.`,`Needed one pitch. Got one pitch. Side retired.`,`That inning was trying to become a problem. Not anymore.`);
+    lines.push(type==='calledstrikeout'?`BACKWARDS K. Paint it and frame it.`:`BIG K. Needed every bit of that.`,`Sit down. Thank you very much.`,`That strikeout had some ATTITUDE on it.`,`Exactly when we needed a punchout.`,`Filthy. Completely unfair. I approve.`,`Two strikes and then goodnight.`,`That at-bat belonged to the defense from the jump.`);
+  }
+  if(['strikeout','calledstrikeout'].includes(type)&&isBatting){
+    if(ended)lines.push(`Stranded them. That one hurts.`,`Ending the inning like THAT is going to bother me for a while.`,`We had a chance and watched it disappear. Cool cool cool.`);
+    lines.push(`You cannot leave that at-bat there. Reset and go get the next one.`,`I had a whole rally planned in my head and then that happened.`,`Tip the cap, complain quietly, move on.`,`That was not the ending I ordered for this plate appearance.`,`Okay. New inning, new emotional damage.`,`I would like that at-bat back, please.`);
+  }
+  if(type==='doubleplay'&&!isBatting)lines.push(`TURN TWO. Absolutely gorgeous.`,`Two for the price of one. Gorgeous baseball.`,`That double play just saved everybody's blood pressure.`,`Pitcher's best friend reporting for duty.`,`ROLL IT. Threat deleted.`);
+  if(type==='doubleplay'&&isBatting)lines.push(`A double play is a personal attack.`,`Nothing makes a rally evaporate faster. Pain.`,`The inning had dreams. The double play had other plans.`,`Delete that ground ball from history.`);
+  if(type==='caughtstealing'&&!isBatting)lines.push(`THROWN OUT. Do not run on us.`,`Nope. Bag closed.`,`Caught stealing and the vibes improve immediately.`,`That jump was not good enough. Sit down.`);
+  if(type==='caughtstealing'&&isBatting)lines.push(`Okay maybe we simply never speak of that steal attempt again.`,`Aggression is fun until the umpire says out.`,`That was ambitious. I will leave it at that.`);
+  if(runnerEvent(game)?.source==='stolen-base'&&isBatting)lines.push(runnerEvent(game)?.scored?`STEALING HOME??? ABSOLUTE CHAOS.`:`TAKE THE BAG. Love the aggression.`,`RUN. RUN. RUN. That is free real estate.`,`Speed changes everything.`);
+  if(type==='walk'&&isBatting)lines.push(`Take your base. Make them pay for it.`,`Four balls is a hit in my heart.`,`Free baserunner. I accept this gift.`,`Good eye. Now cash it in.`);
+  if(type==='hitbypitch'&&isBatting)lines.push(`Free baserunner. Fine. Put it on the scoreboard.`,`Ow. Also: first base.`,`Not how I wanted the rally to start, but we take those.`);
+  if(type==='error'&&isBatting)lines.push(`Pressure creates mistakes. Keep moving.`,`Thank you for the extra out. Please make it expensive.`,`Baseball gods just handed us something. Do not waste it.`);
+  if(game.walkoffCandidate&&team.id===game.homeTeamId)lines.push(`DID WE JUST WALK THIS OFF??? THE PLACE IS ERUPTING.`,`EVERYBODY IS RUNNING ONTO THE FIELD. WHAT JUST HAPPENED.`,`BALLGAME. ABSOLUTE SCENES.`);
+  if(safe(game.inning)>=10)lines.push(`Extra innings. I have work tomorrow. Nobody involved cares.`,`Free baseball, paid anxiety.`,`We have entered the portion of the evening where every pitch feels illegal.`);
+  if(late(game)&&close(game))lines.push(`${inningText(game)}. My heart rate is not league approved.`,`Every pitch has become a referendum on my happiness.`,`This is objectively great baseball and subjectively terrible for me.`);
+  if(bases>=2&&isBatting)lines.push(`${bases===3?'BASES LOADED':'Traffic everywhere'} with ${game.outs} out${game.outs===1?'':'s'}. Please cash this in.`,`This inning is begging for the big hit.`,`The table is set. Somebody eat.`);
+  if(bases>=2&&!isBatting)lines.push(`There are too many runners on base. I dislike this development.`,`One clean pitch away from peace. Please.`,`This is where I begin negotiating with the baseball gods.`);
+  if(diff>=4)lines.push(`I am choosing to enjoy this lead and absolutely not think about baseball's capacity for violence.`,`Comfortable lead. Allegedly.`,`I would like several more insurance runs because I know this sport.`);
+  if(diff<=-4)lines.push(`Okay, the comeback starts with one baserunner. I have moved into bargaining.`,`I've seen stranger things. Not many, but stranger things.`,`Just win the next inning. Then lie to me again.`);
+  if(diff>0&&late(game))lines.push(`Protect. The. Lead.`,`Six outs feel like sixty.`,`Insurance runs are not optional. They are emotional support.`);
+  if(diff<0&&late(game))lines.push(`We need a rally immediately. Not in ten minutes. Now.`,`Someone start the comeback montage.`,`One baserunner. Then another. Do not make this complicated.`);
+  if(diff===0&&late(game))lines.push(`Tie game late. Nobody breathe.`,`This is why we watch and also why we age.`,`One swing decides who gets to be unbearable online tonight.`);
+  if(!lines.length)lines.push(
+    isBatting?`Every pitch feels like something is about to happen.`:`Need a clean inning here. No nonsense.`,
+    isBatting?`Work the count. Find a mistake.`:`First-pitch strikes would improve my quality of life.`,
+    isBatting?`Just get somebody on and let the inning build itself.`:`No free passes. Make them earn everything.`,
+    isBatting?`The rally has to start somewhere.`:`Routine inning. I am asking for one routine inning.`,
+    isBatting?`I am once again requesting a baseball into the gap.`:`Attack the zone and let the defense work.`,
+    `This game has that weird quiet feeling before something happens.`,
+    `Baseball is ninety percent waiting for your next emotional emergency.`
+  );
   return pick(lines,key);
 }
 function postgameLines(team,foe,game,key){
@@ -106,17 +157,28 @@ function postgameLines(team,foe,game,key){
     `WIN COLUMN. ${team.abbr} fans can sleep happy tonight.`,
     `I do not care how pretty it was. Put the W on the board.`,
     `${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. Screenshot it. Save the receipts.`,
-    `Postgame mood: highlights on repeat.`
+    `Postgame mood: highlights on repeat.`,
+    `That was stressful for no reason and I loved every second of the ending.`,
+    `A win is a win is a win. See everyone in the standings screenshot.`,
+    `I will be completely normal about this victory until approximately never.`,
+    `Good teams bank wins. Tonight goes in the bank.`,
+    `Everybody who said it was over midway through the game: your posts have been archived.`,
+    `The vibes have been upgraded to immaculate.`
   ]:[
     `I have prepared a calm and rational postgame response: absolutely not.`,
     `Flush it. Tomorrow exists. Unfortunately so does the box score.`,
     `I will be analyzing every missed chance for the next several hours.`,
-    `Not the result. Still our team. See everyone next game.`
+    `Not the result. Still our team. See everyone next game.`,
+    `I know one loss is one loss. I am still going to stare at the ceiling about it.`,
+    `There were at least six moments where I said “this is the inning.” I was incorrect each time.`,
+    `Delete the tape, keep the lessons, never mention this to me again.`,
+    `Baseball gives and baseball takes. Tonight it mostly took.`,
+    `Tomorrow's lineup better arrive angry.`,
+    `The postgame show is just going to be me saying “why” for forty minutes.`
   ];
-  if(game.walkoff)lines.push(won?`A WALK-OFF. Nobody leave the ballpark. We live here now.`:`Walk-off losses should be illegal.`);
+  if(game.walkoff)lines.push(won?`A WALK-OFF. Nobody leave the ballpark. We live here now.`:`Walk-off losses should be illegal.`,won?`I will be watching that ending until next week.`:`That is an exceptionally rude way to lose a baseball game.`);
   return pick(lines,key);
 }
-
 function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket){
   const acct=teamOfficial(team); const type=playType(game); const beneficiary=eventBeneficiary(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId)); const ours=beneficiary?.id===team.id; const runs=runsOnPlay(game);
   if(phase==='warmup'){
@@ -141,7 +203,7 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
   }
   if(ours){
     const lines=[];
-    if(isBatting&&String(game?.lastAnnouncement||'').startsWith('Score update:'))lines.push(`📣 RUNS ON THE BOARD. ${team.abbr} changes the score in the ${inningText(game).toLowerCase()}.`);
+    if(isBatting&&String(game?.lastAnnouncement||'').startsWith('Score update:'))lines.push(`📣 RUNS ON THE BOARD. ${team.abbr} changes the score in the ${eventInningText(game).toLowerCase()}.`);
     if(type==='homerun')lines.push(`💥 HOME RUN ${team.abbr}! That one is GONE.`);
     if(type==='triple')lines.push(`⚡ THREE BAGS. ${team.abbr} is flying around the bases.`);
     if(type==='double'&&(late(game)||runs))lines.push(`🔥 DOUBLE! ${team.abbr} puts pressure on with a big extra-base hit.`);
@@ -167,17 +229,17 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
 }
 
 function officialMoment(game,away,home,brand){
-  const type=playType(game); const bt=battingTeam(game,away,home); const ft=fieldingTeam(game,away,home);
+  const type=playType(game); const bt=eventBattingTeam(game,away,home); const ft=eventFieldingTeam(game,away,home);
   if(game?.status==='Final')return `${brand.abbr} FINAL: ${scoreText(game,away,home)}.`;
   if(game?.walkoffCandidate)return `🚨 ${brand.abbr} MOMENT: ${home.abbr} has taken the lead in walk-off territory.`;
-  if(type==='homerun')return `💥 ${brand.abbr} HOME RUN: ${bt?.abbr||''} goes deep in the ${inningText(game).toLowerCase()}.`;
+  if(type==='homerun')return `💥 ${brand.abbr} HOME RUN: ${bt?.abbr||''} goes deep in the ${eventInningText(game).toLowerCase()}.`;
   if(type==='triple'&&late(game))return `⚡ ${brand.abbr} BIG PLAY: late-game triple for ${bt?.abbr||'the batting club'}.`;
-  if(runsOnPlay(game)>=2&&late(game))return `🔥 ${brand.abbr} SWING: ${runsOnPlay(game)} runs score for ${bt?.abbr||'the offense'} in the ${inningText(game).toLowerCase()}.`;
-  if(['strikeout','calledstrikeout'].includes(type)&&late(game)&&close(game))return `⚡ ${brand.abbr} CLUTCH K: ${ft?.abbr||'the defense'} gets a huge strikeout in the ${inningText(game).toLowerCase()}.`;
+  if(runsOnPlay(game)>=2&&late(game))return `🔥 ${brand.abbr} SWING: ${runsOnPlay(game)} runs score for ${bt?.abbr||'the offense'} in the ${eventInningText(game).toLowerCase()}.`;
+  if(['strikeout','calledstrikeout'].includes(type)&&late(game)&&close(game))return `⚡ ${brand.abbr} CLUTCH K: ${ft?.abbr||'the defense'} gets a huge strikeout in the ${eventInningText(game).toLowerCase()}.`;
   if(type==='doubleplay'&&late(game))return `🧤 ${brand.abbr} TURN TWO: ${ft?.abbr||'the defense'} escapes with a massive double play.`;
   if(runnerEvent(game)?.source==='stolen-base'&&runnerEvent(game)?.scored)return `🚨 ${brand.abbr} CHAOS: a steal of home changes the game.`;
   if(safe(game?.inning)>=10)return `🌙 ${brand.abbr} EXTRA INNINGS: ${away.abbr} and ${home.abbr} are still going.`;
-  if(late(game)&&String(game?.lastAnnouncement||'').startsWith('Score update:'))return `📣 ${brand.abbr} SCORE UPDATE: ${scoreText(game,away,home)} in the ${inningText(game).toLowerCase()}.`;
+  if(late(game)&&String(game?.lastAnnouncement||'').startsWith('Score update:'))return `📣 ${brand.abbr} SCORE UPDATE: ${scoreText(game,away,home)} in the ${eventInningText(game).toLowerCase()}.`;
   if(late(game)&&close(game)&&safe(game?.outs)===2&&occupied(game?.bases)>=2)return `👀 ${brand.abbr} HIGH LEVERAGE: ${scoreText(game,away,home)}, ${inningText(game)}, two outs and traffic on the bases.`;
   const battingHits=game?.half==='Top'?safe(game.awayHits):safe(game.homeHits);
   const oppHits=game?.half==='Top'?safe(game.homeHits):safe(game.awayHits);
@@ -218,7 +280,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   const keyBase=`${phase}-${bucket}-${eventKey(activeGame)}-${away.id}-${home.id}`;
 
   function teamPosts(team,foe){
-    const clubPool=clubs.filter(c=>c.team.id===team.id); const state=teamStates.get(team.id); const isBatting=battingTeam(activeGame,away,home)?.id===team.id;
+    const clubPool=clubs.filter(c=>c.team.id===team.id); const state=teamStates.get(team.id); const eventTeam=eventBattingTeam(activeGame,away,home); const isBatting=(explicitEvent(activeGame)?eventTeam:battingTeam(activeGame,away,home))?.id===team.id;
     const posts=[];
     shuffle(clubPool,`${keyBase}-${team.id}`).slice(0,2).forEach((club,i)=>{
       const text=phase==='warmup'?warmupLines(team,foe,rivalry,`${keyBase}-warm-${team.id}-${i}`):phase==='postgame'?postgameLines(team,foe,activeGame,`${keyBase}-post-${team.id}-${i}`):liveLines(team,foe,activeGame,isBatting,`${keyBase}-live-${team.id}-${i}`);
@@ -231,7 +293,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
       const p=pick(playerCandidates,`${keyBase}-player-${team.id}`); const type=playType(activeGame);
       posts.push({id:`${keyBase}-stan-${team.id}`,kind:'player',name:p.name,handle:p.handle,badge:'Player Fan Page',team,text:type==='homerun'&&isBatting?`${p.player.name} agenda is being pushed with EXTREME force right now.`:type.includes('strikeout')?`Baseball is cruel. We remain on the ${p.player.name} agenda.`:`Posting ${p.player.name} propaganda through every pitch.`,tone:'up',time:'live'});
     }
-    if((rivalry?.games||0)>0&&phase!=='postgame')posts.push({id:`${keyBase}-rival-${team.id}`,kind:'rivalry',name:`${team.abbr} Rivalry Department`,handle:`@${team.abbr}RivalryDept`,badge:`${Math.round(rivalry?.heat||25)} HEAT`,team,text:pick([`${foe.abbr} fans are already in our mentions. Beautiful.`,`This matchup has exactly the correct amount of mutual disrespect.`,`Saving receipts from ${foe.abbr} fans for later.`],`${keyBase}-chirp-${team.id}`),tone:'spicy',time:'live'});
+    if((rivalry?.games||0)>0&&phase!=='postgame')posts.push({id:`${keyBase}-rival-${team.id}`,kind:'rivalry',name:`${team.abbr} Rivalry Department`,handle:`@${team.abbr}RivalryDept`,badge:`${Math.round(rivalry?.heat||25)} HEAT`,team,text:pick([`${foe.abbr} fans are already in our mentions. Beautiful.`,`This matchup has exactly the correct amount of mutual disrespect.`,`Saving receipts from ${foe.abbr} fans for later.`,`I see ${foe.abbr} fans getting confident. Interesting choice.`,`If we win, I am going directly to the receipts folder.`,`Division games should come with a warning label.`,`Nothing personal, ${foe.abbr}. Actually, never mind. Very personal.`,`The group chat has declared this a must-win for reasons nobody can defend.`],`${keyBase}-chirp-${team.id}`),tone:'spicy',time:'live'});
     return posts;
   }
 
@@ -243,11 +305,20 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
 
   shuffle(media,`${keyBase}-media`).slice(0,2).forEach((m,i)=>{
     const winner=winningTeam(activeGame,away,home); const batter=currentBatter(activeGame,data); const type=playType(activeGame);
-    const text=phase==='warmup'?pick([`${away.abbr}-${home.abbr} has my attention tonight. Watch the first two innings for the tone.`,`Pregame question: which fanbase is going to be louder by the third inning?`],`${keyBase}-m-${i}`):phase==='postgame'?`${winner?.abbr||'One side'} got the result. Now comes the overreaction cycle.`:type==='homerun'?`That swing changed the temperature in this game immediately.`:late(activeGame)&&close(activeGame)?`${inningText(activeGame)} and one swing can flip everything. This is the good stuff.`:batter?`${batter.name} at the plate. This is where the fanbase starts bargaining with the baseball gods.`:`The game is settling into its shape. Somebody will break it.`;
+    const text=phase==='warmup'?pick([`${away.abbr}-${home.abbr} has my attention tonight. Watch the first two innings for the tone.`,`Pregame question: which fanbase is going to be louder by the third inning?`,`The records tell one story. The first inning usually tells us whether the game agrees.`,`Watch the middle innings tonight — this matchup has late-game tension written all over it.`,`I want to see which club controls the strike zone first.`],`${keyBase}-m-${i}`):phase==='postgame'?pick([`${winner?.abbr||'One side'} got the result. Now comes the overreaction cycle.`,`The final score is settled. The arguments about what it means are just beginning.`,`One game, several storylines, and about twelve hours of takes coming next.`],`${keyBase}-postmedia-${i}`):type==='homerun'?pick([`That swing changed the temperature in this game immediately.`,`You could feel the entire game tilt on contact.`,`That is the kind of swing that rewrites a postgame show.`],`${keyBase}-hrmedia-${i}`):['strikeout','calledstrikeout'].includes(type)?pick([`That was a high-quality strikeout in a spot that demanded one.`,`Big pitch, clean execution, and the inning looks completely different now.`,`That at-bat is going to show up in every leverage recap tonight.`],`${keyBase}-kmedia-${i}`):late(activeGame)&&close(activeGame)?pick([`${inningText(activeGame)} and one swing can flip everything. This is the good stuff.`,`Every decision is magnified now.`,`The margin for a mistake has disappeared.`],`${keyBase}-latemedia-${i}`):batter?pick([`${batter.name} at the plate. This is where the fanbase starts bargaining with the baseball gods.`,`Another plate appearance, another little leverage puzzle.`,`The crowd is waiting for one pitch to react to.`],`${keyBase}-battermedia-${i}`):pick([`The game is settling into its shape. Somebody will break it.`,`Not every inning is loud. These are the innings that set up the loud ones.`,`Both sides are still looking for the sequence that changes the night.`],`${keyBase}-ambientmedia-${i}`);
     leaguePosts.push({id:`${keyBase}-media-${m.id}`,kind:'media',name:m.name,handle:m.handle,badge:`${m.role} · ${m.show}`,team:null,text,tone:m.style==='hot'?'spicy':'media',time:'live'});
   });
 
   const watching=liveWatchingCount(phase,activeGame,awayState,homeState,rivalry,bucket);
+  const bigMoment=isBigPlay(activeGame);
+  const beneficiary=eventBeneficiary(activeGame,away,home);
+  const primary=beneficiary?.id===away.id?awayPosts:beneficiary?.id===home.id?homePosts:[];
+  const secondary=beneficiary?.id===away.id?homePosts:beneficiary?.id===home.id?awayPosts:[];
+  const officialLeague=leaguePosts.filter(p=>p.kind==='league');
+  const mediaPosts=leaguePosts.filter(p=>p.kind==='media');
+  const streamPosts=bigMoment
+    ? [...officialLeague,...primary.filter(p=>p.kind!=='rivalry'),...secondary.filter(p=>p.kind==='fan'),...mediaPosts,...primary.filter(p=>p.kind==='rivalry'),...secondary.filter(p=>p.kind!=='fan')]
+    : shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   const posts=shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
-  return {phase,game:activeGame,away,home,rivalry,brand,posts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:phase==='live'?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:isBigPlay(activeGame),watching};
+  return {phase,game:activeGame,away,home,rivalry,brand,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:phase==='live'?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};
 }

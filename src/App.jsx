@@ -722,6 +722,8 @@ function moveFieldRunner(origin, destination) {
       from: normalizedOrigin,
       to: destination,
       side: battingSide,
+      inning: next.inning,
+      half: next.half,
       scored: destination === "home" && origin !== "batter",
     };
     fieldState.manualRunnerOverride = true;
@@ -787,6 +789,8 @@ function stealFieldRunner(origin, destination) {
         from: origin,
         to: destination,
         side: battingSide,
+        inning: next.inning,
+        half: next.half,
         scored: destination === "home",
         source: "stolen-base",
       },
@@ -919,6 +923,8 @@ function startAnimatedFieldPlay(category, type) {
       : fieldRunnerMovesForPlay(currentGame, type),
     manualRunnerOverride,
     side: currentGame.half === "Top" ? "away" : "home",
+    inning: currentGame.inning,
+    half: currentGame.half,
   };
 
   setData((prev) => {
@@ -980,6 +986,8 @@ function advanceAllFieldRunners() {
         label: "ADV +1",
         runnerMoves,
         side: battingSide,
+        inning: next.inning,
+        half: next.half,
       },
       manualRunnerOverride: true,
     };
@@ -1071,7 +1079,7 @@ function clearFieldBall() {
       ...defaultFieldState(),
       ...(next.fieldState || {}),
       ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
-      cueEvent: { id: Date.now(), text, kind },
+      cueEvent: { id: Date.now(), text, kind, side: next.half === "Top" ? "away" : "home", inning: next.inning, half: next.half },
     };
   }
 
@@ -1851,9 +1859,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.8</span>
+    <span className="version-pill version-pill-v3">v4.10</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.8 · Game Day Network · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.10 · Live Game Thread · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
