@@ -8,6 +8,8 @@ import { buildPowerRankings } from "../utils/universeUtils";
 import { buildNewsFeed } from "../utils/newsUtils";
 import { buildDashboardAlerts, buildGameRecords } from "../utils/historyUtils";
 import { buildLeagueRecords } from "../utils/recordsUtils";
+import { buildNoHitWatch, buildV4TeamMetrics, buildWinProbability, buildGamesThatMatter } from "../utils/v4Utils";
+import { buildHeadToHead } from "../utils/historyUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -27,6 +29,12 @@ export default function DashboardPage({ ctx }) {
   } = ctx;
 
   const activeSeason = data.activeSeasonName || "Season 4";
+  const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const v4Prob = useMemo(()=>buildWinProbability(currentGame,teams),[currentGame,teams]);
+  const v4NoHit = useMemo(()=>buildNoHitWatch(currentGame,teams),[currentGame,teams]);
+  const v4Importance = useMemo(()=>buildGamesThatMatter(currentGame,v4Metrics),[currentGame,v4Metrics]);
+  const v4Rivalries = useMemo(()=>buildHeadToHead(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
+  const v4Rivalry = currentGame?.awayTeamId&&currentGame?.homeTeamId ? v4Rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)) : null;
   const gameRecords = useMemo(()=>buildGameRecords(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
   const alerts = useMemo(()=>buildDashboardAlerts(data,teams),[data,teams]);
   const power = useMemo(()=>buildPowerRankings(teams).slice(0,5),[teams]);
@@ -47,6 +55,11 @@ export default function DashboardPage({ ctx }) {
   const openingDay = data.leagueExtras?.openingDay || '';
   const seasonTagline = data.leagueExtras?.seasonTagline || '';
   const openingCountdown = openingDay ? Math.ceil((new Date(`${openingDay}T12:00:00`).getTime() - Date.now()) / 86400000) : null;
+  const avgGamesPerTeam = teams.length ? teams.reduce((sum,t)=>sum+Number(t.wins||0)+Number(t.losses||0),0)/teams.length : 0;
+  const v4Midseason = avgGamesPerTeam >= 19 && avgGamesPerTeam <= 21;
+  const v4Opening = avgGamesPerTeam <= 1;
+  const v4Championship = isPlayoffLiveGame && ["finals","worldSeries"].includes(currentGame.playoffSeriesId);
+  const v4Theme = v4Championship ? "championship" : isPlayoffLiveGame ? "playoff" : (v4Rivalry?.games||0)>=2 ? "rivalry" : v4Midseason ? "allstar" : v4Opening ? "opening" : "regular";
   const opponentRows = useMemo(() => {
     if (!favoriteTeam) return [];
     const teamMap = new Map(teams.map((team) => [team.id, team]));
@@ -77,19 +90,31 @@ export default function DashboardPage({ ctx }) {
     return [...rows.values()].sort((a,b) => b.games-a.games || b.wins-a.wins || a.opponent.abbr.localeCompare(b.opponent.abbr));
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
-  return <div className="dashboard-v3 dashboard-v3-home">
+  return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 3</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.0</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
       <div className="v3-season-status">
         <div><span>Season Progress</span><strong>{seasonProgress}%</strong></div>
         <div className="v3-progress-track"><i style={{width:`${seasonProgress}%`}} /></div>
-        <div className="v3-status-pills"><MiniPill tone="live">V3 LIVE</MiniPill><MiniPill>{gameRecords.games.length} archived games</MiniPill>{openingCountdown!==null&&openingCountdown>=0&&<MiniPill>{openingCountdown===0?'Opening Day':`${openingCountdown} days to Opening Day`}</MiniPill>}{defendingChampion&&<MiniPill tone="gold">🏆 {defendingChampion.abbr} defending champ</MiniPill>}</div>
+        <div className="v3-status-pills"><MiniPill tone="live">V4 LIVE</MiniPill><MiniPill>{gameRecords.games.length} archived games</MiniPill>{openingCountdown!==null&&openingCountdown>=0&&<MiniPill>{openingCountdown===0?'Opening Day':`${openingCountdown} days to Opening Day`}</MiniPill>}{defendingChampion&&<MiniPill tone="gold">🏆 {defendingChampion.abbr} defending champ</MiniPill>}</div>
       </div>
     </section>
+
+    {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
+
+    <section className="card dashboard-v4-intel">
+      <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
+      <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
+      <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
+      <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
+      <div><span>Game Importance</span><strong>{v4Importance?.label || "—"}</strong></div>
+      {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
+    </section>
+    {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
 
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">

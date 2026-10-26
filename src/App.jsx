@@ -10,6 +10,7 @@ import QuickPage from "./pages/QuickPage";
 import HistoryPage from "./pages/HistoryPage";
 import LeagueRecordsPage from "./pages/LeagueRecordsPage";
 import NewsPage from "./pages/NewsPage";
+import V4CenterPage from "./pages/V4CenterPage";
 import LeagueHubPage from "./pages/LeagueHubPage";
 import BracketAdminPage from "./pages/BracketAdminPage";
 import AdminPage from "./pages/AdminPage";
@@ -1849,9 +1850,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v3.0</span>
+    <span className="version-pill version-pill-v3">v4.0</span>
   </div>
-  <p>SMB4 Franchise Central · Version 3 · Season 4 Ready · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.0 · Living League · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1870,6 +1871,7 @@ const dashboardStories = [
   <button onClick={() => setPage("records")}>Records</button>
   <button onClick={() => setPage("news")}>News</button>
   <button onClick={() => setPage("league")}>League Hub</button>
+  <button className="v4-nav-button" onClick={() => setPage("v4")}>V4 Center</button>
 
   {controlsUnlocked && <button onClick={() => setPage("live")}>Live</button>}
   {controlsUnlocked && <button onClick={() => setPage("admin")}>Admin</button>}
@@ -1916,6 +1918,7 @@ const dashboardStories = [
       {page === "history" && <HistoryPage ctx={pageContext} />}
       {page === "records" && <LeagueRecordsPage ctx={pageContext} />}
       {page === "news" && <NewsPage ctx={pageContext} />}
+      {page === "v4" && <V4CenterPage ctx={pageContext} />}
       {page === "league" && <LeagueHubPage ctx={pageContext} />}
       {page === "bracketAdmin" && controlsUnlocked && <BracketAdminPage ctx={pageContext} />}
 

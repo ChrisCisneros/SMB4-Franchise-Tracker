@@ -92,7 +92,10 @@ export const defaultData = {
   leagueExtras: {
     awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [],
     rebrands: [], retiredNumbers: [], prospects: [], milestones: [],
-    openingDay: "", seasonTagline: "", powerRankSnapshots: []
+    openingDay: "", seasonTagline: "", powerRankSnapshots: [],
+    standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
+    hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
+    leagueCalendar: [], storylines: [], bracketPredictions: []
   },
 };
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { WILD_CARD_TEAMS_PER_LEAGUE } from "../config/constants";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 import {
@@ -9,6 +9,7 @@ import {
   pct,
   wildCardGamesBack,
 } from "../utils/standingsUtils";
+import { buildV4TeamMetrics } from "../utils/v4Utils";
 
 function rdText(value) {
   const number = Number(value || 0);
@@ -162,6 +163,7 @@ function PlayoffLeagueCard({ picture, recentlyUpdatedTeamId }) {
 
 export default function StandingsPage({ ctx }) {
   const { data, playoffPicture, standings, recentlyUpdatedTeamId } = ctx;
+  const v4Metrics = useMemo(() => buildV4TeamMetrics(data, data.teams || [], playoffPicture), [data, playoffPicture]);
   const allTeams = data.teams || [];
   const gamesPlayed = allTeams.reduce((sum, team) => sum + Number(team.wins || 0) + Number(team.losses || 0), 0) / 2;
   const best = gamesPlayed > 0 ? [...allTeams].sort((a, b) => {
@@ -170,11 +172,16 @@ export default function StandingsPage({ ctx }) {
     return bp - ap || Number(b.runDiff || 0) - Number(a.runDiff || 0);
   })[0] : null;
 
+  const closestMagic=[...v4Metrics].filter(m=>m.playoffMagic!=null&&m.playoffMagic>0).sort((a,b)=>a.playoffMagic-b.playoffMagic)[0];
+  const bubble=[...v4Metrics].sort((a,b)=>Math.abs(a.playoffProbability-50)-Math.abs(b.playoffProbability-50))[0];
+  const toughest=[...v4Metrics].sort((a,b)=>b.sos-a.sos)[0];
+  const biggestMover=[...v4Metrics].filter(m=>m.previousRank).sort((a,b)=>Math.abs(b.movement)-Math.abs(a.movement))[0];
+
   return (
-    <div className="standings-v3-page">
+    <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V3</div>
+          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V4.0</div>
           <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
           <p>Division races, clinch status and the live road to the postseason.</p>
         </div>
@@ -183,6 +190,13 @@ export default function StandingsPage({ ctx }) {
           <div><span>League Leader</span><strong>{best?.abbr || "—"}</strong></div>
           <div><span>Best Record</span><strong>{best ? `${best.wins}-${best.losses}` : "—"}</strong></div>
         </div>
+      </section>
+
+      <section className="card standings-v4-intel">
+        <div><span>Closest Magic Number</span><strong>{closestMagic ? `${closestMagic.team.abbr} · ${closestMagic.playoffMagic}` : "—"}</strong></div>
+        <div><span>Bubble Team</span><strong>{bubble ? `${bubble.team.abbr} · ${Math.round(bubble.playoffProbability)}%` : "—"}</strong></div>
+        <div><span>Toughest SOS</span><strong>{toughest?.team?.abbr || "—"}</strong><small>{toughest ? toughest.sos.toFixed(3).replace(/^0/,"") : ""}</small></div>
+        <div><span>Biggest Mover</span><strong>{biggestMover ? `${biggestMover.team.abbr} ${biggestMover.movement>0?"▲":"▼"}${Math.abs(biggestMover.movement)}` : "—"}</strong></div>
       </section>
 
       <div className="standings-legend card">
