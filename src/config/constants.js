@@ -1,5 +1,5 @@
 export const STORAGE_KEY = "smb4-franchise-tracker-v1";
-export const CONTROL_PASSWORD = "changeme";
+export const CONTROL_PASSWORD = "SF";
 export const LEGACY_STORAGE_KEYS = [];
 export const SEASON_LENGTH = 40;
 export const WILD_CARD_TEAMS_PER_LEAGUE = 5;

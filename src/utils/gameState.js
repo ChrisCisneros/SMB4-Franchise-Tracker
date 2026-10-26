@@ -95,7 +95,8 @@ export const defaultData = {
     openingDay: "", seasonTagline: "", powerRankSnapshots: [],
     standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
     hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
-    leagueCalendar: [], storylines: [], bracketPredictions: []
+    leagueCalendar: [], storylines: [], bracketPredictions: [],
+    officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL"
   },
 };
 

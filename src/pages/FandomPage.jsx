@@ -2,6 +2,8 @@ import React,{useEffect,useMemo,useState} from 'react';
 import { getTeamColorsByAbbr } from '../config/teamColors';
 import { buildAnalystDesk,buildFanPoll,buildFanUniverse,buildMerch,buildProgramming,buildSocialChatter,getSeasonPulse } from '../utils/fandomUtils';
 import { buildFanClubs,buildFanTraditions,buildLegacyDebates,buildLivingFeed,buildMediaUniverse,buildPlayerFanPages } from '../utils/livingWorldUtils';
+import { buildGameDaySocial } from '../utils/gameDaySocialUtils';
+import GameDaySocial from '../components/GameDaySocial';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,value))}%`}}/></div>}
@@ -36,6 +38,7 @@ export default function FandomPage({ctx}){
   const mediaUniverse=useMemo(()=>buildMediaUniverse(),[]);
   const traditions=useMemo(()=>buildFanTraditions(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const debates=useMemo(()=>buildLegacyDebates(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
+  const gameDaySocial=useMemo(()=>buildGameDaySocial(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
   const filteredFeed=liveFeed.filter(p=>feedFilter==='all'||p.kind===feedFilter);
   const selectedClubs=fanClubs.filter(c=>c.team.id===selectedId);
   const selectedPlayers=playerPages.filter(p=>p.team?.id===selectedId).slice(0,8);
@@ -47,13 +50,15 @@ export default function FandomPage({ctx}){
 
   return <div className="fandom-page" style={fandomStyle}>
     <section className="card fandom-hero">
-      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.6 · LIVING WORLD</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
+      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.8 · GAME DAY NETWORK</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
       <div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>Day {pulse.dayInWeek} of 5 · {pulse.phase}</span></div>
     </section>
 
     <section className="fan-week-strip card">
       {Array.from({length:8},(_,i)=>{const w=i+1;const start=(w-1)*5+1,end=w*5;return <div key={w} className={w===pulse.week?'active':w<pulse.week?'done':''}><b>W{w}</b><span>Games {start}–{end}</span><small>{w===1?'Opening':w===4?'All-Star':w===8?'Pennant Race':w<4?'Build-up':'Second Half'}</small></div>})}
     </section>
+
+    {gameDaySocial.phase!=='idle' && <div className="fandom-gameday-wrap"><GameDaySocial social={gameDaySocial} /></div>}
 
     <section className="card fan-live-wall">
       <div className="fan-live-wall-head"><div><div className="fan-kicker">LIVE FAN WIRE</div><h2>The Baseball Internet Is Awake</h2><p>New simulated posts cycle automatically. Rivalries, moods and player pages react to real league data.</p></div><div className="fan-wire-controls"><span className="fan-live-dot">● LIVE</span><button type="button" onClick={()=>setFeedPaused(x=>!x)}>{feedPaused?'Resume':'Pause'}</button></div></div>

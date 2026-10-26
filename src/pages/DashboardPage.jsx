@@ -12,6 +12,8 @@ import { buildNoHitWatch, buildV4TeamMetrics, buildWinProbability, buildGamesTha
 import { buildHeadToHead } from "../utils/historyUtils";
 import { buildFanUniverse, buildFanPoll, buildMerch, buildSocialChatter, getSeasonPulse } from "../utils/fandomUtils";
 import { buildLivingFeed } from "../utils/livingWorldUtils";
+import { buildGameDaySocial } from "../utils/gameDaySocialUtils";
+import GameDaySocial from "../components/GameDaySocial";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
@@ -34,7 +36,7 @@ export default function DashboardPage({ ctx }) {
   const [dashboardClock,setDashboardClock]=useState(Date.now());
   const [merchSlide,setMerchSlide]=useState(0);
   const [tickerSlide,setTickerSlide]=useState(0);
-  useEffect(()=>{const t=setInterval(()=>setDashboardClock(Date.now()),30000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{const t=setInterval(()=>setDashboardClock(Date.now()),7000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
@@ -43,6 +45,7 @@ export default function DashboardPage({ ctx }) {
   const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const fanChatter = useMemo(()=>buildSocialChatter(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const livingFeed = useMemo(()=>buildLivingFeed(data,teams,playoffPicture,dashboardClock,favoriteTeam?.id).slice(0,3),[data,teams,playoffPicture,dashboardClock,favoriteTeam?.id]);
+  const gameDaySocial = useMemo(()=>buildGameDaySocial(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
@@ -120,7 +123,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.6</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.7</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -214,6 +217,9 @@ export default function DashboardPage({ ctx }) {
     </section>
 
     {clinchedTeams.length > 0 && <section className="v3-clinch-strip"><div className="v3-section-heading compact"><div><span>POSTSEASON TICKETS PUNCHED</span><h3>Clinched</h3></div></div><div className="v3-clinch-list">{clinchedTeams.map(({team,marker})=><div className="v3-clinch-card" key={team.id}><span>{clinchLabel(marker)}</span><strong>{team.abbr}</strong><small>{team.wins}-{team.losses}</small></div>)}</div></section>}
+
+
+    {gameDaySocial.phase!=='idle' && <div className="dashboard-game-day-social"><GameDaySocial social={gameDaySocial} compact onOpenFandom={()=>setPage?.('fandom')} /></div>}
 
     <section className="v3-dashboard-bottom-grid">
       <div className="card v3-race-card"><div className="v3-section-heading compact"><div><span>POSTSEASON RACE</span><h3>Playoff Picture</h3></div><button onClick={()=>setPage?.('standings')}>Full Standings →</button></div><div className="dashboard-playoff-grid">{playoffPicture.map(picture=><div className="dashboard-playoff-card v3-playoff-card" key={picture.league}><h3>{picture.league}</h3><div className="playoff-section-label">Division Leaders</div>{picture.divisionLeaders.map((team,index)=><div className="dashboard-race-row" key={team.id}><strong>{index+1}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{team.runDiff>0?`+${team.runDiff}`:team.runDiff}</span></div>)}<div className="playoff-section-label">Wild Card Cut</div>{picture.wildcardTeams.slice(Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2),WILD_CARD_TEAMS_PER_LEAGUE+2).map((team,index)=>{const actualIndex=Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2)+index;const isCutoff=actualIndex===WILD_CARD_TEAMS_PER_LEAGUE-1;return <div className={`dashboard-race-row ${isCutoff?'dashboard-cutoff-row':''}`} key={team.id}><strong>{actualIndex<WILD_CARD_TEAMS_PER_LEAGUE?`WC${actualIndex+1}`:'OUT'}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{wildCardGamesBack(team,picture.cutoffTeam,actualIndex)}</span></div>})}</div>)}</div></div>
