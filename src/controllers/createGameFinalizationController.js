@@ -143,7 +143,9 @@ export default function createGameFinalizationController({
   loserTeamId: awayWon ? currentGame.homeTeamId : homeWon ? currentGame.awayTeamId : "",
   margin: Math.abs(Number(currentGame.awayScore || 0) - Number(currentGame.homeScore || 0)),
   totalRuns: Number(currentGame.awayScore || 0) + Number(currentGame.homeScore || 0),
-  walkoff: Boolean(homeWon && Number(currentGame.inning || 0) >= 9 && currentGame.half === "Bottom"),
+  walkoff: Boolean(homeWon && currentGame.walkoffCandidate === true),
+  walkoffVerified: Boolean(homeWon && currentGame.walkoffCandidate === true),
+  walkoffDetectionVersion: 2,
   history: [],
   playLog: (currentGame.playLog || []).slice(0, 60),
 };

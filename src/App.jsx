@@ -469,12 +469,28 @@ useEffect(() => {
 
   function scoreRuns(next, runs) {
     if (!runs) return;
+    const previousAwayScore = Number(next.awayScore || 0);
+    const previousHomeScore = Number(next.homeScore || 0);
+
     if (next.half === "Top") {
       next.awayScore += runs;
       addRunsToLineScore(next, "away", runs);
+      // Any away-team scoring means a previously armed walk-off candidate is no longer valid.
+      next.walkoffCandidate = false;
     } else {
       next.homeScore += runs;
       addRunsToLineScore(next, "home", runs);
+
+      // A real walk-off only happens when the home team actually TAKES the lead
+      // in the bottom of the 9th or later. Merely finalizing a normal home win
+      // while the UI still says Bottom 9 is not enough.
+      if (
+        Number(next.inning || 0) >= 9 &&
+        previousHomeScore <= previousAwayScore &&
+        Number(next.homeScore || 0) > Number(next.awayScore || 0)
+      ) {
+        next.walkoffCandidate = true;
+      }
     }
   }
 
@@ -1251,12 +1267,30 @@ function isWorldSeriesGame(game) {
     clearBanner();
     commitGameUpdate((next) => {
       next.inningStatus = "";
+      const previousAwayScore = Number(next.awayScore || 0);
+      const previousHomeScore = Number(next.homeScore || 0);
+
       if (side === "away") {
         next.awayScore = Math.max(0, next.awayScore + amount);
         if (amount > 0) addRunsToLineScore(next, "away", amount);
+        if (amount !== 0) next.walkoffCandidate = false;
       } else {
         next.homeScore = Math.max(0, next.homeScore + amount);
         if (amount > 0) addRunsToLineScore(next, "home", amount);
+
+        if (
+          amount > 0 &&
+          next.half === "Bottom" &&
+          Number(next.inning || 0) >= 9 &&
+          previousHomeScore <= previousAwayScore &&
+          Number(next.homeScore || 0) > Number(next.awayScore || 0)
+        ) {
+          next.walkoffCandidate = true;
+        }
+      }
+
+      if (Number(next.homeScore || 0) <= Number(next.awayScore || 0)) {
+        next.walkoffCandidate = false;
       }
       if (amount !== 0) next.lastAnnouncement = `Score update: ${next.awayScore}-${next.homeScore}.`;
     });

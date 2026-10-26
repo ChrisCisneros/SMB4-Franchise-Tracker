@@ -43,7 +43,7 @@ export function buildGameRecords(games = [], teams = [], history = []) {
     mostHits: by((a,b) => (Number(b.awayHits||0)+Number(b.homeHits||0))-(Number(a.awayHits||0)+Number(a.homeHits||0))),
     highestTeamScore: singleTeamScoring[0] || null,
     postseasonGames: enriched.filter((g) => g.gameType === 'playoff'),
-    walkoffs: enriched.filter((g) => g.walkoff),
+    walkoffs: enriched.filter((g) => g.walkoffVerified === true),
     shutouts: enriched.filter((g) => g.awayScore === 0 || g.homeScore === 0),
     oneRunGames: enriched.filter((g) => g.margin === 1),
     extraInningGames: enriched.filter((g) => g.innings > 9),

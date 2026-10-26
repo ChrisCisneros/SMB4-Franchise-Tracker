@@ -73,16 +73,19 @@ export function buildNewsFeed(data, teams) {
     const homeScore = Number(lastFinal.homeScore || 0);
     const winner = awayScore > homeScore ? away : home;
     const loser = awayScore > homeScore ? home : away;
+    // Only V2+ verified walk-offs get the walk-off treatment. Older game objects
+    // used a too-broad heuristic and may contain false positives.
+    const isVerifiedWalkoff = lastFinal.walkoffVerified === true;
     if (away && home && winner && loser) {
       stories.push({
         id: `latest-final-${lastFinal.id || `${lastFinal.awayTeamId}-${lastFinal.homeTeamId}-${lastFinal.date || "game"}`}`,
         category: "Game Final",
         tone: lastFinal.gameType === "playoff" ? "postseason" : "game",
         dateLabel: lastFinal.date || "Latest final",
-        headline: lastFinal.walkoff
+        headline: isVerifiedWalkoff
           ? `${home.abbr} walks it off against ${away.abbr}`
           : `${winner.abbr} takes the latest final over ${loser.abbr}`,
-        dek: `${away.abbr} ${awayScore}, ${home.abbr} ${homeScore}. ${lastFinal.walkoff ? `${teamName(home)} ended it in walk-off fashion.` : `${teamName(winner)} won by ${Math.abs(awayScore - homeScore)} run${Math.abs(awayScore - homeScore) === 1 ? "" : "s"}.`}`,
+        dek: `${away.abbr} ${awayScore}, ${home.abbr} ${homeScore}. ${isVerifiedWalkoff ? `${teamName(home)} ended it in walk-off fashion.` : `${teamName(winner)} won by ${Math.abs(awayScore - homeScore)} run${Math.abs(awayScore - homeScore) === 1 ? "" : "s"}.`}`,
         teams: [away.abbr, home.abbr],
       });
     }

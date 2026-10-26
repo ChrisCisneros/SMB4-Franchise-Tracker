@@ -30,6 +30,7 @@ export const defaultCurrentGame = () => ({
   homeTeamId: "",
   awayScore: 0,
   homeScore: 0,
+  walkoffCandidate: false,
   awayHits: 0,
   homeHits: 0,
   awayErrors: 0,
