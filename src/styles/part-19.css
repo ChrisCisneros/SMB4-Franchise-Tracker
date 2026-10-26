@@ -123,3 +123,43 @@
 .fan-promo-calendar button.scheduled{color:#f8fafc;border-color:rgba(236,72,153,.34);background:linear-gradient(145deg,rgba(124,58,237,.16),rgba(219,39,119,.1))}.fan-promo-calendar button.today{outline:2px solid #38bdf8;outline-offset:1px}
 @media(max-width:1200px){.fan-promo-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.fan-promo-calendar{grid-template-columns:repeat(8,minmax(0,1fr))}}
 @media(max-width:760px){.fan-game-night-actions{justify-content:flex-start}.fan-promo-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.fan-promo-calendar{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* V4.12.1 — enforce the 40-game season as eight 5-game weeks */
+.fan-promo-calendar{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.fan-calendar-week{
+  min-width:0;
+  padding:9px;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:12px;
+  background:rgba(5,12,24,.42);
+}
+.fan-calendar-week-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:7px;
+  color:#dbeafe;
+}
+.fan-calendar-week-head strong{font-size:10px;letter-spacing:.12em}
+.fan-calendar-week-head span{font-size:8px;color:#7890ad}
+.fan-calendar-week-head em{margin-left:auto;font-size:7px;font-style:normal;font-weight:900;letter-spacing:.08em;color:#fbbf24}
+.fan-calendar-week-games{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:5px;
+}
+.fan-promo-calendar .fan-calendar-week-games button{
+  width:100%;
+  min-width:0;
+}
+.fan-promo-calendar .fan-calendar-week-games button>b{font-size:7px}
+@media(max-width:1050px){.fan-promo-calendar{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .fan-calendar-week-games{grid-template-columns:repeat(5,minmax(50px,1fr));min-width:300px}
+  .fan-calendar-week{overflow-x:auto}
+}
