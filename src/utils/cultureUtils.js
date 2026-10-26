@@ -1,5 +1,6 @@
 import { getSeasonPulse, buildFanUniverse } from './fandomUtils';
 import { getCurrentGameNight } from './gameNightUtils';
+import { currentSeasonDay, normalizeSeasonCalendar } from './seasonCalendarUtils';
 
 const safe=n=>Number(n||0);
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
@@ -36,16 +37,43 @@ export function buildLocalBusinesses(teams=[]){
   }));
 }
 
-export function buildGiveawayMarket(data={},teams=[]){
+export function buildGiveawayMarket(data={},teams=[],options={}){
+  const mode=options.mode||'active';
   const schedule=data.leagueExtras?.gameNightSchedule||{};
-  const current=Object.values(schedule).filter(Boolean).map(p=>({...p,seasonName:data.activeSeasonName||'Current Season',archived:false}));
+  const calendar=normalizeSeasonCalendar(data);
+  const current=currentSeasonDay(data,teams);
+  const currentSlot=current?.slotIndex;
+  const slotForGame=new Map();
+  calendar.forEach((gameNumber,slotIndex)=>{if(gameNumber)slotForGame.set(Number(gameNumber),slotIndex)});
+  const currentSeason=String(data.activeSeasonName||'Current Season');
+
+  const scheduled=Object.values(schedule).filter(Boolean).map(p=>({...p,seasonName:currentSeason,archived:false}));
   const archived=(data.games||[]).filter(g=>g?.promotion).map(g=>({...g.promotion,gameNumber:g.seasonGameNumber||g.promotion?.gameNumber,seasonName:g.seasonName||'Archived Season',archived:true,playedAt:g.finalizedAt||g.date||''}));
+
+  let source;
+  if(mode==='vault'){
+    source=[...archived,...scheduled.filter(p=>{
+      const slot=slotForGame.get(Number(p.gameNumber));
+      return Number.isInteger(slot)&&Number.isInteger(currentSlot)&&slot<=currentSlot;
+    })];
+  }else{
+    // Resellers only exist on giveaway day and for a couple of fictional calendar days afterward.
+    // Future giveaways stay completely quiet because nobody has the item yet.
+    source=scheduled.filter(p=>{
+      if(p.type!=='giveaway')return false;
+      const slot=slotForGame.get(Number(p.gameNumber));
+      if(!Number.isInteger(slot)||!Number.isInteger(currentSlot))return false;
+      const age=currentSlot-slot;
+      return age>=0&&age<=2;
+    });
+  }
+
   const unique=new Map();
-  [...archived,...current].forEach((promo,i)=>{
+  source.forEach((promo)=>{
     const key=`${promo.seasonName}-${promo.gameNumber}-${promo.id||promo.name}`;
     if(!unique.has(key))unique.set(key,promo);
   });
-  return [...unique.values()].map((promo,i)=>{
+  return [...unique.values()].map((promo)=>{
     const base=promo.type==='giveaway'?18:9;
     const ageBoost=promo.archived?8+Math.min(18,(data.seasonHistory||[]).length*3):0;
     const demand=safe(promo.hype)*5+safe(promo.attendance)*4+seeded(`${promo.id}-${promo.gameNumber}-${promo.seasonName}`)*35+ageBoost;

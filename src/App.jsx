@@ -45,7 +45,7 @@ import createSeasonActions from "./actions/createSeasonActions";
 import createPlayoffController from "./controllers/createPlayoffController";
 import createDailyResultsController from "./controllers/createDailyResultsController";
 import createGameFinalizationController from "./controllers/createGameFinalizationController";
-import { currentSeasonDay } from "./utils/seasonCalendarUtils";
+import { currentSeasonDay, isCalendarAnchorGame } from "./utils/seasonCalendarUtils";
 
 export default function App() {
   const [data, setData] = useState(getInitialData);
@@ -1338,7 +1338,11 @@ function isWorldSeriesGame(game) {
     const scheduled = currentSeasonDay(data, teams);
     setData((prev) => {
       const nextGame = { ...prev.currentGame, inningStatus: "", status: "Live" };
-      if ((nextGame.gameType || "regular") !== "playoff" && !Number(nextGame.seasonGameNumber || 0) && scheduled?.gameNumber) nextGame.seasonGameNumber = scheduled.gameNumber;
+      if ((nextGame.gameType || "regular") !== "playoff") {
+        const anchorGame = isCalendarAnchorGame(nextGame, prev, prev.teams || teams);
+        if (anchorGame && !Number(nextGame.seasonGameNumber || 0) && scheduled?.gameNumber) nextGame.seasonGameNumber = scheduled.gameNumber;
+        if (!anchorGame) nextGame.seasonGameNumber = 0;
+      }
       syncCurrentGameToFirebase(nextGame);
       return { ...prev, currentGame: nextGame };
     });
@@ -1894,9 +1898,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.13</span>
+    <span className="version-pill version-pill-v3">v4.13.1</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.13 · Living Season · 40-game regular season</p>
+  <p>SMB4 Franchise Central · Version 4.13.1 · Living Season · 40-game regular season</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (

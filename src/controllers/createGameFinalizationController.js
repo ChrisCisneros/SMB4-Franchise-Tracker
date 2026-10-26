@@ -1,5 +1,6 @@
 import { defaultCurrentGame } from "../utils/gameState";
 import { getScheduledGameNight } from "../utils/gameNightUtils";
+import { anchorRegularFinals, currentSeasonDay, isCalendarAnchorGame } from "../utils/seasonCalendarUtils";
 import {
   advancePlayoffWinner, getPlayoffSeries, getWinsNeededForSeries,
   makeSafePlayoffBracket, setPlayoffSeries
@@ -132,9 +133,13 @@ export default function createGameFinalizationController({
     const homeWon = currentGame.homeScore > currentGame.awayScore;
     const awayWon = currentGame.awayScore > currentGame.homeScore;
     const margin = currentGame.homeScore - currentGame.awayScore;
-    const priorRegularFinals = (data.games || []).filter((g) => g?.status === "Final" && (g.gameType || "regular") !== "playoff" && (g.seasonName || data.activeSeasonName) === (data.activeSeasonName || g.seasonName)).length;
-    const seasonGameNumber = Number(currentGame.seasonGameNumber || 0) || Math.min(40, priorRegularFinals + 1);
-    const promotionSnapshot = currentGame.gameType === "playoff" ? null : getScheduledGameNight(data, seasonGameNumber);
+    const anchorGame = currentGame.gameType !== "playoff" && isCalendarAnchorGame(currentGame, data, data.teams || []);
+    const priorAnchorFinals = anchorRegularFinals(data, data.teams || []).length;
+    const scheduledAnchorGame = currentSeasonDay(data, data.teams || []);
+    const seasonGameNumber = anchorGame
+      ? (Number(currentGame.seasonGameNumber || 0) || Number(scheduledAnchorGame?.gameNumber || 0) || Math.min(40, priorAnchorFinals + 1))
+      : 0;
+    const promotionSnapshot = anchorGame && seasonGameNumber ? getScheduledGameNight(data, seasonGameNumber) : null;
     const finishedGame = {
   ...currentGame,
   id: crypto.randomUUID(),

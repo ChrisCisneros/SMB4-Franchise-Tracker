@@ -1,5 +1,5 @@
 import { getSeasonPulse } from './fandomUtils';
-import { currentSeasonDay } from './seasonCalendarUtils';
+import { currentSeasonDay, isCalendarAnchorGame } from './seasonCalendarUtils';
 
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 const seeded=(s='')=>{const x=Math.sin(hash(s))*10000;return x-Math.floor(x)};
@@ -54,7 +54,11 @@ export function getScheduledGameNight(data={},gameNumber){
 }
 
 export function getCurrentGameNight(data={},teams=[]){
-  const explicit=Number(data.currentGame?.seasonGameNumber||0);
+  const game=data.currentGame||{};
+  const hasMatchup=Boolean(game.homeTeamId&&game.awayTeamId);
+  if((game.gameType||'regular')==='playoff')return null;
+  if(hasMatchup&&!isCalendarAnchorGame(game,data,teams))return null;
+  const explicit=Number(game.seasonGameNumber||0);
   const scheduled=explicit>0?explicit:Number(currentSeasonDay(data,teams)?.gameNumber||0);
   if(scheduled>0)return getScheduledGameNight(data,scheduled);
   const pulse=getSeasonPulse(data,teams);

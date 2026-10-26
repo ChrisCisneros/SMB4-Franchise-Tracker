@@ -71,7 +71,7 @@ export default function LeagueHubPage({ ctx }) {
   const cultureTrends = useMemo(()=>buildCultureTrends(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanSurvey = useMemo(()=>buildFanSurvey(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const cultureThreads = useMemo(()=>buildGameThreadArchive(data,teams),[data,teams]);
-  const collectorVault = useMemo(()=>buildGiveawayMarket(data,teams),[data,teams]);
+  const collectorVault = useMemo(()=>buildGiveawayMarket(data,teams,{mode:'vault'}),[data,teams]);
   const localBusinesses = useMemo(()=>buildLocalBusinesses(teams),[teams]);
   const analystRecords = useMemo(()=>buildAnalystRecords(data,teams),[data,teams]);
   const cultureDebates = useMemo(()=>buildCultureDebates(data,teams,playoffPicture),[data,teams,playoffPicture]);

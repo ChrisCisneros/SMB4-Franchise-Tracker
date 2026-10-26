@@ -2,7 +2,7 @@ import { buildFanClubs, buildMediaUniverse, buildPlayerFanPages } from './living
 import { buildFanUniverse } from './fandomUtils';
 import { buildHeadToHead } from './historyUtils';
 import { getCurrentGameNight, getScheduledGameNight } from './gameNightUtils';
-import { currentSeasonDay } from './seasonCalendarUtils';
+import { currentSeasonDay, isCalendarAnchorGame } from './seasonCalendarUtils';
 import { ceremonyForGame, ceremonySocialLines } from './ceremonyUtils';
 import { pickSocialPhrase } from './socialPhraseBank';
 
@@ -350,8 +350,9 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   const postgameAgeMs=phase==='postgame'?safe(recent?.ageMs):0;
   const postgameStage=phase!=='postgame'?'':postgameAgeMs<5*60*1000?'REACTION CHAOS':postgameAgeMs<15*60*1000?'CELEBRATION + BLAME':postgameAgeMs<30*60*1000?'POSTGAME ANALYSIS':'MEMES + RECEIPTS';
   const seasonSlot=currentSeasonDay(data,teams);
-  const socialGameNumber=Number(activeGame.seasonGameNumber||seasonSlot?.gameNumber||0);
-  const promo=socialGameNumber?getScheduledGameNight(data,socialGameNumber):getCurrentGameNight(data,teams);
+  const anchorGame=(activeGame.gameType||'regular')!=='playoff'&&isCalendarAnchorGame(activeGame,data,teams);
+  const socialGameNumber=anchorGame?Number(activeGame.seasonGameNumber||seasonSlot?.gameNumber||0):0;
+  const promo=socialGameNumber?getScheduledGameNight(data,socialGameNumber):null;
   const ceremonies=socialGameNumber?ceremonyForGame(data,teams,socialGameNumber):[];
   const universe=buildFanUniverse(data,teams,playoffPicture); const clubs=buildFanClubs(data,teams,playoffPicture); const media=buildMediaUniverse(); const playerPages=buildPlayerFanPages(data,teams);
   const rivalries=buildHeadToHead(data.games||[],teams,data.seasonHistory||[]);

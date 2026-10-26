@@ -1,5 +1,5 @@
 import React from 'react';
-import { WEEKDAYS, buildSeasonCalendar, calendarSummary, scheduleEntryLabel } from '../utils/seasonCalendarUtils';
+import { WEEKDAYS, buildSeasonCalendar, calendarSummary, currentSeasonDay, getCalendarAnchorTeam, scheduleEntryLabel } from '../utils/seasonCalendarUtils';
 import { ceremonyForGame } from '../utils/ceremonyUtils';
 
 function ResultLine({game,teams=[]}){
@@ -9,9 +9,9 @@ function ResultLine({game,teams=[]}){
 }
 
 export default function SeasonCalendar({data,teams=[],editable=false,onToggle,onSelectGame,selectedGameNumber,compact=false}){
-  const slots=buildSeasonCalendar(data,teams);const summary=calendarSummary(data);
+  const slots=buildSeasonCalendar(data,teams);const summary=calendarSummary(data);const current=currentSeasonDay(data,teams);const anchor=getCalendarAnchorTeam(data,teams);
   return <div className={`season-calendar-shell ${editable?'is-editable':'is-public'} ${compact?'is-compact':''}`}>
-    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}</span></div><div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
+    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}</span></div>{current&&<div className="season-calendar-current-label"><span>CURRENT {anchor?.abbr||'SF'} GAME DAY</span><b>W{current.week} · {current.weekday} · GAME {current.gameNumber}</b></div>}<div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
     <div className="season-calendar-scroll">
       <div className="season-calendar-grid">
         <div className="season-calendar-corner">WEEK</div>{WEEKDAYS.map(d=><div key={d} className="season-calendar-dayhead">{d}</div>)}
@@ -20,8 +20,9 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
           return <React.Fragment key={`week-${w+1}`}><div className="season-calendar-weeklabel"><strong>W{w+1}</strong><span>{w===0?'OPENING':w===3?'ALL-STAR':w>=6?'PENNANT':'REGULAR'}</span></div>{week.map(slot=>{
             const ceremonies=slot.gameNumber?ceremonyForGame(data,teams,slot.gameNumber):[];
             const selected=slot.gameNumber&&slot.gameNumber===selectedGameNumber;
-            return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''}`} onClick={()=>{if(editable)onToggle?.(slot.slotIndex);else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?'Click to remove this Game Day':'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
-              <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}</span>{slot.gameNumber?<b>G{slot.gameNumber}</b>:<b>OFF</b>}</div>
+            const isCurrent=current&&slot.slotIndex===current.slotIndex;
+            return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''}`} onClick={()=>{if(editable)onToggle?.(slot.slotIndex);else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?'Click to remove this Game Day':'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
+              <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span>{slot.gameNumber?<b>G{slot.gameNumber}</b>:<b>OFF</b>}</div>
               {slot.gameNumber?<>
                 <strong className="season-cal-matchup">{scheduleEntryLabel(slot.schedule)}</strong>
                 {ceremonies.slice(0,1).map(c=><span className="season-cal-ceremony" key={c.id}>{c.type==='championship-opening'?'💍🏆🎏':'🎏'} {c.title}</span>)}

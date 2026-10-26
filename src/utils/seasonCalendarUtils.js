@@ -8,6 +8,21 @@ const dateOnly=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))?String(s):'';
 const addDays=(iso,days)=>{if(!dateOnly(iso))return '';const [y,m,d]=iso.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d+days));return dt.toISOString().slice(0,10)};
 const fmtDate=iso=>{if(!dateOnly(iso))return '';const [y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)))};
 
+
+export function getCalendarAnchorTeam(data={},teams=[]){
+  const abbr=String(data.leagueExtras?.calendarAnchorTeamAbbr||'SF').toUpperCase();
+  const pool=teams?.length?teams:(data.teams||[]);
+  return pool.find(t=>String(t?.abbr||'').toUpperCase()===abbr)||pool.find(t=>String(t?.city||'').toLowerCase().includes('san francisco'))||null;
+}
+export function isCalendarAnchorGame(game={},data={},teams=[]){
+  const anchor=getCalendarAnchorTeam(data,teams);
+  if(!anchor)return false;
+  return game?.homeTeamId===anchor.id||game?.awayTeamId===anchor.id;
+}
+export function anchorRegularFinals(data={},teams=[]){
+  return (data.games||[]).filter(g=>g?.status==='Final'&&(g.gameType||'regular')!=='playoff'&&(g.seasonName||data.activeSeasonName)===(data.activeSeasonName||g.seasonName)&&isCalendarAnchorGame(g,data,teams));
+}
+
 export function emptySeasonCalendar(){return Array.from({length:SEASON_SLOTS},()=>null)};
 export function normalizeSeasonCalendar(data={}){
   const raw=data.leagueExtras?.seasonCalendar;
@@ -54,13 +69,15 @@ export function scheduleEntryLabel(entry){if(!entry)return 'Matchup TBD';return 
 export function buildSeasonCalendar(data={},teams=[]){
   const calendar=normalizeSeasonCalendar(data); const start=data.leagueExtras?.seasonStartMonday||'';
   const promoMap=data.leagueExtras?.gameNightSchedule||{};
-  const regularFinals=(data.games||[]).filter(g=>g?.status==='Final'&&(g.gameType||'regular')!=='playoff'&&(g.seasonName||data.activeSeasonName)===(data.activeSeasonName||g.seasonName));
+  const regularFinals=anchorRegularFinals(data,teams);
   const resultByNumber=new Map();
-  regularFinals.forEach(g=>{const n=safe(g.seasonGameNumber);if(n>=1&&n<=SEASON_GAMES)resultByNumber.set(n,g)});
-  // Backfill old finals by chronological order when explicit game numbers do not exist.
-  if(resultByNumber.size===0&&regularFinals.length){
-    [...regularFinals].sort((a,b)=>(Date.parse(a.finalizedAt||a.date||'')||0)-(Date.parse(b.finalizedAt||b.date||'')||0)).slice(0,SEASON_GAMES).forEach((g,i)=>resultByNumber.set(i+1,g));
-  }
+  // The franchise calendar follows the anchor club's own season sequence, not the
+  // total order of every streamed league game. This also repairs older games that
+  // may have inherited a global seasonGameNumber in pre-4.13 builds.
+  [...regularFinals]
+    .sort((a,b)=>(Date.parse(a.finalizedAt||a.date||'')||0)-(Date.parse(b.finalizedAt||b.date||'')||0))
+    .slice(0,SEASON_GAMES)
+    .forEach((g,i)=>resultByNumber.set(i+1,g));
   return Array.from({length:SEASON_SLOTS},(_,slotIndex)=>{
     const week=Math.floor(slotIndex/7)+1,dayIndex=slotIndex%7,gameNumber=calendar[slotIndex];
     const schedule=gameNumber?getScheduleEntry(data,gameNumber):null; const promo=gameNumber?promoMap[String(gameNumber)]||null:null; const result=gameNumber?resultByNumber.get(gameNumber)||null:null;
@@ -69,9 +86,14 @@ export function buildSeasonCalendar(data={},teams=[]){
   });
 }
 export function currentSeasonDay(data={},teams=[]){
-  const slots=buildSeasonCalendar(data,teams); const played=(data.games||[]).filter(g=>g?.status==='Final'&&(g.gameType||'regular')!=='playoff'&&(g.seasonName||data.activeSeasonName)===(data.activeSeasonName||g.seasonName)).length;
-  if(played>=SEASON_GAMES)return null;
-  const nextGame=played+1;
+  const slots=buildSeasonCalendar(data,teams);
+  const finals=anchorRegularFinals(data,teams);
+  const completed=Math.min(SEASON_GAMES,finals.length);
+  if(completed>=SEASON_GAMES)return null;
+  const nextGame=completed+1;
   return slots.find(s=>s.gameNumber===nextGame)||slots.find(s=>s.gameNumber&&!s.result)||null;
+}
+export function currentSeasonSlotIndex(data={},teams=[]){
+  return currentSeasonDay(data,teams)?.slotIndex ?? null;
 }
 export function calendarSummary(data={}){const cal=normalizeSeasonCalendar(data);return {scheduled:cal.filter(Boolean).length,remaining:SEASON_GAMES-cal.filter(Boolean).length,openDays:SEASON_SLOTS-cal.filter(Boolean).length}}

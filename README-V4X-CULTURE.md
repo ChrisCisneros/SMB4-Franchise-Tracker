@@ -1,10 +1,17 @@
 # V4.x — Living World / Culture
 
-## Current release: V4.13 — Living Season
+## Current release: V4.13.1 — Living Season
 
 V4.5–V4.12 built the living-world layer: Fandom, team fan districts, live social feeds, official team/league accounts, Live Watching, Game Day Social, chronological chatter, large ambient phrase banks, promotions/giveaways, Ballpark Life, reseller/collector culture, World Pulse, League Office, and the Hall of Banners & Awards.
 
 V4.13 turns that culture into an actual season rhythm.
+### V4.13.1 calendar clock patch
+- The highlighted season day advances only when the configured calendar club (default `SF`) finishes a regular-season game.
+- Streaming other league games no longer consumes a Giants calendar game number, promotion, or day.
+- The active Game Day is highlighted across calendar views.
+- Giveaway resellers appear only on giveaway day and for up to two fictional calendar days afterward; historical items remain in the Collector Vault.
+- League Office → Season & Calendar now starts with the matchup importer, followed by date placement and promotions.
+
 
 ### Real eight-week season calendar
 - eight Monday–Sunday weeks / 56 calendar slots
