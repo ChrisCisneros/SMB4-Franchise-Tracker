@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { buildNewsFeed } from "../utils/newsUtils";
 import { buildFanPoll, buildSocialChatter, getSeasonPulse } from "../utils/fandomUtils";
 import { buildWorldState } from "../utils/cultureUtils";
+import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
+import { ceremonyForGame } from "../utils/ceremonyUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -72,6 +74,8 @@ export default function NewsPage({ ctx }) {
   const social = useMemo(() => buildSocialChatter(data, teams, ctx.playoffPicture || [], Date.now()).slice(0,4), [data, teams, ctx.playoffPicture, tickerOffset]);
   const pulse = useMemo(() => getSeasonPulse(data, teams), [data, teams]);
   const worldState = useMemo(() => buildWorldState(data, teams, ctx.playoffPicture || [], Date.now()), [data, teams, ctx.playoffPicture, tickerOffset]);
+  const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
+  const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
   const factStories = filtered.filter((story) => story.kind === "fact");
   const editorialStories = filtered.filter((story) => story.kind !== "fact");
@@ -112,6 +116,8 @@ export default function NewsPage({ ctx }) {
         <div className="news-brand-block"><div className="news-network-mark">SMB</div><div><div className="news-kicker">SMB4 League Network</div><h2>League News</h2><p>A constantly rotating feed of headlines, races, records, history, weird stats and league-wide baseball nonsense.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
+
+      <section className="news-today-edition card"><div><small>TODAY'S BASEBALL WORLD</small><strong>{todaySlot?.gameNumber?`G${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'League off-day / schedule forming'}</strong><span>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${pulse.week} · ${pulse.phase}`}</span></div><div><small>TONIGHT</small><strong>{todayCeremonies[0]?.title||todaySlot?.promo?.name||worldState.moments?.[0]?.title||'Around the league'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||worldState.leagueMood}</span></div><div className="news-edition-stamp"><b>DAILY DIAMOND</b><em>{pulse.phase}</em></div></section>
 
       {!!ticker && <div className="news-ticker news-ticker-live" aria-label="SMB Network live ticker"><span className="news-ticker-label"><i/>LIVE</span><strong key={ticker.id}>{ticker.headline}</strong><span className="news-ticker-date">{ticker.dateLabel}</span></div>}
 

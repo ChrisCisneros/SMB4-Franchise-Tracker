@@ -43,6 +43,14 @@ export const GAME_NIGHT_BANK=[
   {id:'local-business',name:'Local Business Night',icon:'🏪',type:'community',hype:5,attendance:6,merch:'City Series Tee',giveaway:'Local businesses and neighborhood partners featured in the park'},
   {id:'scorecard',name:'Scorecard Night',icon:'✏️',type:'heritage',hype:5,attendance:5,merch:'Classic Scorebook',giveaway:'Commemorative scorecard and pencils for early arrivals'},
   {id:'mini-trophy',name:'Mini Trophy Giveaway',icon:'🏆',type:'giveaway',hype:14,attendance:15,merch:'Mini Championship Trophy',giveaway:'Mini replica trophy giveaway while supplies last'},
+  {id:'fan-club',name:'Fan Club Meetup Night',icon:'🤝',type:'community',hype:7,attendance:8,merch:'Supporters Club Pack',giveaway:'Official fan groups and supporter clubs meet around the park'},
+  {id:'photo-night',name:'Ballpark Photo Night',icon:'📸',type:'community',hype:6,attendance:6,merch:'Ballpark Photo Print',giveaway:'Photo spots, fan photography features and stadium-view contests'},
+  {id:'autograph',name:'Autograph Night',icon:'✍️',type:'heritage',hype:11,attendance:13,merch:'Autograph Series',giveaway:'Pregame autograph opportunities and alumni appearances'},
+  {id:'season-ticket',name:'Season Ticket Holder Night',icon:'🎟️',type:'community',hype:7,attendance:9,merch:'Member Collection',giveaway:'Season-ticket members get special recognition and concourse perks'},
+  {id:'mascot-race',name:'Mascot Race Night',icon:'🏁',type:'family',hype:8,attendance:8,merch:'Mascot Race Tee',giveaway:'Mascot races, fan voting and extra between-inning chaos'},
+  {id:'retro-scoreboard',name:'Retro Scoreboard Night',icon:'📟',type:'heritage',hype:8,attendance:7,merch:'Retro Scoreboard Tee',giveaway:'Old-school graphics, classic scorekeeping and throwback presentation'},
+  {id:'city-night',name:'City Night',icon:'🌆',type:'community',hype:9,attendance:9,merch:'City Collection',giveaway:'Neighborhood culture, local groups and city-themed presentation'},
+  {id:'fan-cam',name:'Fan Cam Night',icon:'📹',type:'family',hype:7,attendance:7,merch:'Fan Cam Photo Pack',giveaway:'Extra fan-cam features, crowd contests and scoreboard shoutouts'},
 ];
 
 export function getScheduledGameNight(data={},gameNumber){

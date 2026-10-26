@@ -326,7 +326,7 @@ export default function LiveField({
   const cueKind = cueEvent?.kind || "pitch";
 
   return (
-    <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"}`} style={fieldVars}>
+    <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"} ${playEvent?.type?`play-${playEvent.type}`:''}`} style={fieldVars}>
       <div className="live-field-header">
         <div>
           <span className="live-field-kicker">LIVE FIELD</span>

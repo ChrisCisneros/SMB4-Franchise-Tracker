@@ -16,7 +16,7 @@ import { buildGameDaySocial } from "../utils/gameDaySocialUtils";
 import GameDaySocial from "../components/GameDaySocial";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildWorldState } from "../utils/cultureUtils";
-import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
+import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
@@ -51,7 +51,12 @@ export default function DashboardPage({ ctx }) {
   const gameDaySocial = useMemo(()=>buildGameDaySocial(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
   const worldState = useMemo(()=>buildWorldState(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
+  const seasonCalendar = useMemo(()=>buildSeasonCalendar(data,teams),[data,teams]);
   const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
+  const upcomingSlots = useMemo(()=>{
+    if(!todaySlot)return seasonCalendar.filter(x=>x.gameNumber&&!x.result).slice(0,3);
+    return seasonCalendar.filter(x=>x.gameNumber && x.slotIndex>=todaySlot.slotIndex && !x.result).slice(0,3);
+  },[seasonCalendar,todaySlot]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
@@ -129,7 +134,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.13.1</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.14</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -143,6 +148,11 @@ export default function DashboardPage({ ctx }) {
     <section className="card dashboard-today-package">
       <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'Schedule Day TBD'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Game Day'}`}</p></div><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button></div>
       <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.name}`:'Regular Game Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||'The baseball world is getting ready.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated live viewers`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>GAME IMPORTANCE</small><strong>{v4Importance?.label||'Regular Season'}</strong><span>{v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'}</span></div></div>
+    </section>
+
+    <section className="dashboard-next-strip card">
+      <div className="dashboard-next-label"><span>COMING UP</span><strong>Next on the franchise calendar</strong></div>
+      <div className="dashboard-next-games">{upcomingSlots.length?upcomingSlots.map((slot,i)=><button type="button" key={slot.slotIndex} onClick={()=>setPage?.('fandom')} className={i===0?'next':''}><small>{i===0?'NEXT':`AFTER THAT`} · W{slot.week} {slot.weekday}</small><b>{scheduleEntryLabel(slot.schedule)}</b><span>{slot.promo?`${slot.promo.icon||'🎟️'} ${slot.promo.name}`:slot.dateLabel||`Game ${slot.gameNumber}`}</span></button>):<div className="dashboard-next-empty">No future franchise games are placed yet.</div>}</div>
     </section>
 
     <section className="dashboard-universe-plaza">
@@ -225,6 +235,8 @@ export default function DashboardPage({ ctx }) {
         <div className="card v3-rail-card v3-franchise-focus"><div className="v3-rail-head"><div><span>FRANCHISE FOCUS</span><h3>{favoriteTeam?.abbr || '—'}</h3></div>{favoriteMarker&&<MiniPill tone="gold">{favoriteMarker}</MiniPill>}</div>{favoriteTeam?<><div className="v3-focus-record"><strong>{favoriteTeam.wins}-{favoriteTeam.losses}</strong><span>{pct(favoriteTeam.wins,favoriteTeam.losses)}</span></div><div className="v3-focus-grid"><div><span>Division</span><strong>#{favoriteDivisionRank||'—'}</strong></div><div><span>RD</span><strong>{favoriteTeam.runDiff>0?'+':''}{favoriteTeam.runDiff||0}</strong></div><div><span>Games Left</span><strong>{favoriteGamesLeft}</strong></div></div><p>{favoriteDivisionRank===1?`Leading the ${favoriteTeam.league} ${favoriteTeam.division}${favoriteDivisionChaser?` over ${favoriteDivisionChaser.abbr}`:''}.`:`${gamesBack(favoriteTeam,favoriteDivisionLeader)} GB in the division.`}</p></>:<p className="muted">No franchise selected.</p>}</div>
 
         <div className="card v3-rail-card dashboard-fandom-card"><div className="v3-rail-head"><div><span>FAN PULSE</span><h3>Week {seasonPulse.week} · {seasonPulse.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Fandom →</button></div><div className="dashboard-fan-mood"><strong>{fanUniverse.leagueMood}</strong><span>{fanPoll.question}</span></div>{fanPoll.options.slice(0,2).map(o=><div className="dashboard-fan-poll" key={o.team.id}><b>{o.team.abbr}</b><i><em style={{width:`${o.pct}%`}}/></i><span>{o.pct}%</span></div>)}<div className="dashboard-living-wire">{livingFeed.slice(0,2).map(x=><p key={x.id}><b>{x.handle}</b> {x.text}</p>)}</div>{featuredMerch&&<div className="dashboard-merch-ad"><small>{featuredMerch.tag}</small><strong>{featuredMerch.name}</strong><span>Visit Team Store →</span></div>}</div>
+
+        <div className="card v3-rail-card dashboard-happening-card"><div className="v3-rail-head"><div><span>WHAT'S HAPPENING</span><h3>Universe Now</h3></div><button onClick={()=>setPage?.('fandom')}>Explore</button></div><div className="dashboard-happening-list">{(worldState.moments||[]).slice(0,4).map((m,i)=><div key={`${m.type}-${i}`}><b>{m.icon||'•'}</b><span><strong>{m.title}</strong><small>{m.detail||m.type}</small></span></div>)}{(worldState.trending||[]).slice(0,2).map(tag=><div key={tag}><b>#</b><span><strong>{tag}</strong><small>Trending around the league</small></span></div>)}</div></div>
 
         <div className="card v3-rail-card"><div className="v3-rail-head"><div><span>RECORD WATCH</span><h3>V3 Game Book</h3></div><button onClick={()=>setPage?.('league')}>Archive</button></div>{alerts.length?alerts.map((a,i)=><div className="v3-alert-row" key={i}><span>{a.label}</span><strong>{a.value}</strong><small>{a.detail}</small></div>):<div className="v3-empty-compact">Finalize games to unlock live game records.</div>}</div>
       </aside>

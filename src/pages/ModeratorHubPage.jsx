@@ -6,7 +6,7 @@ import BracketAdminPage from './BracketAdminPage';
 import AdminPage from './AdminPage';
 import SeasonCalendar from '../components/SeasonCalendar';
 import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,getScheduledGameNight } from '../utils/gameNightUtils';
-import { autoFiveGameWeeks,calendarSummary,normalizeSeasonCalendar,parseCompactSchedule,toggleCalendarGameDay } from '../utils/seasonCalendarUtils';
+import { autoFiveGameWeeks,calendarSummary,currentSeasonDay,normalizeSeasonCalendar,parseCompactSchedule,scheduleEntryLabel,toggleCalendarGameDay } from '../utils/seasonCalendarUtils';
 import { CEREMONY_TYPES,buildCeremonyTimeline,seedOpeningCeremonies } from '../utils/ceremonyUtils';
 import { buildHeadToHead } from '../utils/historyUtils';
 
@@ -23,6 +23,8 @@ export default function ModeratorHubPage({ctx}){
   const selected=getScheduledGameNight(data,gameNumber);
   const summary=calendarSummary(data);
   const ceremonies=useMemo(()=>buildCeremonyTimeline(data,teams),[data,teams]);
+  const todaySlot=useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
+  const todayPromo=todaySlot?.gameNumber?getScheduledGameNight(data,todaySlot.gameNumber):null;
   const rivalries=useMemo(()=>buildHeadToHead(data.games||[],teams,data.seasonHistory||[]),[data.games,data.seasonHistory,teams]);
   const saveExtras=next=>{setData(p=>({...p,leagueExtras:next}));syncLeagueExtrasToFirebase?.(next)};
   const savePatch=patch=>saveExtras({...extras,...patch});
@@ -74,6 +76,7 @@ export default function ModeratorHubPage({ctx}){
 
   return <div className="league-office-page">
     <section className="card league-office-hero"><div><span>AUTHORIZED PERSONNEL</span><h1>League Office</h1><p>Game operations, season administration, ceremonies, promotions, history and the living-world controls all live here now.</p></div><b>COMMISSIONER MODE</b></section>
+    <section className="league-office-status-strip"><div><small>CURRENT DAY</small><strong>{todaySlot?.gameNumber?`W${todaySlot.week} ${todaySlot.weekday} · G${todaySlot.gameNumber}`:'Season Complete'}</strong><span>{todaySlot?.gameNumber?scheduleEntryLabel(todaySlot.schedule):'No next regular-season game'}</span></div><div><small>TONIGHT</small><strong>{todayPromo?`${todayPromo.icon||'🎟️'} ${todayPromo.name}`:'Regular Game Day'}</strong><span>{todayPromo?.giveaway||'No special promotion scheduled'}</span></div><div><small>CALENDAR</small><strong>{summary.scheduled}/40</strong><span>{summary.remaining} games still need dates</span></div><div><small>WORLD</small><strong>{(extras.worldMoments||[]).length} moments</strong><span>{ceremonies.length} ceremonies scheduled</span></div></section>
     <div className="league-office-tabs">{TABS.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
     {tab==='live'&&<LivePage ctx={ctx}/>} {tab==='quick'&&<QuickPage ctx={ctx}/>} {tab==='daily'&&<DailyPage ctx={ctx}/>} {tab==='bracket'&&<BracketAdminPage ctx={ctx}/>} {tab==='admin'&&<AdminPage ctx={ctx}/>} 
 
