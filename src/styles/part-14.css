@@ -1028,3 +1028,12 @@
 .pitch-strikeout-looking {
   background: linear-gradient(180deg, #5b21b6 0%, #2e1065 100%);
 }
+
+/* V4.13.2 schedule list editor */
+.office-schedule-preview.editable{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 12px;align-items:stretch}
+.office-schedule-chip{position:relative;display:flex;flex:0 0 auto;align-items:stretch;border:1px solid transparent;border-radius:12px}
+.office-schedule-chip.selected{border-color:var(--accent,#f59e0b);box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.office-schedule-chip>button:first-child{min-width:92px}
+.office-schedule-chip .schedule-delete{width:30px;min-width:30px;padding:0;border-radius:0 10px 10px 0;background:rgba(127,29,29,.82);color:#fff;font-size:18px;line-height:1}
+.office-schedule-chip .schedule-delete:hover{filter:brightness(1.12)}
+.office-schedule-import .inline-buttons button:disabled{opacity:.4;cursor:not-allowed}
