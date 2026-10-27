@@ -1,0 +1,41 @@
+/* V4.20.2 End-of-day calendar + ceremony operator polish */
+.office-time-paint{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0 14px;
+  padding:10px 12px;
+  border:1px solid rgba(125,160,210,.22);
+  border-radius:12px;
+  background:rgba(8,16,30,.72);
+}
+.office-time-paint>span{
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.14em;
+  color:#8ebdff;
+  margin-right:4px;
+}
+.office-time-paint button{min-height:34px;padding:7px 11px}
+.office-time-paint button.active{
+  border-color:#f0a51b;
+  background:linear-gradient(135deg,rgba(240,165,27,.26),rgba(54,108,255,.18));
+  color:#fff4ca;
+}
+.office-time-paint small{
+  flex:1 1 100%;
+  color:#8294ad;
+  line-height:1.35;
+}
+.season-calendar-cell.is-time-paintable{cursor:crosshair}
+.season-calendar-cell.is-time-paintable:hover{
+  outline:2px solid rgba(240,165,27,.75);
+  outline-offset:-2px;
+}
+.office-ceremony-actions{flex-wrap:wrap}
+@media (max-width:900px){
+  .office-time-paint{align-items:stretch}
+  .office-time-paint>span{width:100%}
+  .office-time-paint button{flex:1 1 calc(50% - 8px)}
+}

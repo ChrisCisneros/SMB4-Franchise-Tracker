@@ -156,7 +156,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
 
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.20</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.20.2</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -167,6 +167,15 @@ export default function DashboardPage({ ctx }) {
     </section>
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
+        <section className="card dashboard-v4-intel">
+          <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
+          <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
+          <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
+          <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
+          <div><span>Game Importance</span><strong>{v4Importance?.label || "—"}</strong></div>
+          {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
+        </section>
+
         <div className={`card v3-broadcast-hero ${liveLeaderClass} ${scoreFlashSide?`scorebug-flash-${scoreFlashSide}`:""} ${isPlayoffLiveGame?"playoff-broadcast-bg":""}`} style={playoffBroadcastVars}>
           <div className="v3-broadcast-topline">
             <div><div className="v3-eyebrow">{hasLiveMatchup?"NOW PLAYING":"LATEST FROM THE LEAGUE"}</div><strong>{hasLiveMatchup?(isPlayoffLiveGame?playoffGameTitle(currentGame):"Regular Season"):lastFinalGame?(lastFinalGame.gameType==='playoff'?playoffGameTitle(lastFinalGame):"Final Result"):"Season 4 Central"}</strong></div>
@@ -212,6 +221,26 @@ export default function DashboardPage({ ctx }) {
           </div>}
         </div>
 
+        {dashboardMerch.length>0 && <section className="dashboard-market-row">
+          <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
+          {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
+        </section>}
+
+        {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
+
+        <section className="dashboard-media-memory-grid">
+          <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
+          <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
+          <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
+        </section>
+
+        <section className="dashboard-life-charge-grid">
+          <article className="card dashboard-main-character"><small>{lifeMainCharacter.label}</small><strong>{lifeMainCharacter.title}</strong><span>{lifeMainCharacter.detail}</span><div className="life-heat-track"><i style={{width:`${lifeMainCharacter.heat}%`}}/></div></article>
+          <article className="card dashboard-topic-life"><small>TOPIC LIFECYCLE</small><strong>{lifeTopics[0]?.stage||'EMERGING'} · {lifeTopics[0]?.topic||'Season conversation'}</strong><span>{lifeTopics[0]?.fatigue||'The story is still forming.'}</span></article>
+          <article className="card dashboard-receipt"><small>RECEIPT DESK</small><strong>{lifeReceipts[0]?.team?.abbr||'LEAGUE'} · {lifeReceipts[0]?.verdict||'NO RECEIPT YET'}</strong><span>{lifeReceipts[0]?.oldTake||lifeOutlets[0]?.stance}</span></article>
+          <article className="card dashboard-offday"><small>{offDayWorld.label}</small><strong>{offDayWorld.items[0]?.title||'The league keeps moving'}</strong><span>{offDayWorld.items[0]?.detail}</span></article>
+        </section>
+
       </div>
 
       <aside className="v3-dashboard-rail">
@@ -229,36 +258,12 @@ export default function DashboardPage({ ctx }) {
       </aside>
     </section>
 
-    {dashboardMerch.length>0 && <section className="dashboard-market-row">
-      <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
-      {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
-    </section>}
 
     {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
 
-    <section className="card dashboard-v4-intel">
-      <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
-      <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
-      <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
-      <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
-      <div><span>Game Importance</span><strong>{v4Importance?.label || "—"}</strong></div>
-      {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
-    </section>
 
-    {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
 
-    <section className="dashboard-media-memory-grid">
-      <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
-      <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
-      <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
-    </section>
 
-    <section className="dashboard-life-charge-grid">
-      <article className="card dashboard-main-character"><small>{lifeMainCharacter.label}</small><strong>{lifeMainCharacter.title}</strong><span>{lifeMainCharacter.detail}</span><div className="life-heat-track"><i style={{width:`${lifeMainCharacter.heat}%`}}/></div></article>
-      <article className="card dashboard-topic-life"><small>TOPIC LIFECYCLE</small><strong>{lifeTopics[0]?.stage||'EMERGING'} · {lifeTopics[0]?.topic||'Season conversation'}</strong><span>{lifeTopics[0]?.fatigue||'The story is still forming.'}</span></article>
-      <article className="card dashboard-receipt"><small>RECEIPT DESK</small><strong>{lifeReceipts[0]?.team?.abbr||'LEAGUE'} · {lifeReceipts[0]?.verdict||'NO RECEIPT YET'}</strong><span>{lifeReceipts[0]?.oldTake||lifeOutlets[0]?.stance}</span></article>
-      <article className="card dashboard-offday"><small>{offDayWorld.label}</small><strong>{offDayWorld.items[0]?.title||'The league keeps moving'}</strong><span>{offDayWorld.items[0]?.detail}</span></article>
-    </section>
 
     <section className="dashboard-next-strip card">
       <div className="dashboard-next-label"><span>COMING UP</span><strong>Next on the franchise calendar</strong></div>

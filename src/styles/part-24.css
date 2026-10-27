@@ -8,3 +8,22 @@
 
 /* V4.20 dashboard declutter */
 .dashboard-network-top{margin-top:0}.dashboard-network-status{display:grid;justify-items:end;gap:1px;min-width:120px}.dashboard-network-status small{font-size:8px;letter-spacing:.14em;color:#7dd3fc}.dashboard-network-status strong{font-size:18px}.dashboard-network-status span{font-size:8px;color:#94a3b8}.dashboard-today-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.dashboard-recent-only{display:grid;grid-template-columns:minmax(0,1fr);margin-top:14px}.dashboard-recent-only .v3-recent-results{width:100%}@media(max-width:900px){.dashboard-today-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-network-status{justify-items:start}}@media(max-width:600px){.dashboard-today-grid{grid-template-columns:1fr}.dashboard-network-status{display:none}}
+
+/* V4.20.1 Dashboard flow repair: keep matchup context + supporting content in the primary column. */
+.v3-dashboard-primary{align-content:start;min-width:0}
+.v3-dashboard-primary>.dashboard-v4-intel{margin:0}
+.v3-dashboard-primary>.dashboard-market-row{grid-template-columns:repeat(3,minmax(0,1fr));margin:0}
+.v3-dashboard-primary>.dashboard-market-row .dashboard-market-label{grid-column:1/-1}
+.v3-dashboard-primary>.dashboard-media-memory-grid{margin:0;grid-template-columns:repeat(3,minmax(0,1fr))}
+.v3-dashboard-primary>.dashboard-life-charge-grid{margin:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:1250px){
+  .v3-dashboard-primary>.dashboard-market-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .v3-dashboard-primary>.dashboard-media-memory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .v3-dashboard-primary>.dashboard-life-charge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .v3-dashboard-primary>.dashboard-market-row,
+  .v3-dashboard-primary>.dashboard-media-memory-grid,
+  .v3-dashboard-primary>.dashboard-life-charge-grid{grid-template-columns:1fr}
+  .v3-dashboard-primary>.dashboard-market-row .dashboard-market-label{grid-column:auto}
+}

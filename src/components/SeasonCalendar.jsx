@@ -41,7 +41,7 @@ function segmentKind(slots,index){
   return 'segment-solo';
 }
 
-export default function SeasonCalendar({data,teams=[],editable=false,onToggle,onSelectGame,selectedGameNumber,compact=false}){
+export default function SeasonCalendar({data,teams=[],editable=false,onToggle,onSelectGame,selectedGameNumber,compact=false,paintTimeType='',onPaintTimeType}){
   const slots=buildSeasonCalendar(data,teams);const summary=calendarSummary(data);const current=currentSeasonDay(data,teams);const anchor=getCalendarAnchorTeam(data,teams);
   const anchorColors=getTeamColorsByAbbr(anchor?.abbr||'SF');
   return <div className={`season-calendar-shell ${editable?'is-editable':'is-public'} ${compact?'is-compact':''}`} style={{'--calendar-home':anchorColors.main,'--calendar-home-alt':anchorColors.alt,'--calendar-home-border':anchorColors.border||anchorColors.alt,'--calendar-home-text':anchorColors.text||'#fff'}}>
@@ -67,7 +67,7 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
               const seriesWithPrev=opponent&&prevGame?.schedule?.opponentAbbr===opponent;
               const seriesWithNext=opponent&&nextGame?.schedule?.opponentAbbr===opponent;
               const seg=segmentKind(slots,slot.slotIndex);
-              return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${isHome?'is-home':''} ${isAway?'is-away':''} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''} ${seg}`} onClick={()=>{if(editable)onToggle?.(slot.slotIndex);else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?'Click to remove this Game Day':'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
+              return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${isHome?'is-home':''} ${isAway?'is-away':''} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''} ${paintTimeType&&slot.gameNumber?'is-time-paintable':''} ${seg}`} onClick={()=>{if(editable){if(slot.gameNumber&&paintTimeType&&onPaintTimeType){onPaintTimeType(slot.gameNumber,paintTimeType);onSelectGame?.(slot.gameNumber)}else onToggle?.(slot.slotIndex)}else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?(paintTimeType?`Set Game ${slot.gameNumber} to ${paintTimeType}`:'Click to remove this Game Day'):'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
                 <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span>{slot.gameNumber?<b>G{slot.gameNumber} · {timeType}</b>:<b>OFF</b>}</div>
                 {slot.gameNumber?<>
                   <div className="season-cal-flags">{milestone&&<span className="season-cal-milestone">★ {milestone}</span>}{(seriesWithPrev||seriesWithNext)&&<span className="season-cal-series">SERIES</span>}</div>

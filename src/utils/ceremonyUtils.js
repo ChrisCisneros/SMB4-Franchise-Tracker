@@ -21,6 +21,7 @@ export const CEREMONY_TYPES=[
   {id:'reunion',icon:'🤝',name:'Championship Reunion',tone:'gold'},
   {id:'league-award',icon:'🏅',name:'League Award Presentation',tone:'gold'},
   {id:'historic-team',icon:'📜',name:'Historic Team Recognition',tone:'legacy'},
+  {id:'custom',icon:'✨',name:'Custom Ceremony',tone:'event'},
 ];
 
 export function previousSeasonChampions(data={},teams=[]){
@@ -35,9 +36,9 @@ export function seedOpeningCeremonies(data={},teams=[]){
   const seasonName=data.activeSeasonName||'Current Season'; const events=[];
   [prev.al,prev.nl].filter(Boolean).forEach(team=>{
     if(team.id===prev.champ?.id)return;
-    events.push({id:uid(),type:'banner',teamId:team.id,teamAbbr:team.abbr,title:`${team.abbr} League Championship Banner Unveiling`,detail:`Celebrating the ${prev.season.name||'previous season'} league championship.`,seasonName,gameNumber:1,status:'scheduled',createdAt:new Date().toISOString()});
+    events.push({id:uid(),type:'banner',teamId:team.id,teamAbbr:team.abbr,title:`${prev.season.name||'Previous Season'} League Championship Banner Ceremony — ${team.abbr}`,detail:`Celebrating the ${prev.season.name||'previous season'} league championship before the new season gets underway.`,seasonName,gameNumber:1,status:'scheduled',source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
   });
-  if(prev.champ)events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.champ.abbr} Championship Banner, Trophy & Ring Ceremony`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their league banner, present the trophy and receive championship rings.`,seasonName,gameNumber:1,status:'scheduled',includes:['banner','trophy','rings'],createdAt:new Date().toISOString()});
+  if(prev.champ)events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.season.name||'Previous Season'} World Series Banner & Ring Ceremony — ${prev.champ.abbr}`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their league banner, present the trophy and receive championship rings.`,seasonName,gameNumber:1,status:'scheduled',includes:['banner','trophy','rings'],source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
   return events;
 }
 export function buildCeremonyTimeline(data={},teams=[]){
