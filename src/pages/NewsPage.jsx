@@ -4,6 +4,7 @@ import { buildFanPoll, buildSocialChatter, getSeasonPulse } from "../utils/fando
 import { buildWorldState } from "../utils/cultureUtils";
 import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
+import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHonorInterviews, buildHotColdBoard, buildOnThisDateMoments, buildFakePodcasts, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -74,6 +75,14 @@ export default function NewsPage({ ctx }) {
   const social = useMemo(() => buildSocialChatter(data, teams, ctx.playoffPicture || [], Date.now()).slice(0,4), [data, teams, ctx.playoffPicture, tickerOffset]);
   const pulse = useMemo(() => getSeasonPulse(data, teams), [data, teams]);
   const worldState = useMemo(() => buildWorldState(data, teams, ctx.playoffPicture || [], Date.now()), [data, teams, ctx.playoffPicture, tickerOffset]);
+  const aroundTonight=useMemo(()=>buildAroundLeagueTonight(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const talkingAbout=useMemo(()=>buildFansTalkingAbout(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const podcasts=useMemo(()=>buildFakePodcasts(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const honorInterviews=useMemo(()=>buildHonorInterviews(data),[data]);
+  const onThisDate=useMemo(()=>buildOnThisDateMoments(data,teams),[data,teams]);
+  const hotCold=useMemo(()=>buildHotColdBoard(teams),[teams]);
+  const ads=useMemo(()=>buildDynamicAds(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const weekly=useMemo(()=>buildWeeklyMediaRoundup(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
   const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -127,6 +136,20 @@ export default function NewsPage({ ctx }) {
       </section>
 
       <section className="news-world-pulse card"><div><span>WORLD PULSE</span><strong>{worldState.leagueMood}</strong></div>{worldState.moments.map((m,i)=><p key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</p>)}<div>{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
+
+      <section className="news-media-grid">
+        <article className="card news-around-tonight"><div className="news-kicker">AROUND THE LEAGUE TONIGHT</div><h3>What the desk is watching</h3>{aroundTonight.slice(0,5).map((x,i)=><p key={`${x.type}-${i}`}><b>{x.icon} {x.title}</b><span>{x.detail}</span></p>)}</article>
+        <article className="card news-hot-cold-board"><div className="news-kicker">HOT / COLD BOARD</div><h3>Streak Watch</h3><div><strong>🔥 HOT</strong>{hotCold.hot.slice(0,3).map(t=><span key={t.id}>{t.abbr} {t.streak}</span>)}</div><div><strong>🥶 COLD</strong>{hotCold.cold.slice(0,3).map(t=><span key={t.id}>{t.abbr} {t.streak}</span>)}</div></article>
+        <article className="card news-weekly-roundup"><div className="news-kicker">WEEK {weekly.week} ROUNDUP</div><h3>{weekly.headline}</h3><p>{weekly.teamOfWeek?`${weekly.teamOfWeek.abbr} is the media desk's team of the week.`:weekly.phase}</p>{weekly.rivalry&&<p><b>Rivalry:</b> {weekly.rivalry.teamA?.abbr} / {weekly.rivalry.teamB?.abbr}</p>}</article>
+      </section>
+
+      <section className="news-talking card"><div><div className="news-kicker">FANS ARE TALKING ABOUT</div><h3>The conversation right now</h3></div><div>{talkingAbout.map((x,i)=><span key={`${x.label}-${i}`}><b>{x.icon} {x.label}</b><small>{x.detail}</small></span>)}</div></section>
+
+      <section className="news-podcast-row"><div className="news-section-heading"><div><div className="news-kicker">SMB AUDIO NETWORK</div><h3>Latest Podcasts</h3></div></div><div className="news-podcast-grid">{podcasts.map(p=><article className="card" key={p.show}><small>{p.show} · {p.host}</small><strong>{p.episode}</strong>{p.topics.map(t=><span key={t}>• {t}</span>)}</article>)}</div></section>
+
+      {(honorInterviews.length>0||onThisDate.length>0)&&<section className="news-memory-grid">{honorInterviews.length>0&&<article className="card"><div className="news-kicker">LEGENDS DESK</div><h3>Honor Interview</h3><strong>{honorInterviews[0].name} · {honorInterviews[0].team||'LEAGUE'}</strong><blockquote>“{honorInterviews[0].quote}”</blockquote><small>{honorInterviews[0].occasion}</small></article>}{onThisDate.length>0&&<article className="card"><div className="news-kicker">ON THIS DATE</div><h3>{onThisDate[0].title}</h3><p>{onThisDate[0].detail}</p></article>}</section>}
+
+      <section className="news-ad-grid">{ads.slice(0,3).map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><span>{ad.copy}</span><b>{ad.cta} →</b></article>)}</section>
 
       <section className="news-fandom-strip card"><div><div className="news-kicker">FAN & MEDIA PULSE · WEEK {pulse.week}</div><h3>{fanPoll.question}</h3><div className="news-fan-mini-poll">{fanPoll.options.slice(0,4).map(o=><span key={o.team.id}><b>{o.team.abbr}</b> {o.pct}%</span>)}</div></div><div className="news-social-wire">{social.slice(0,2).map((x,i)=><p key={i}><b>{x.handle}</b> {x.text}</p>)}</div></section>
 

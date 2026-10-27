@@ -18,6 +18,7 @@ import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildWorldState } from "../utils/cultureUtils";
 import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
+import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -43,6 +44,12 @@ export default function DashboardPage({ ctx }) {
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
+  const ticketForecast = useMemo(()=>buildTicketForecast(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const hotCold = useMemo(()=>buildHotColdBoard(teams),[teams]);
+  const tonightBoard = useMemo(()=>buildAroundLeagueTonight(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const talkingAbout = useMemo(()=>buildFansTalkingAbout(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const dynamicAds = useMemo(()=>buildDynamicAds(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const weeklyRoundup = useMemo(()=>buildWeeklyMediaRoundup(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
@@ -134,7 +141,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.14</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.16</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -148,6 +155,12 @@ export default function DashboardPage({ ctx }) {
     <section className="card dashboard-today-package">
       <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'Schedule Day TBD'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Game Day'}`}</p></div><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button></div>
       <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.name}`:'Regular Game Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||'The baseball world is getting ready.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated live viewers`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>GAME IMPORTANCE</small><strong>{v4Importance?.label||'Regular Season'}</strong><span>{v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'}</span></div></div>
+    </section>
+
+    <section className="dashboard-media-memory-grid">
+      <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
+      <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
+      <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
     </section>
 
     <section className="dashboard-next-strip card">
@@ -244,6 +257,12 @@ export default function DashboardPage({ ctx }) {
 
     {clinchedTeams.length > 0 && <section className="v3-clinch-strip"><div className="v3-section-heading compact"><div><span>POSTSEASON TICKETS PUNCHED</span><h3>Clinched</h3></div></div><div className="v3-clinch-list">{clinchedTeams.map(({team,marker})=><div className="v3-clinch-card" key={team.id}><span>{clinchLabel(marker)}</span><strong>{team.abbr}</strong><small>{team.wins}-{team.losses}</small></div>)}</div></section>}
 
+
+    <section className="dashboard-culture-strip">
+      <div className="card dashboard-around-tonight"><div className="v3-section-heading compact"><div><span>AROUND THE LEAGUE TONIGHT</span><h3>What matters elsewhere</h3></div></div>{tonightBoard.map((x,i)=><div className="dashboard-tonight-row" key={`${x.type}-${i}`}><b>{x.icon}</b><span><strong>{x.title}</strong><small>{x.detail}</small></span></div>)}</div>
+      <div className="card dashboard-talking-about"><div className="v3-section-heading compact"><div><span>FANS ARE TALKING ABOUT</span><h3>Conversation Board</h3></div></div>{talkingAbout.map((x,i)=><div className="dashboard-topic-row" key={`${x.label}-${i}`}><b>{x.icon}</b><span><strong>{x.label}</strong><small>{x.detail}</small></span></div>)}</div>
+      <div className="card dashboard-ad-rotation"><div className="v3-section-heading compact"><div><span>COMMERCIAL BREAK</span><h3>From around the league</h3></div></div>{dynamicAds.slice(0,3).map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><p>{ad.copy}</p><b>{ad.cta} →</b></article>)}</div>
+    </section>
 
     <section className="v3-dashboard-bottom-grid">
       <div className="card v3-race-card"><div className="v3-section-heading compact"><div><span>POSTSEASON RACE</span><h3>Playoff Picture</h3></div><button onClick={()=>setPage?.('standings')}>Full Standings →</button></div><div className="dashboard-playoff-grid">{playoffPicture.map(picture=><div className="dashboard-playoff-card v3-playoff-card" key={picture.league}><h3>{picture.league}</h3><div className="playoff-section-label">Division Leaders</div>{picture.divisionLeaders.map((team,index)=><div className="dashboard-race-row" key={team.id}><strong>{index+1}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{team.runDiff>0?`+${team.runDiff}`:team.runDiff}</span></div>)}<div className="playoff-section-label">Wild Card Cut</div>{picture.wildcardTeams.slice(Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2),WILD_CARD_TEAMS_PER_LEAGUE+2).map((team,index)=>{const actualIndex=Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2)+index;const isCutoff=actualIndex===WILD_CARD_TEAMS_PER_LEAGUE-1;return <div className={`dashboard-race-row ${isCutoff?'dashboard-cutoff-row':''}`} key={team.id}><strong>{actualIndex<WILD_CARD_TEAMS_PER_LEAGUE?`WC${actualIndex+1}`:'OUT'}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{wildCardGamesBack(team,picture.cutoffTeam,actualIndex)}</span></div>})}</div>)}</div></div>

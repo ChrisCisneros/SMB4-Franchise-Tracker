@@ -3,7 +3,7 @@ import { SEASON_LENGTH } from "../config/constants";
 import { eliminationNumber, gamesBack, pct } from "../utils/standingsUtils";
 
 export default function QuickPage({ ctx }) {
-  const { adjustTeamNumber, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, teams } = ctx;
+  const { adjustTeamNumber, adjustTeamStreak, resetTeamStreak, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, teams } = ctx;
   const [search, setSearch] = useState("");
   const [leagueFilter, setLeagueFilter] = useState("ALL");
   const [progressFilter, setProgressFilter] = useState("all");
@@ -169,6 +169,16 @@ export default function QuickPage({ ctx }) {
                               <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", -1)}>-</button>
                               <strong>{team.losses || 0}</strong>
                               <button type="button" onClick={() => adjustTeamNumber(team.id, "losses", 1)}>+</button>
+                            </div>
+                          </div>
+
+                          <div className="quick-streak-control">
+                            <label>STREAK</label>
+                            <div>
+                              <strong className={String(team.streak||'').startsWith('W')?'positive':String(team.streak||'').startsWith('L')?'negative':''}>{team.streak||'—'}</strong>
+                              <button type="button" title="Add/continue win streak" onClick={() => adjustTeamStreak?.(team.id, "W")}>W+</button>
+                              <button type="button" title="Add/continue losing streak" onClick={() => adjustTeamStreak?.(team.id, "L")}>L+</button>
+                              <button type="button" className="ghost" title="Clear streak" onClick={() => resetTeamStreak?.(team.id)}>×</button>
                             </div>
                           </div>
 

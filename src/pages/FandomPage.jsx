@@ -7,6 +7,7 @@ import { getScheduledGameNight } from '../utils/gameNightUtils';
 import SeasonCalendar from '../components/SeasonCalendar';
 import GameDaySocial from '../components/GameDaySocial';
 import { buildBallparkCulture,buildCultureAwards,buildCultureTrends,buildFanSurvey,buildGameThreadArchive,buildGiveawayMarket,buildLocalBusinesses,buildSocialGrowth,buildTeamCultureProfiles,buildTicketMarket,buildWorldState } from '../utils/cultureUtils';
+import { buildDynamicAds,buildFanbaseGrudges,buildFakePodcasts,buildFansTalkingAbout,buildTeamVibes,buildTicketForecast } from '../utils/mediaMemoryUtils';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,value))}%`}}/></div>}
@@ -63,6 +64,13 @@ export default function FandomPage({ctx}){
   const fanSurvey=useMemo(()=>buildFanSurvey(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const cultureTrends=useMemo(()=>buildCultureTrends(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const threadArchive=useMemo(()=>buildGameThreadArchive(data,teams),[data,teams]);
+  const teamVibes=useMemo(()=>buildTeamVibes(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const selectedVibe=teamVibes.find(x=>x.team.id===selectedId);
+  const grudges=useMemo(()=>buildFanbaseGrudges(data,teams),[data,teams]);
+  const podcasts=useMemo(()=>buildFakePodcasts(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const dynamicAds=useMemo(()=>buildDynamicAds(data,teams,playoffPicture),[data,teams,playoffPicture,now]);
+  const talkingAbout=useMemo(()=>buildFansTalkingAbout(data,teams,playoffPicture),[data,teams,playoffPicture,now]);
+  const ticketForecast=useMemo(()=>buildTicketForecast(data,teams,playoffPicture),[data,teams,playoffPicture]);
 
   useEffect(()=>{if(feedPaused)return undefined;const t=setInterval(()=>setNow(Date.now()),8000);return()=>clearInterval(t)},[feedPaused]);
   useEffect(()=>setMerchOffset(0),[selectedId]);
@@ -70,7 +78,7 @@ export default function FandomPage({ctx}){
 
   return <div className="fandom-page" style={fandomStyle}>
     <section className="card fandom-hero">
-      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.14 · LIVING SEASON</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
+      <div><div className="fan-kicker">FRANCHISE CENTRAL 4.16 · MEDIA + MEMORY</div><h1>The League Never Logs Off.</h1><p>Fans, media, rivalries, player stans, hot takes, radio voices, merch, traditions and baseball culture — all reacting to the league you actually play.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div>
       <div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>Day {pulse.dayInWeek} of 5 · {pulse.phase}</span></div>
     </section>
 
@@ -111,6 +119,12 @@ export default function FandomPage({ctx}){
 
     <section className="card culture-thread-archive"><div className="fan-section-head"><div><div className="fan-kicker">GAME THREAD ARCHIVE</div><h2>The Internet Remembers</h2><p className="fan-section-subtitle">Recent finals get a cultural afterlife: peak simulated audience, drama level and thread identity.</p></div></div><div className="culture-thread-scroll">{threadArchive.length?threadArchive.map(x=><article key={x.id}><small>{x.label}</small><strong>{x.score}</strong><span>Peak watching {shortNum(x.peak)}</span><em>Drama {Math.min(100,Math.round(x.drama))}/100</em></article>):<p className="muted">Finalize games and the archive will start collecting game threads.</p>}</div></section>
 
+    <section className="fandom-vibes-grid">
+      <article className="card fandom-vibe-card"><div className="fan-kicker">TEAM VIBES</div><h2>{selected?.team?.abbr||'CLUB'} · {selectedVibe?.vibe||'STEADY'}</h2><p>{selectedVibe?.identity||'Fan identity still forming'} · {selectedVibe?.nickname||'Baseball town'}</p><div className="fandom-vibe-stats"><span><b>{Math.round(selectedVibe?.approval||50)}</b> approval</span><span><b>{Math.round(selectedVibe?.marketHeat||50)}</b> market heat</span><span><b>{selectedVibe?.atmosphere||'GOOD CROWD'}</b> atmosphere</span></div></article>
+      <article className="card fandom-ticket-forecast"><div className="fan-kicker">TICKET FORECAST</div><h2>{ticketForecast.label}</h2><strong>{ticketForecast.demand}/100 demand</strong><p>{ticketForecast.opponent?`${ticketForecast.team?.abbr} vs ${ticketForecast.opponent.abbr}`:'Next franchise game'} · {ticketForecast.roadInvasion}% visiting-fan pressure</p><Meter value={ticketForecast.demand}/></article>
+      <article className="card fandom-talking-card"><div className="fan-kicker">FANS ARE TALKING ABOUT</div><h2>Right Now</h2>{talkingAbout.slice(0,4).map((x,i)=><p key={`${x.label}-${i}`}><b>{x.icon} {x.label}</b><span>{x.detail}</span></p>)}</article>
+    </section>
+
     {gameDaySocial.phase!=='idle' && <div className="fandom-gameday-wrap"><GameDaySocial social={gameDaySocial} /></div>}
 
     <section className="card fan-live-wall">
@@ -146,6 +160,12 @@ export default function FandomPage({ctx}){
     <section className="card fan-debate-desk"><div className="fan-kicker">DIAMOND DEBATE</div><h2>Arguments Keeping the League Awake</h2><div className="fan-debate-grid">{debates.map(d=><article key={d.id}><small>{d.label}</small><strong>{d.question}</strong><div><span>{d.sideA} <b>{d.a}%</b></span><i><em style={{width:`${d.a}%`}}/></i><span>{d.sideB} <b>{d.b}%</b></span></div></article>)}</div></section>
 
     <section className="card"><div className="fan-kicker">SMB NETWORK DESK</div><h2>Recurring Analysts</h2><div className="fan-analyst-grid">{analysts.length?analysts.map(a=><div className="fan-analyst" key={a.id}><div>{a.initials}</div><strong>{a.name}</strong><small>{a.role}</small><p>PICK: <b>{a.pick?.abbr}</b></p><span>{a.reason}</span></div>):<div className="fan-empty">Set a Live matchup and the analyst desk will make its picks.</div>}</div></section>
+
+    <section className="fandom-media-life-grid">
+      <article className="card"><div className="fan-kicker">FANBASE GRUDGES</div><h2>Who still has receipts?</h2>{grudges.slice(0,5).map((g,i)=><div className="fandom-grudge-row" key={`${g.teamAId}-${g.teamBId}-${i}`}><strong>{g.teamA?.abbr||'A'} ↔ {g.teamB?.abbr||'B'}</strong><span>{g.label} · {g.intensity}/100</span></div>)}</article>
+      <article className="card"><div className="fan-kicker">PODCAST NETWORK</div><h2>Fresh Episodes</h2>{podcasts.map(p=><div className="fandom-podcast" key={p.show}><small>{p.show} · {p.host}</small><strong>{p.episode}</strong><span>{p.topics[0]}</span></div>)}</article>
+      <article className="card"><div className="fan-kicker">COMMERCIAL BREAK</div><h2>Local + League Ads</h2>{dynamicAds.slice(0,3).map(ad=><div className="fandom-ad" key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><span>{ad.copy}</span></div>)}</article>
+    </section>
 
     <section className="card fan-store"><div className="fan-store-head"><div><div className="fan-kicker">OFFICIAL TEAM STORE</div><h2>{selected?`${selected.team.abbr} Featured Merch`:'League Store'}</h2><p>Fake shop. Very real imaginary demand.</p></div><button type="button" onClick={()=>setMerchOffset(x=>x+1)}>Rotate Drop</button></div><div className="fan-merch-grid">{merch.map(p=>{const c=getTeamColorsByAbbr(p.team.abbr);return <article key={p.id} className="fan-merch-card" style={{'--shop-main':c.main,'--shop-alt':c.alt,'--shop-border':c.border,'--shop-text':c.text}}><div className="fan-merch-art"><span>{p.team.abbr}</span><b>{p.type}</b></div><small>{p.tag}</small><h3>{p.name}</h3><div><span>★ FAN FAVORITE</span><button type="button">View Item</button></div></article>})}</div><div className="fan-ad-strip"><strong>VISIT THE TEAM STORE</strong><span>Opening Day drops · rivalry gear · playoff collections · retired-number legacy merch</span><b>SHOP THE LEAGUE →</b></div></section>
 

@@ -12,6 +12,7 @@ export default function GameDaySocial({social,onOpenFandom,compact=false}){
   const eventRef=useRef('');
   const initializedRef=useRef(false);
   const recentTextRef=useRef([]);
+  const recentFamilyRef=useRef([]);
 
   useEffect(()=>{
     if(!compact||!social||social.phase==='idle')return;
@@ -21,6 +22,7 @@ export default function GameDaySocial({social,onOpenFandom,compact=false}){
       eventRef.current='';
       initializedRef.current=false;
       recentTextRef.current=[];
+      recentFamilyRef.current=[];
       setCompactFeed([]);
     }
     const candidates=(social.streamPosts?.length?social.streamPosts:social.posts||[]).filter(Boolean);
@@ -38,9 +40,13 @@ export default function GameDaySocial({social,onOpenFandom,compact=false}){
     initializedRef.current=true;
     const now=Date.now();
     const recent=new Set(recentTextRef.current);
-    const fresh=[...candidates.filter(p=>!recent.has(p.text)),...candidates.filter(p=>recent.has(p.text))].slice(0,amount);
+    const family=(text='')=>String(text).toLowerCase().replace(/[^a-z0-9 ]/g,'').split(/\s+/).slice(0,6).join(' ');
+    const families=new Set(recentFamilyRef.current);
+    const fresh=candidates.filter(p=>!recent.has(p.text)&&!families.has(family(p.text))).slice(0,amount);
+    if(!fresh.length)return; // Social Variety 3.0: silence beats immediate repetition.
     const picked=fresh.map((post,index)=>({...post,timelineId:`${post.id||'post'}-${now}-${index}`,arrivedAt:now+index,isNew:true}));
-    recentTextRef.current=[...picked.map(p=>p.text),...recentTextRef.current].filter((v,i,a)=>a.indexOf(v)===i).slice(0,24);
+    recentTextRef.current=[...picked.map(p=>p.text),...recentTextRef.current].filter((v,i,a)=>a.indexOf(v)===i).slice(0,75);
+    recentFamilyRef.current=[...picked.map(p=>family(p.text)),...recentFamilyRef.current].filter((v,i,a)=>a.indexOf(v)===i).slice(0,36);
     setCompactFeed(prev=>{
       const old=prev.map(p=>({...p,isNew:false}));
       const seen=new Set();
@@ -52,7 +58,7 @@ export default function GameDaySocial({social,onOpenFandom,compact=false}){
   const phaseLabel=social.phase==='warmup'?'WARMUP WIRE':social.phase==='postgame'?`POSTGAME WIRE · ${social.postgameStage||'REACTIONS'}`:'LIVE GAME WIRE';
   const compactPosts=compact?compactFeed:[];
   return <section className={`card game-day-social ${compact?'is-dashboard-compact':''} phase-${social.phase} ${social.isBigMoment?'is-big-moment':''}`}>
-    <div className="gds-head"><div><div className="gds-kicker">{social.brand.abbr} SOCIAL · {phaseLabel}</div><h2>{social.away.abbr} <span>at</span> {social.home.abbr}</h2><p>{social.phase==='warmup'?'Anticipation, official team promos, predictions and fanbase nerves before first pitch.':social.phase==='postgame'?`${social.score} · the postgame reaction is rolling in.`:`${social.score} · ${social.inning}${social.play?` · ${social.play}`:''}`}</p>{social.ceremonies?.length>0&&<div className="gds-ceremony-night"><span>{social.ceremonies[0].type==='championship-opening'?'💍':'🎏'}</span><strong>{social.ceremonies[0].title}</strong><small>{social.ceremonies[0].detail||'Pregame ceremony'}</small></div>}{social.promo&&<div className="gds-promo-night"><span>{social.promo.icon||'🎟️'}</span><strong>{social.promo.name}</strong><small>{social.promo.giveaway}</small></div>}</div><div className="gds-head-actions"><div className="gds-watching"><small>LIVE WATCHING</small><strong>{formatWatching(social.watching)}</strong><span>simulated viewers</span></div><span className="gds-live-dot">● {social.phase==='live'?'LIVE':social.phase.toUpperCase()}</span>{onOpenFandom&&<button type="button" onClick={onOpenFandom}>Open Fandom →</button>}</div></div>
+    <div className="gds-head"><div><div className="gds-kicker">{social.brand.abbr} SOCIAL · {phaseLabel}</div><h2>{social.away.abbr} <span>at</span> {social.home.abbr}</h2><p>{social.phase==='warmup'?'Anticipation, official team promos, predictions and fanbase nerves before first pitch.':social.phase==='postgame'?`${social.score} · the postgame reaction is rolling in.`:`${social.score} · ${social.inning}${social.play?` · ${social.play}`:''}`}</p>{social.ceremonies?.length>0&&<div className="gds-ceremony-night"><span>{social.ceremonies[0].type==='championship-opening'?'💍':'🎏'}</span><strong>{social.ceremonies[0].title}</strong><small>{social.ceremonies[0].detail||'Pregame ceremony'}</small></div>}{social.promo&&<div className="gds-promo-night"><span>{social.promo.icon||'🎟️'}</span><strong>{social.promo.name}</strong><small>{social.promo.giveaway}</small></div>}</div><div className="gds-head-actions"><div className="gds-watching"><small>LIVE WATCHING</small><strong>{formatWatching(social.watching)}</strong><span>simulated viewers</span></div><div className={`gds-chatter-heat heat-${String(social.chatterHeat||'quiet').toLowerCase()}`}><small>CHATTER</small><strong>{social.chatterHeat||'ACTIVE'}</strong><span>{social.chatterScore||0}/100</span></div><span className="gds-live-dot">● {social.phase==='live'?'LIVE':social.phase.toUpperCase()}</span>{onOpenFandom&&<button type="button" onClick={onOpenFandom}>Open Fandom →</button>}</div></div>
     {compact ? <div className="gds-dashboard-stream">
       <div className="gds-dashboard-teams"><span><Badge team={social.away}/><b>{social.away.abbr} fans</b></span><em>NEWEST FIRST · {compactPosts.length}/10</em><span><Badge team={social.home}/><b>{social.home.abbr} fans</b></span></div>
       <div className="gds-dashboard-posts">{compactPosts.map((p)=><Post key={p.timelineId||p.id} post={p} compact />)}</div>
