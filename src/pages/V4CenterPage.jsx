@@ -4,6 +4,7 @@ import { buildLeagueRecords } from '../utils/recordsUtils';
 import { buildDynasties } from '../utils/universeUtils';
 import { buildPlayerCareerBoard, buildHeadToHead } from '../utils/historyUtils';
 import { makeSafePlayoffBracket } from '../utils/playoffUtils';
+import { buildChampionshipHardware } from '../utils/championshipHardwareUtils';
 import {
   buildAnchorPicks, buildBestGames, buildCinderellaRuns, buildFakeFanPolls,
   buildFirstMilestones, buildGameExcitement, buildGamesThatMatter, buildLeagueFirsts,
@@ -12,7 +13,7 @@ import {
   personalityForMetric
 } from '../utils/v4Utils';
 
-const TABS=[['intelligence','League Intelligence'],['legacy','Banners & Legacy'],['broadcast','Broadcast Studio'],['season','Season Center'],['players','Players & Ceremonies']];
+const TABS=[['intelligence','League Intelligence'],['legacy','Trophy Room'],['broadcast','Broadcast Studio'],['season','Season Center'],['players','Players & Ceremonies']];
 const pct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const rd=n=>`${Number(n||0)>0?'+':''}${Number(n||0)}`;
 function Pill({children,tone=''}){return <span className={`v4-pill ${tone}`}>{children}</span>}
@@ -57,6 +58,7 @@ export default function V4CenterPage({ctx}){
     const champ=team(season.championTeamId||bracket.finals?.winnerTeamId);
     return {id:season.id||`season-${index}`,name:season.name||`Season ${index+1}`,al,nl,champ};
   }),[data.seasonHistory,teams]);
+  const championshipHardware=useMemo(()=>buildChampionshipHardware(data,teams),[data,teams]);
   const currentRivalry=currentGame?.awayTeamId&&currentGame?.homeTeamId?rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)):null;
   const avgGames=teams.length?teams.reduce((s,t)=>s+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0;
   const midseason=avgGames>=18&&avgGames<=24;
@@ -107,7 +109,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className="v4-page">
     <section className={`card v4-hero v4-theme-${theme.toLowerCase().replace(/\s+/g,'-')}`}>
-      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.20.2</div><h1>League Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
+      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.21</div><h1>League Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
       <div className="v4-hero-pills"><Pill tone="live">V4 LIVE</Pill><Pill>{theme}</Pill><Pill>{(data.games||[]).length} games stored</Pill><Pill>{(data.seasonHistory||[]).length} seasons archived</Pill></div>
     </section>
     <nav className="v4-tabbar">{TABS.map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
@@ -131,9 +133,9 @@ export default function V4CenterPage({ctx}){
     </div>}
 
     {tab==='legacy'&&<div className="v4-stack">
-      <section className="card v412-banner-hall"><SectionTitle kicker="HALL OF BANNERS & AWARDS" title="Pennants on the Wall. Trophies in the Case." detail="A horizontal season-by-season hall modeled after the physical display: league winners earn banners; the World Series winner gets the trophy and championship rings."/>
-        {bannerHistory.length?<div className="v412-banner-corridor">{bannerHistory.map(season=><article className="v412-season-hardware" key={season.id}><div className="v412-season-label"><small>ARCHIVED</small><strong>{season.name}</strong></div><div className="v412-pennant-row"><div className="v412-pennant al"><span>AMERICAN LEAGUE</span><strong>{season.al?.abbr||'TBD'}</strong><small>LEAGUE CHAMPION</small></div><div className="v412-pennant nl"><span>NATIONAL LEAGUE</span><strong>{season.nl?.abbr||'TBD'}</strong><small>LEAGUE CHAMPION</small></div></div><div className="v412-world-trophy"><span>🏆</span><div><small>WORLD SERIES CHAMPION</small><strong>{season.champ?.abbr||'TBD'}</strong><p>{season.champ?`${season.champ.city||''} ${season.champ.name||''}`.trim():'Awaiting archive'}</p></div></div><div className="v413-ring-case"><span>💍</span><div><small>CHAMPIONSHIP RINGS</small><strong>{season.champ?.abbr||'TBD'} · {season.name}</strong><p>{season.champ?'Banner raised · trophy displayed · rings awarded':'Awaiting champion'}</p></div></div></article>)}</div>:<Empty>Archive a completed postseason and this hall will begin filling itself.</Empty>}
-        <div className="v412-hall-summary">{records.teamStats.filter(t=>t.championships||t.wsAppearances).sort((a,b)=>b.championships-a.championships||b.wsAppearances-a.wsAppearances).map(t=><div key={t.teamId}><strong>{t.abbr}</strong><span>🏆 {t.championships||0} · 🚩 {t.wsAppearances||0}</span></div>)}</div>
+      <section className="card v421-trophy-room"><SectionTitle kicker="CHAMPIONSHIP TROPHY ROOM" title="Rings, Banners & World Series Hardware" detail="The physical-display idea brought into the league: team-color league championship banners, World Series rings, and trophies. The newest hardware stays covered until its ceremony is performed."/>
+        {championshipHardware.length?<div className="v421-trophy-corridor">{championshipHardware.map(season=><article className="v421-trophy-season" key={season.id}><div className="v421-season-title"><div><small>{season.newest?'CURRENT CEREMONY CYCLE':'LEGACY DISPLAY'}</small><strong>{season.name}</strong></div><span>{season.hardware.filter(h=>h.revealed).length}/{season.hardware.length} unveiled</span></div><div className="v421-hardware-row">{season.hardware.map(hw=><div className={`v421-hardware ${hw.revealed?'revealed':'covered'}`} key={hw.id} style={{'--hw-main':hw.theme.main,'--hw-accent':hw.theme.accent,'--hw-border':hw.theme.border,'--hw-text':hw.theme.text}}>{hw.type==='banner'?<div className="v421-mini-banner"><span>{hw.leagueLabel}</span><strong>{hw.team.abbr}</strong><b>CHAMPIONS</b><small>{season.name}</small></div>:hw.type==='trophy'?<div className="v421-mini-trophy">🏆</div>:<div className="v421-mini-ring"><div><small>{hw.team.abbr}</small><strong>WORLD SERIES</strong><b>CHAMPIONS</b><span>{season.name}</span></div></div>}<small>{hw.type==='banner'?`${hw.leagueLabel} CHAMPIONSHIP BANNER`:hw.type==='trophy'?'WORLD SERIES TROPHY':'WORLD SERIES CHAMPIONS RING'}</small></div>)}</div></article>)}</div>:<Empty>Archive a completed postseason and the Trophy Room will begin filling itself.</Empty>}
+        <div className="v421-trophy-summary">{records.teamStats.filter(t=>t.championships||t.wsAppearances).sort((a,b)=>b.championships-a.championships||b.wsAppearances-a.wsAppearances).map(t=><span key={t.teamId}><b>{t.abbr}</b> · 🏆 {t.championships||0} · 🚩 {t.wsAppearances||0}</span>)}</div>
       </section>
       <section className="card"><SectionTitle kicker="TROPHY MAP" title="League Hardware Map"/><div className="v4-trophy-map">{teams.map(t=>{const s=records.teamStats.find(x=>x.teamId===t.id)||{};return <div key={t.id} className={s.championships?'has-title':''}><TeamChip team={t}/><strong>{s.championships||0}</strong><small>titles</small><span>{s.playoffAppearances||0} PO · {s.wsAppearances||0} WS</span></div>})}</div></section>
       <div className="v4-grid-3"><div className="card"><SectionTitle kicker="CINDERELLA RUNS" title="Underdogs Who Wouldn't Leave"/>{cinderellas.length?cinderellas.map((x,i)=><div className="v4-list-row" key={i}><strong>#{x.seed} {x.team?.abbr||'TBD'}</strong><span>{x.season} · {x.type}</span></div>):<Empty>No 5–8 seed has reached the World Series in archived data yet.</Empty>}</div><div className="card"><SectionTitle kicker="DYNASTY SCORE" title="League Royalty"/>{dynasties.slice(0,8).map((d,i)=><div className="v4-ranking" key={d.teamId}><b>#{i+1}</b><strong>{d.abbr}</strong><span>{d.dynastyScore} pts · {d.championships} titles</span></div>)}</div><div className="card"><SectionTitle kicker="TEAM ERAS" title="Windows of Contention"/>{eras.slice(0,8).map((e,i)=><div className="v4-list-row" key={i}><strong>{e.abbr}</strong><span>{e.start} → {e.end} · {e.playoffs} PO · {e.titles} titles</span></div>)}</div></div>

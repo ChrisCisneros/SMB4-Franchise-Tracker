@@ -18,6 +18,7 @@ import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildWorldState } from "../utils/cultureUtils";
 import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
+import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile } from "../utils/ballparkLifeUtils";
@@ -36,12 +37,13 @@ export default function DashboardPage({ ctx }) {
     favoriteMarker, favoriteTeam, gameTeamRecordLabel, homeColors, homeTeam, isPlayoffLiveGame,
     isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveLeaderClass,
     liveTeamRecordLabel, playoffBroadcastVars, playoffGameTitle, playoffPicture, playoffSeedForTeam,
-    scoreFlashSide, teams, tightestDivisionRace, worstRecordTeam, data, setPage
+    scoreFlashSide, teams, tightestDivisionRace, worstRecordTeam, data, setPage, setData, syncLeagueExtrasToFirebase
   } = ctx;
 
   const [dashboardClock,setDashboardClock]=useState(Date.now());
   const [merchSlide,setMerchSlide]=useState(0);
   const [tickerSlide,setTickerSlide]=useState(0);
+  const [activeCeremony,setActiveCeremony]=useState(null);
   useEffect(()=>{const t=setInterval(()=>setDashboardClock(Date.now()),7000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
@@ -75,6 +77,16 @@ export default function DashboardPage({ ctx }) {
     return seasonCalendar.filter(x=>x.gameNumber && x.slotIndex>=todaySlot.slotIndex && !x.result).slice(0,3);
   },[seasonCalendar,todaySlot]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
+  const readyCeremony = todayCeremonies.find(c=>c.status!=='completed' && ['banner','rings','trophy','championship-opening'].includes(c.type))||null;
+  const completeCeremony=(ceremony,revealed=[])=>{
+    if(!ceremony)return;
+    const extras=data.leagueExtras||{};
+    const ceremonies=(extras.ceremonies||[]).map(c=>c.id===ceremony.id?{...c,status:'completed',completedAt:new Date().toISOString()}:c);
+    const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,completedAt:new Date().toISOString()};
+    const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
+    const next={...extras,ceremonies,ceremonyCompletions};
+    syncLeagueExtrasToFirebase?.(next); setData?.(p=>({...p,leagueExtras:next})); setActiveCeremony(null);
+  };
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
   const dashboardMerch = merchPool.length ? Array.from({length:Math.min(3,merchPool.length)},(_,i)=>merchPool[(merchSlide+i)%merchPool.length]) : [];
@@ -154,9 +166,10 @@ export default function DashboardPage({ ctx }) {
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
+    {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
 
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.20.2</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.21</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -167,6 +180,7 @@ export default function DashboardPage({ ctx }) {
     </section>
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
+        {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div><button type="button" onClick={()=>setActiveCeremony(readyCeremony)}>Begin Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
           <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>

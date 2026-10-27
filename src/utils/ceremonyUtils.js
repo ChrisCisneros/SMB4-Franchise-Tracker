@@ -24,21 +24,38 @@ export const CEREMONY_TYPES=[
   {id:'custom',icon:'✨',name:'Custom Ceremony',tone:'event'},
 ];
 
+function archivedSeasonNumber(season={}){
+  const explicit=Number(season.seasonNumber||season.number||0); if(explicit>0)return explicit;
+  const match=String(season.name||'').match(/season\s*(\d+)/i); return match?Number(match[1]):0;
+}
+function latestArchivedSeason(history=[]){
+  return [...safeArr(history)].sort((a,b)=>{
+    const numDiff=archivedSeasonNumber(b)-archivedSeasonNumber(a); if(numDiff)return numDiff;
+    return (Date.parse(b?.archivedAt||'')||0)-(Date.parse(a?.archivedAt||'')||0);
+  })[0]||null;
+}
 export function previousSeasonChampions(data={},teams=[]){
-  const history=safeArr(data.seasonHistory); if(!history.length)return null;
-  const season=history[history.length-1]; const bracket=makeSafePlayoffBracket(season.playoffBracket);
-  const seasonTeams=season.teams||[]; const team=id=>seasonTeams.find(t=>t.id===id)||teams.find(t=>t.id===id)||null;
+  const season=latestArchivedSeason(data.seasonHistory); if(!season)return null;
+  const bracket=makeSafePlayoffBracket(season.playoffBracket);
+  const seasonTeams=season.teams||[];
+  const team=id=>seasonTeams.find(t=>t.id===id)||teams.find(t=>t.id===id)||null;
   const al=team(bracket.al?.lc?.winnerTeamId),nl=team(bracket.nl?.lc?.winnerTeamId),champ=team(season.championTeamId||bracket.finals?.winnerTeamId);
   return {season,al,nl,champ};
 }
 export function seedOpeningCeremonies(data={},teams=[]){
   const prev=previousSeasonChampions(data,teams); if(!prev)return [];
   const seasonName=data.activeSeasonName||'Current Season'; const events=[];
+  const schedule=safeArr(data.leagueExtras?.seasonSchedule);
+  const firstMatchupFor=abbr=>schedule.find(x=>String(x?.opponentAbbr||'').toUpperCase()===String(abbr||'').toUpperCase())?.gameNumber||0;
   [prev.al,prev.nl].filter(Boolean).forEach(team=>{
     if(team.id===prev.champ?.id)return;
-    events.push({id:uid(),type:'banner',teamId:team.id,teamAbbr:team.abbr,title:`${prev.season.name||'Previous Season'} League Championship Banner Ceremony — ${team.abbr}`,detail:`Celebrating the ${prev.season.name||'previous season'} league championship before the new season gets underway.`,seasonName,gameNumber:1,status:'scheduled',source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
+    const gameNumber=firstMatchupFor(team.abbr);
+    events.push({id:uid(),type:'banner',teamId:team.id,teamAbbr:team.abbr,title:`${prev.season.name||'Previous Season'} League Championship Banner Ceremony — ${team.abbr}`,detail:`Celebrating ${team.abbr}'s ${prev.season.name||'previous season'} league championship${gameNumber?` when they meet the calendar club in Game ${gameNumber}`:'; assign this ceremony when that matchup is scheduled'}.`,seasonName,gameNumber,timing:'PREGAME',status:'scheduled',source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
   });
-  if(prev.champ)events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.season.name||'Previous Season'} World Series Banner & Ring Ceremony — ${prev.champ.abbr}`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their league banner, present the trophy and receive championship rings.`,seasonName,gameNumber:1,status:'scheduled',includes:['banner','trophy','rings'],source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
+  if(prev.champ){
+    const gameNumber=firstMatchupFor(prev.champ.abbr);
+    events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.season.name||'Previous Season'} World Series Banner, Trophy & Ring Ceremony — ${prev.champ.abbr}`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their league banner, present the trophy and receive championship rings${gameNumber?` when they meet the calendar club in Game ${gameNumber}`:'; assign this ceremony when that matchup is scheduled'}.`,seasonName,gameNumber,timing:'PREGAME',status:'scheduled',includes:['banner','trophy','rings'],source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
+  }
   return events;
 }
 export function buildCeremonyTimeline(data={},teams=[]){
