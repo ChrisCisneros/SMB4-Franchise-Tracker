@@ -20,6 +20,7 @@ import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../ut
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
+import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch } from "../utils/ballparkLifeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -56,6 +57,9 @@ export default function DashboardPage({ ctx }) {
   const lifeReceipts = useMemo(()=>buildPredictionReceipts(data,teams),[data,teams]);
   const lifeOutlets = useMemo(()=>buildMediaOutlets(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const offDayWorld = useMemo(()=>buildOffDayWorld(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const ballparkLife = useMemo(()=>buildBallparkLife(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
+  const historicAlerts = useMemo(()=>buildHistoricGameAlerts(data,teams),[data,teams,dashboardClock]);
+  const revengeWatch = useMemo(()=>buildRevengeWatch(data,teams),[data,teams]);
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
@@ -147,7 +151,7 @@ export default function DashboardPage({ ctx }) {
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
     <section className="v3-dashboard-masthead">
       <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.18</div>
+        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.19</div>
         <h2>{activeSeason}</h2>
         <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
       </div>
@@ -262,6 +266,8 @@ export default function DashboardPage({ ctx }) {
 
         <div className="card v3-rail-card dashboard-fandom-card"><div className="v3-rail-head"><div><span>FAN PULSE</span><h3>Week {seasonPulse.week} · {seasonPulse.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Fandom →</button></div><div className="dashboard-fan-mood"><strong>{fanUniverse.leagueMood}</strong><span>{fanPoll.question}</span></div>{fanPoll.options.slice(0,2).map(o=><div className="dashboard-fan-poll" key={o.team.id}><b>{o.team.abbr}</b><i><em style={{width:`${o.pct}%`}}/></i><span>{o.pct}%</span></div>)}<div className="dashboard-living-wire">{livingFeed.slice(0,2).map(x=><p key={x.id}><b>{x.handle}</b> {x.text}</p>)}</div>{featuredMerch&&<div className="dashboard-merch-ad"><small>{featuredMerch.tag}</small><strong>{featuredMerch.name}</strong><span>Visit Team Store →</span></div>}</div>
 
+        {historicAlerts[0]&&<div className={`card v3-rail-card dashboard-extreme-card ${historicAlerts[0].live?'is-live':''}`}><div className="v3-rail-head"><div><span>{historicAlerts[0].kicker}</span><h3>{historicAlerts[0].tier} Moment</h3></div><b>{historicAlerts[0].score}/100</b></div><strong>{historicAlerts[0].headline}</strong><small>{historicAlerts[0].detail}</small></div>}
+        <div className="card v3-rail-card dashboard-ballpark-card"><div className="v3-rail-head"><div><span>BALLPARK LIFE</span><h3>{ballparkLife.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Explore</button></div>{ballparkLife.events.slice(0,2).map(e=><div key={e.id} className="dashboard-ballpark-row"><b>{e.icon}</b><span><strong>{e.title}</strong><small>{e.detail}</small></span></div>)}{revengeWatch[0]&&<div className="dashboard-ballpark-row"><b>⚔️</b><span><strong>{revengeWatch[0].label}</strong><small>{revengeWatch[0].loserTeam?.abbr} remembers {revengeWatch[0].winnerTeam?.abbr}</small></span></div>}</div>
         <div className="card v3-rail-card dashboard-happening-card"><div className="v3-rail-head"><div><span>WHAT'S HAPPENING</span><h3>Universe Now</h3></div><button onClick={()=>setPage?.('fandom')}>Explore</button></div><div className="dashboard-happening-list">{(worldState.moments||[]).slice(0,4).map((m,i)=><div key={`${m.type}-${i}`}><b>{m.icon||'•'}</b><span><strong>{m.title}</strong><small>{m.detail||m.type}</small></span></div>)}{(worldState.trending||[]).slice(0,2).map(tag=><div key={tag}><b>#</b><span><strong>{tag}</strong><small>Trending around the league</small></span></div>)}</div></div>
 
         <div className="card v3-rail-card"><div className="v3-rail-head"><div><span>RECORD WATCH</span><h3>V3 Game Book</h3></div><button onClick={()=>setPage?.('league')}>Archive</button></div>{alerts.length?alerts.map((a,i)=><div className="v3-alert-row" key={i}><span>{a.label}</span><strong>{a.value}</strong><small>{a.detail}</small></div>):<div className="v3-empty-compact">Finalize games to unlock live game records.</div>}</div>

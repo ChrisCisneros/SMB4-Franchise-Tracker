@@ -5,6 +5,7 @@ import { getCurrentGameNight, getScheduledGameNight } from './gameNightUtils';
 import { currentSeasonDay, isCalendarAnchorGame } from './seasonCalendarUtils';
 import { ceremonyForGame, ceremonySocialLines } from './ceremonyUtils';
 import { pickSocialPhrase } from './socialPhraseBank';
+import { analyzeGameMagnitude,buildFanbaseRelationshipNetwork } from './ballparkLifeUtils';
 
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 const seeded=(s='')=>{const x=Math.sin(hash(s))*10000;return x-Math.floor(x)};
@@ -187,72 +188,68 @@ function postgameLines(team,foe,game,key){
   return pick(lines,key);
 }
 function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket,promo){
-  const acct=teamOfficial(team); const type=playType(game); const beneficiary=eventBeneficiary(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId)); const ours=beneficiary?.id===team.id; const runs=runsOnPlay(game);
+  const acct=teamOfficial(team);
+  const away=getTeam([team,foe],game.awayTeamId), home=getTeam([team,foe],game.homeTeamId);
+  const beneficiary=eventBeneficiary(game,away,home); const ours=beneficiary?.id===team.id; const runs=runsOnPlay(game); const type=playType(game);
+  const atHome=team.id===game.homeTeamId; const score=scoreText(game,away,home); const diff=team.id===game.awayTeamId?safe(game.awayScore)-safe(game.homeScore):safe(game.homeScore)-safe(game.awayScore);
+  const crowdHome=atHome?team:foe;
   if(phase==='warmup'){
-    const promoLines=[
-      `Tonight's matchup is set: ${foe.abbr} vs ${team.abbr}. Gates are open — come make some noise.`,
-      `Game day gear is live in the ${team.abbr} Team Store. Rep the colors from first pitch to final out.`,
-      `${(rivalry?.heat||0)>=45?'Rivalry night. ':''}Limited game-day ticket inventory is available now.`,
-      `Warmups are underway. Drop your score prediction below and get ready for ${team.abbr} baseball.`,
-      `The lights are on, the gates are busy, and ${team.abbr} baseball is almost here.`,
-      `Tonight's essentials: your colors, your voice, and absolutely no reasonable expectations.`,
-      `First pitch is coming. Limited seats remain for fans still making last-minute decisions.`,
-      `New game-day arrivals just hit the Team Store. Yes, we noticed you looking.`,
-      `Welcome back to the ballpark. Make some noise when the club takes the field.`,
-      `Pregame roll call: where are you watching ${team.abbr} tonight?`,
-      `The concourse is filling up. The countdown to first pitch is officially on.`
+    const homeLines=[
+      `Gates are open. ${foe.abbr} is here and ${team.abbr} baseball is almost underway.`,
+      `The ballpark is filling up. First pitch against ${foe.abbr} is getting close.`,
+      `Home colors everywhere. Make this place sound like ours tonight.`,
+      `${(rivalry?.heat||0)>=45?'Rivalry night. ':''}Limited game-day ticket inventory remains.`,
+      `Warmups are underway. Drop your score prediction and get loud early.`,
+      `Pregame roll call: what section are you checking in from?`,
+      `Team Store open. Concourse busy. Baseball soon. This is the good part.`,
+      `The lights are on and the building is waking up. Welcome home.`
     ];
-    if(promo)promoLines.unshift(`${promo.icon||'🎟️'} ${promo.name} tonight. ${promo.giveaway||'Special game-day event'} — arrive early.`);
-    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(promoLines,`${key}-promo`),time:'pregame'};
+    const roadLines=[
+      `Road game check-in: ${team.abbr} is in ${crowdHome?.city||crowdHome?.abbr||'enemy territory'} tonight.`,
+      `The road uniforms are on. ${team.abbr} vs ${foe.abbr} is next.`,
+      `Traveling ${team.abbr} fans, make yourselves heard tonight.`,
+      `Warmups from the road. Time to see how quiet we can make this building.`,
+      `First pitch is close. Wherever you are watching, bring the road energy.`,
+      `The road trip continues. ${foe.abbr} is next on the list.`,
+      `Away from home, same objective. Let's play ball.`
+    ];
+    const lines=atHome?homeLines:roadLines;
+    if(promo&&atHome)lines.unshift(`${promo.icon||'🎟️'} ${promo.name} tonight. ${promo.giveaway||'Special game-day event'} — arrive early.`);
+    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-warm-${team.id}`),time:'pregame'};
   }
   if(phase==='postgame'){
     const won=game.winnerTeamId===team.id||(team.id===game.awayTeamId?safe(game.awayScore)>safe(game.homeScore):safe(game.homeScore)>safe(game.awayScore));
-    const lines=won?[
-      `FINAL: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. That's a ${team.abbr} WIN.`,
-      `W secured. Highlights are rolling and the ${team.abbr} postgame collection is live in the Team Store.`,
-      `That's ballgame. Thank you for bringing the noise from first pitch to final out.`,
-      `WIN. Save the scorecard, replay the highlights, and we'll see you next game.`,
-      `Another one for the win column. Game-used emotions may not be returned.`,
-      `Postgame shop is open. Celebrate responsibly. Or don't. We understand.`
-    ]:[
-      `FINAL: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. We'll be back.`,
-      `Final from the ballpark. Thank you to every ${team.abbr} fan who showed up and stayed loud.`,
-      `Not our night. Appreciate everyone who stayed with us to the final out.`,
-      `Final. We turn the page and get ready for the next one.`,
-      `Thank you, ${team.abbr} fans. Same colors, next game, fresh chance.`,
-      `The result stings. The next first pitch is already waiting.`
-    ];
-    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-final`),time:'postgame'};
+    const wonHome=[`FINAL: ${score}. That's a ${team.abbr} WIN at home.`,`HOME WIN. Thank you for making the building sound like that.`,`Ballgame. The lights stay bright a little longer after a win like this.`,`Another one for the home crowd. Save the scorecard.`];
+    const wonRoad=[`FINAL: ${score}. Road win secured.`,`Quiet building, loud visitors. ${team.abbr} gets it done on the road.`,`Pack the win. Take it with us.`,`That's how you finish a road night.`];
+    const lostHome=[`FINAL: ${score}. Not the night we wanted. Thank you for staying with us.`,`Final from home. We turn the page.`,`The home crowd deserved a better finish. We'll be back.`];
+    const lostRoad=[`FINAL: ${score}. Road night ends on the wrong side.`,`Final away from home. Reset and move on.`,`Not ours tonight. The road trip continues.`];
+    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(won?(atHome?wonHome:wonRoad):(atHome?lostHome:lostRoad),`${key}-final-${team.id}`),time:'postgame'};
   }
   if(ours){
     const lines=[];
-    if(isBatting&&String(game?.lastAnnouncement||'').startsWith('Score update:'))lines.push(`📣 RUNS ON THE BOARD. ${team.abbr} changes the score in the ${eventInningText(game).toLowerCase()}.`);
-    if(type==='homerun')lines.push(`💥 HOME RUN ${team.abbr}! That one is GONE.`,`🚀 GONE. ${team.abbr} leaves the yard.`,`💣 BIG FLY! Add another run to the board for ${team.abbr}.`,`📣 HOME RUN. The ballpark got loud in a hurry.`);
-    if(type==='triple')lines.push(`⚡ THREE BAGS. ${team.abbr} is flying around the bases.`);
-    if(type==='double'&&(late(game)||runs))lines.push(`🔥 DOUBLE! ${team.abbr} puts pressure on with a big extra-base hit.`);
-    if(type==='single'&&runs)lines.push(`📣 BASE HIT, RUN SCORES. ${team.abbr} delivers.`);
-    if(['strikeout','calledstrikeout'].includes(type))lines.push(`K. Big pitch, big out. ${team.abbr} gets it done.`,`⚡ STRIKE THREE. ${team.abbr} wins the at-bat.`,`K on the board. Huge out for ${team.abbr}.`,`🎯 Punchout. The defense gets exactly what it needed.`);
-    if(type==='doubleplay')lines.push(`🧤 TURN TWO! ${team.abbr} erases the threat.`,`Two outs on one ball. That will play.`,`🧤 Double play! The inning changes shape immediately.`,`ROLL IT. ${team.abbr} turns two.`);
-    if(type==='caughtstealing')lines.push(`🚫 CAUGHT STEALING. Not today.`);
-    if(runnerEvent(game)?.source==='stolen-base')lines.push(runnerEvent(game)?.scored?`🏃 STEAL OF HOME! ${team.abbr} catches everyone sleeping.`:`🏃 STOLEN BASE. ${team.abbr} is on the move.`);
-    if(type==='sacfly'&&runs)lines.push(`Productive out, run home. ${team.abbr} adds one.`);
-    if(runs>=2)lines.push(`🔥 ${runs} runs cross on the play. The inning belongs to ${team.abbr}.`);
-    if(lines.length)return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-event`),time:'now'};
+    if(type==='homerun'){
+      if(isBatting&&atHome)lines.push(`💥 HOME RUN ${team.abbr}! LISTEN TO THIS PLACE.`,`🚀 GONE. The home crowd knew immediately.`,`💣 BIG FLY AT HOME. This building just erupted.`,`📣 HOME RUN. Everybody in ${team.abbr} colors is on their feet.`,`🌋 THAT ONE IS OUT. Home-field volume: MAXIMUM.`);
+      if(isBatting&&!atHome)lines.push(`💥 ROAD HOME RUN. ${team.abbr} just quieted the building.`,`🚀 GONE. You can hear the traveling ${team.abbr} fans now.`,`💣 BIG FLY ON THE ROAD. That took the air out of the park.`,`🤫 HOME RUN ${team.abbr}. The loudest sound here is coming from the visitors.`,`📣 ROAD POWER. ${team.abbr} leaves the yard in enemy territory.`);
+    }
+    if(type==='triple'&&isBatting)lines.push(`⚡ THREE BAGS. ${team.abbr} is flying.`,`🏃 TRIPLE! The outfield gap never had a chance.`,`⚡ Wheels, chaos, three bases. We'll take it.`);
+    if(type==='double'&&isBatting)lines.push(`🔥 DOUBLE. ${team.abbr} finds the gap.`,`Two bases and immediate pressure.`,`📣 EXTRA-BASE HIT. The inning has teeth now.`);
+    if(type==='single'&&runs&&isBatting)lines.push(`📣 BASE HIT, RUN HOME.`,`That'll score one. ${team.abbr} cashes in.`,`RBI knock. Keep the line moving.`);
+    if(['strikeout','calledstrikeout'].includes(type))lines.push(`K. Big pitch, big out.`,`⚡ STRIKE THREE. ${team.abbr} gets exactly what it needed.`,`🎯 Punchout. Sit down, reset, next hitter.`,`K ON THE BOARD. That sequence was nasty.`,`🚫 Nothing doing. Strike three.`);
+    if(type==='doubleplay')lines.push(`🧤 TURN TWO! Threat erased.`,`ROLL IT. Two outs, one baseball.`,`🧤 DOUBLE PLAY. That inning just changed instantly.`,`Two for the price of one. Beautiful.`);
+    if(type==='caughtstealing')lines.push(`🚫 CAUGHT STEALING. Not on us.`,`Nope. Runner erased.`,`🚨 RUNNING GAME DENIED.`);
+    if(runnerEvent(game)?.source==='stolen-base')lines.push(runnerEvent(game)?.scored?`🏃 STEAL OF HOME! Absolute chaos.`:`🏃 STOLEN BASE. ${team.abbr} is moving.`);
+    if(type==='sacfly'&&runs)lines.push(`Productive out. Run home.`,`One out, one run. Job done.`);
+    if(runs>=2&&isBatting)lines.push(`🔥 ${runs} RUNS SCORE. The inning belongs to ${team.abbr}.`,`📈 ${runs} across on the play. Keep pouring it on.`,`🚨 MULTI-RUN SWING. ${team.abbr} just changed the shape of this game.`);
+    if(diff>=8&&isBatting)lines.push(`The offense is not taking its foot off the gas.`,`This has turned into a statement night for ${team.abbr}.`);
+    if(lines.length)return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-event-${team.id}-${type}-${runs}`),time:'now'};
   }
   const cadence=(hash(team.id)%5+5)%5;
   if(bucket%5===cadence){
-    const slow=[
-      `Stay with us. ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))} — ${inningText(game)}.`,
-      `${team.abbr} game-day merch is available now in the Team Store.`,
-      `${state?.atmosphere||'GAME DAY'} energy tonight. Keep it loud, ${team.abbr} fans.`,
-      `Midgame check-in: ${scoreText(game,getTeam([team,foe],game.awayTeamId),getTeam([team,foe],game.homeTeamId))}. Plenty of baseball left.`,
-      `Spotted around the park: a whole lot of ${team.abbr} colors. Keep them coming.`,
-      `Need a late-game layer? Team Store pickup stays open through the final innings.`,
-      `Tonight's crowd has been on it from the first pitch.`,
-      `Tag your game-day view. We are collecting the best fan photos tonight.`,
-      ...(promo?[`${promo.icon||'🎟️'} ${promo.name} is happening tonight. ${promo.giveaway||'Check the concourse for details.'}`]:[])
-    ];
-    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(slow,`${key}-slow`),time:'live'};
+    const homeSlow=[`Stay with us. ${score} — ${inningText(game)}.`,`The crowd has been working tonight. Keep it coming.`,`Tag your view from the park. We are collecting the best game-day photos.`,`Midgame check-in from home: ${score}.`,`Concourse report: busy. Ballpark report: louder by the inning.`,`Late-game Team Store pickup remains open through the final innings.`];
+    const roadSlow=[`Road check-in: ${score} — ${inningText(game)}.`,`Traveling ${team.abbr} fans: yes, we hear you.`,`The goal now: make ${crowdHome?.abbr||'the home crowd'} very, very quiet.`,`Midgame from the road: ${score}. Plenty left.`,`Send us your road-game setup. Couch, bar, train, visiting section — all counts.`,`A few pockets of ${team.abbr} colors are making themselves known.`];
+    const lines=atHome?homeSlow:roadSlow;
+    if(promo&&atHome)lines.push(`${promo.icon||'🎟️'} ${promo.name} is happening tonight. ${promo.giveaway||'Check the concourse for details.'}`);
+    return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-slow-${team.id}`),time:'live'};
   }
   return null;
 }
@@ -371,6 +368,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   const universe=buildFanUniverse(data,teams,playoffPicture); const clubs=buildFanClubs(data,teams,playoffPicture); const media=buildMediaUniverse(); const playerPages=buildPlayerFanPages(data,teams);
   const rivalries=buildHeadToHead(data.games||[],teams,data.seasonHistory||[]);
   const rivalry=rivalries.find(r=>(r.teamAId===away.id&&r.teamBId===home.id)||(r.teamAId===home.id&&r.teamBId===away.id));
+  const fanRelationship=buildFanbaseRelationshipNetwork(data,teams).find(r=>[r.teamAId,r.teamBId].includes(away.id)&&[r.teamAId,r.teamBId].includes(home.id));
   const teamStates=new Map(universe.teamStates.map(x=>[x.team.id,x]));
   const awayState=teamStates.get(away.id); const homeState=teamStates.get(home.id);
   const keyBase=`${phase}-${bucket}-${eventKey(activeGame)}-${away.id}-${home.id}`;
@@ -400,7 +398,8 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
       const p=pick(playerCandidates,`${keyBase}-player-${team.id}`); const type=playType(activeGame);
       posts.push({id:`${keyBase}-stan-${team.id}`,kind:'player',name:p.name,handle:p.handle,badge:'Player Fan Page',team,text:type==='homerun'&&isBatting?`${p.player.name} agenda is being pushed with EXTREME force right now.`:type.includes('strikeout')?`Baseball is cruel. We remain on the ${p.player.name} agenda.`:`Posting ${p.player.name} propaganda through every pitch.`,tone:'up',time:'live'});
     }
-    if((rivalry?.games||0)>0&&phase!=='postgame')posts.push({id:`${keyBase}-rival-${team.id}`,kind:'rivalry',name:`${team.abbr} Rivalry Department`,handle:`@${team.abbr}RivalryDept`,badge:`${Math.round(rivalry?.heat||25)} HEAT`,team,text:pick([`${foe.abbr} fans are already in our mentions. Beautiful.`,`This matchup has exactly the correct amount of mutual disrespect.`,`Saving receipts from ${foe.abbr} fans for later.`,`I see ${foe.abbr} fans getting confident. Interesting choice.`,`If we win, I am going directly to the receipts folder.`,`Division games should come with a warning label.`,`Nothing personal, ${foe.abbr}. Actually, never mind. Very personal.`,`The group chat has declared this a must-win for reasons nobody can defend.`],`${keyBase}-chirp-${team.id}`),tone:'spicy',time:'live'});
+    if(phase!=='postgame'&&['FRIENDLY','ALLIES'].includes(fanRelationship?.label))posts.push({id:`${keyBase}-friendly-${team.id}`,kind:'rivalry',name:`${team.abbr} Fan Diplomacy`,handle:`@${team.abbr}GoodTerms`,badge:`🤝 ${fanRelationship.label}`,team,text:pick([`${foe.abbr} fans, we may disagree for nine innings, but you people are alright.`,`Temporary truce with ${foe.abbr}. We have bigger enemies to complain about.`,fanRelationship?.commonEnemy?`Reminder that ${team.abbr} and ${foe.abbr} can always agree on one thing: beating ${fanRelationship.commonEnemy.abbr}.`:`This is one of the rare matchups where the mentions are mostly civilized.`,`Respectfully: good luck, ${foe.abbr}. Not too much luck.`,`Friendly fanbases until first pitch. After that, all bets are off.`],`${keyBase}-friendly-line-${team.id}`),tone:'neutral',time:'live'});
+    else if((rivalry?.games||0)>0&&phase!=='postgame')posts.push({id:`${keyBase}-rival-${team.id}`,kind:'rivalry',name:`${team.abbr} Rivalry Department`,handle:`@${team.abbr}RivalryDept`,badge:`${Math.round(Math.max(rivalry?.heat||25,fanRelationship?.hostility||0))} HEAT`,team,text:pick([`${foe.abbr} fans are already in our mentions. Beautiful.`,`This matchup has exactly the correct amount of mutual disrespect.`,`Saving receipts from ${foe.abbr} fans for later.`,`I see ${foe.abbr} fans getting confident. Interesting choice.`,`If we win, I am going directly to the receipts folder.`,`Division games should come with a warning label.`,`Nothing personal, ${foe.abbr}. Actually, never mind. Very personal.`,`The group chat has declared this a must-win for reasons nobody can defend.`,fanRelationship?.hostility>=60?`Nobody in this fanbase has forgotten what ${foe.abbr} did last time.`:`The history is starting to pile up in this matchup.`],`${keyBase}-chirp-${team.id}`),tone:'spicy',time:'live'});
     if(phase!=='postgame'&&!isBigPlay(activeGame))posts.push(ambientGameDayPost(team,foe,phase,bucket,hash(team.id)%3,promo));
     return posts;
   }
@@ -418,6 +417,8 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     }
   }
   const official=officialMoment({...activeGame,status:phase==='postgame'?'Final':activeGame.status},away,home,brand);
+  const magnitude=analyzeGameMagnitude(activeGame,teams);
+  if(magnitude.score>=60&&phase==='live')leaguePosts.push({id:`${keyBase}-extreme`,kind:'league',name:brand.name,handle:brand.handle,badge:magnitude.score>=75?'🚨 LEAGUE ALERT':'👀 DEVELOPING',team:null,text:`${magnitude.headline}. ${scoreText(activeGame,away,home)} — ${eventInningText(activeGame)}.`,tone:'official',time:'now'});
   if(official&&(phase==='postgame'||isBigPlay(activeGame)||safe(activeGame.inning)>=6))leaguePosts.push({id:`${keyBase}-official`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:official,tone:'official',time:'now'});
   if(phase==='warmup')leaguePosts.push({id:`${keyBase}-official-warm`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:`Game day: ${away.abbr} at ${home.abbr}. Warmups are underway.${promo?` ${promo.icon||'🎟️'} ${promo.name} tonight.`:''}${ceremonies.length?` ${ceremonies[0].title} is part of tonight's pregame program.`:''}`,tone:'official',time:'pregame'});
   if(phase==='postgame'&&!official)leaguePosts.push({id:`${keyBase}-official-final`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:`FINAL: ${scoreText(activeGame,away,home)}.`,tone:'official',time:'postgame'});
@@ -439,7 +440,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     ? [...officialLeague,...primary.filter(p=>p.kind!=='rivalry'),...secondary.filter(p=>p.kind==='fan'),...mediaPosts,...primary.filter(p=>p.kind==='rivalry'),...secondary.filter(p=>p.kind!=='fan')]
     : shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   const posts=shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
-  const chatterScore=Math.max(0,Math.min(100,Math.round(20+Math.min(35,watching/1200)+safe(rivalry?.heat)*.25+(bigMoment?28:0)+(phase==='live'?8:0))));
+  const chatterScore=Math.max(0,Math.min(100,Math.round(20+Math.min(35,watching/1200)+safe(rivalry?.heat)*.25+(bigMoment?28:0)+(phase==='live'?8:0)+Math.max(0,(magnitude.score-45)*.35))));
   const chatterHeat=chatterScore>=90?'CHAOS':chatterScore>=74?'HOT':chatterScore>=58?'BUZZING':chatterScore>=38?'ACTIVE':'QUIET';
   return {phase,game:activeGame,away,home,rivalry,brand,promo,ceremonies,gameNumber:socialGameNumber,postgameStage,postgameAgeMs,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:phase==='live'?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,chatterScore,chatterHeat,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};
 }

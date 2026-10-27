@@ -73,8 +73,11 @@ export function buildSeasonScrapbook(data={},teams=[]){
   (data.games||[]).filter(g=>g?.status==='Final').slice(0,40).forEach(g=>{
     const away=teams.find(t=>t.id===g.awayTeamId),home=teams.find(t=>t.id===g.homeTeamId);
     const tags=[];
-    if(g.walkoff)tags.push('WALK-OFF'); if(safe(g.inning)>9||safe(g.innings)>9)tags.push('EXTRAS'); if(Math.abs(safe(g.awayScore)-safe(g.homeScore))===1)tags.push('ONE-RUN'); if(!safe(g.awayScore)||!safe(g.homeScore))tags.push('SHUTOUT');
-    out.push({id:`game-${g.id}`,kind:'GAME',icon:'⚾',title:`${away?.abbr||'AWY'} ${safe(g.awayScore)} – ${home?.abbr||'HME'} ${safe(g.homeScore)}`,detail:`${g.seasonName||data.activeSeasonName||'Season'}${tags.length?` · ${tags.join(' · ')}`:''}`,date:g.finalizedAt||g.date||'',score:10+tags.length*15+safe(g.excitementScore)});
+    const inningRuns=[...(Array.isArray(g.awayInnings)?g.awayInnings:[]),...(Array.isArray(g.homeInnings)?g.homeInnings:[])].map(safe);
+    const maxInning=Math.max(0,...inningRuns); const margin=Math.abs(safe(g.awayScore)-safe(g.homeScore)); const total=safe(g.awayScore)+safe(g.homeScore);
+    if(g.walkoff)tags.push('WALK-OFF'); if(safe(g.inning)>9||safe(g.innings)>9)tags.push('EXTRAS'); if(margin===1)tags.push('ONE-RUN'); if(!safe(g.awayScore)||!safe(g.homeScore))tags.push('SHUTOUT');
+    if(maxInning>=10)tags.push(`${maxInning}-RUN INNING`); else if(maxInning>=7)tags.push('MONSTER INNING'); if(margin>=12)tags.push('HUMILIATION'); if(total>=20)tags.push('20+ RUNS');
+    out.push({id:`game-${g.id}`,kind:'GAME',icon:maxInning>=10?'🚨':'⚾',title:`${away?.abbr||'AWY'} ${safe(g.awayScore)} – ${home?.abbr||'HME'} ${safe(g.homeScore)}`,detail:`${g.seasonName||data.activeSeasonName||'Season'}${tags.length?` · ${tags.join(' · ')}`:''}`,date:g.finalizedAt||g.date||'',score:10+tags.length*15+safe(g.excitementScore)+Math.max(0,maxInning-5)*8+Math.max(0,margin-8)*3});
   });
   (data.leagueExtras?.ceremonies||[]).forEach(c=>out.push({id:`cer-${c.id}`,kind:'CEREMONY',icon:'✨',title:c.title,detail:c.detail||`${c.teamAbbr||'League'} ceremony`,date:c.createdAt||'',score:55}));
   (data.leagueExtras?.worldMoments||[]).forEach(m=>out.push({id:`world-${m.id}`,kind:'WORLD',icon:m.icon||'🌎',title:m.title||'World Moment',detail:m.detail||m.type||'',date:m.createdAt||'',score:35}));
@@ -146,13 +149,18 @@ export function buildFanbaseGrudges(data={},teams=[]){
     const sameDivision=a.league===b.league&&a.division===b.division;
     const sameLeague=a.league===b.league;
     const close=r.games?1-Math.abs(safe(r.aWins)-safe(r.bWins))/Math.max(1,r.games):0;
-    const meetingHeat=safe(r.games)*7+safe(r.postseasonGames)*20+close*(r.games?22:0);
+    const pairGames=[...(data.games||[]),...archivedGames].filter(g=>g?.status==='Final'&&[g.awayTeamId,g.homeTeamId].includes(a.id)&&[g.awayTeamId,g.homeTeamId].includes(b.id));
+    const blowouts=pairGames.filter(g=>Math.abs(safe(g.awayScore)-safe(g.homeScore))>=8);
+    const severeBlowouts=pairGames.filter(g=>Math.abs(safe(g.awayScore)-safe(g.homeScore))>=12);
+    const maxMargin=pairGames.reduce((m,g)=>Math.max(m,Math.abs(safe(g.awayScore)-safe(g.homeScore))),0);
+    const humiliation=blowouts.length*6+severeBlowouts.length*10+Math.max(0,maxMargin-10)*1.2;
+    const meetingHeat=safe(r.games)*7+safe(r.postseasonGames)*20+close*(r.games?22:0)+humiliation;
     const structural=sameDivision?30:sameLeague?14:5;
     const streakSpice=(String(a.streak||'').startsWith('W')||String(b.streak||'').startsWith('W'))?3:0;
     const intensity=Math.min(100,Math.round(structural+meetingHeat+streakSpice));
     const label=intensity>=82?'PERSONAL':intensity>=62?'HEATED':intensity>=40?'GRUDGE':intensity>=20?'TENSE':'BANTER';
-    const reason=safe(r.postseasonGames)?`${r.postseasonGames} postseason meeting${r.postseasonGames===1?'':'s'}`:sameDivision?(r.games?`Division rivals · ${r.games} tracked meeting${r.games===1?'':'s'}`:'Division rivals — history waiting to happen'):r.games?`${r.games} tracked meeting${r.games===1?'':'s'}`:sameLeague?'League familiarity':'Interleague side-eye';
-    rows.push({...r,teamA:r.teamA||a,teamB:r.teamB||b,intensity,label,reason});
+    const reason=severeBlowouts.length>=2?`${severeBlowouts.length} humiliating 12+ run losses in the matchup`:blowouts.length>=2?`${blowouts.length} tracked blowouts have made this one personal`:safe(r.postseasonGames)?`${r.postseasonGames} postseason meeting${r.postseasonGames===1?'':'s'}`:sameDivision?(r.games?`Division rivals · ${r.games} tracked meeting${r.games===1?'':'s'}`:'Division rivals — history waiting to happen'):r.games?`${r.games} tracked meeting${r.games===1?'':'s'}`:sameLeague?'League familiarity':'Interleague side-eye';
+    rows.push({...r,teamA:r.teamA||a,teamB:r.teamB||b,intensity,label,reason,blowouts:blowouts.length,severeBlowouts:severeBlowouts.length,maxMargin,humiliation:Math.round(humiliation)});
   }
   return rows.sort((a,b)=>b.intensity-a.intensity||b.postseasonGames-a.postseasonGames||b.games-a.games);
 }

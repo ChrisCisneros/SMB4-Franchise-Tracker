@@ -100,7 +100,7 @@ export const defaultData = {
     leagueCalendar: [], storylines: [], bracketPredictions: [],
     officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
     seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
-    worldMoments: [],
+    worldMoments: [], ballparkEvents: [],
       rivalryNames: {}, gameNightSchedule: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: []
   },
 };

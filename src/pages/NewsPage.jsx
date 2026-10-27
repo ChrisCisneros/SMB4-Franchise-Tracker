@@ -6,6 +6,7 @@ import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUti
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHonorInterviews, buildHotColdBoard, buildOnThisDateMoments, buildFakePodcasts, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildBroadcastBooth, buildDefiningMoments, buildMediaOutlets, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
+import { buildBallparkLife, buildCityBuzz, buildConsequenceChains, buildHistoricGameAlerts, buildRevengeWatch } from "../utils/ballparkLifeUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -13,7 +14,7 @@ const FACT_ROTATE_MS = 90000;
 const TICKER_ROTATE_MS = 14000;
 
 function storyBucket(story) {
-  if (["Game Final", "League Watch", "Pennant Race", "Hot & Cold", "Milestone Watch", "Race to October", "Transactions", "Injury Report"].includes(story.category)) return "Current";
+  if (["Game Final", "League Watch", "Pennant Race", "Hot & Cold", "Milestone Watch", "Race to October", "Transactions", "Injury Report", "Developing", "League Alert"].includes(story.category)) return "Current";
   if (["By the Numbers", "Did You Know?", "History Lesson", "Franchise Spotlight"].includes(story.category) || story.kind === "fact") return "Facts";
   if (["Championship", "Postseason"].includes(story.category)) return "Postseason";
   if (["Record Book", "V3 Record Alert"].includes(story.category)) return "Record Book";
@@ -84,6 +85,11 @@ export default function NewsPage({ ctx }) {
   const hotCold=useMemo(()=>buildHotColdBoard(teams),[teams]);
   const ads=useMemo(()=>buildDynamicAds(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
   const weekly=useMemo(()=>buildWeeklyMediaRoundup(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const historicAlerts=useMemo(()=>buildHistoricGameAlerts(data,teams),[data,teams,tickerOffset]);
+  const ballparkLife=useMemo(()=>buildBallparkLife(data,teams,ctx.playoffPicture||[],Date.now()),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const revengeWatch=useMemo(()=>buildRevengeWatch(data,teams),[data,teams]);
+  const consequenceChains=useMemo(()=>buildConsequenceChains(data,teams),[data,teams]);
+  const cityBuzz=useMemo(()=>buildCityBuzz(data,teams),[data,teams]);
   const mediaOutlets=useMemo(()=>buildMediaOutlets(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
   const topicLifecycles=useMemo(()=>buildTopicLifecycles(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
   const predictionReceipts=useMemo(()=>buildPredictionReceipts(data,teams),[data,teams]);
@@ -140,6 +146,15 @@ export default function NewsPage({ ctx }) {
         <div><span className="news-live-dot"/><strong>SMB NETWORK LIVE</strong><small>Featured stories rotate every 2 minutes</small></div>
         <div className="news-network-chips"><span>{currentCount} current</span><span>{factCount} facts & nuggets</span><span>{stories.length} total stories</span></div>
       </section>
+
+      {historicAlerts[0]&&<section className={`news-extreme-alert card ${historicAlerts[0].live?'is-live':''}`}><div><small>{historicAlerts[0].kicker}</small><strong>{historicAlerts[0].tier} · {historicAlerts[0].score}/100</strong></div><h2>{historicAlerts[0].headline}</h2><p>{historicAlerts[0].detail}</p><div>{(historicAlerts[0].tags||[]).map(t=><span key={t}>{t}</span>)}</div></section>}
+
+      <section className="news-living-league-grid">
+        <article className="card"><div className="news-kicker">BALLPARK LIFE</div><h3>{ballparkLife.label}</h3>{ballparkLife.events.slice(0,3).map(e=><p key={e.id}><b>{e.icon} {e.phase}</b><span>{e.title} · {e.detail}</span></p>)}</article>
+        <article className="card"><div className="news-kicker">REVENGE WATCH</div><h3>Old scores do not stay buried</h3>{revengeWatch.slice(0,3).map(r=><p key={r.key}><b>{r.label}</b><span>{r.loserTeam?.abbr} remembers {r.winnerTeam?.abbr} · heat {r.heat}</span></p>)}</article>
+        <article className="card"><div className="news-kicker">CITY BUZZ</div><h3>Where baseball owns the conversation</h3>{cityBuzz.slice(0,4).map(x=><p key={x.team.id}><b>{x.team.abbr} · {x.label}</b><span>{x.score}/100</span></p>)}</article>
+      </section>
+      {consequenceChains[0]&&<section className="news-consequence card"><div className="news-kicker">THE STORY KEEPS MOVING</div><h3>{consequenceChains[0].source}</h3><div>{consequenceChains[0].steps.map((x,i)=><span key={i}><b>{i+1}</b>{x}</span>)}</div></section>}
 
       <section className="news-world-pulse card"><div><span>WORLD PULSE</span><strong>{worldState.leagueMood}</strong></div>{worldState.moments.map((m,i)=><p key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</p>)}<div>{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
 

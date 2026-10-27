@@ -1,6 +1,7 @@
 import { makeSafePlayoffBracket } from "./playoffUtils";
 import { buildLeagueRecords, formatPct } from "./recordsUtils";
 import { buildGameRecords, buildHeadToHead, buildTeamHistoryLeaders } from "./historyUtils";
+import { buildHistoricGameAlerts } from "./ballparkLifeUtils";
 
 function gamePct(team) {
   const wins = Number(team?.wins || 0);
@@ -64,6 +65,17 @@ export function buildNewsFeed(data, teams) {
   const teamById = (id) => activeTeams.find((team) => team.id === id);
 
 
+
+  const extremeAlerts = buildHistoricGameAlerts(data, activeTeams);
+  extremeAlerts.slice(0,3).forEach((alert,index)=>stories.push({
+    id:`extreme-${alert.id}-${index}`,
+    category:alert.live?'Developing':'League Alert',
+    tone:alert.score>=75?'postseason':'current',
+    dateLabel:alert.live?'LIVE':'Recent game',
+    headline:alert.headline||alert.kicker,
+    dek:`${alert.detail}${alert.tags?.length?` · ${alert.tags.join(' · ')}`:''}`,
+    teams:[alert.away?.abbr,alert.home?.abbr].filter(Boolean),
+  }));
 
   const lastFinal = data?.lastFinalGame;
   if (lastFinal?.awayTeamId && lastFinal?.homeTeamId) {
