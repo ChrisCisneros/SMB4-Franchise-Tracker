@@ -135,11 +135,26 @@ export function buildOnThisDateMoments(data={},teams=[]){
 }
 
 export function buildFanbaseGrudges(data={},teams=[]){
-  return buildHeadToHead(data.games||[],teams,data.seasonHistory||[]).map(r=>{
-    const close=r.games?1-Math.abs(safe(r.teamAWins??r.aWins)-safe(r.teamBWins??r.bWins))/Math.max(1,r.games):0;
-    const intensity=Math.min(100,Math.round(safe(r.games)*7+safe(r.postseasonGames)*18+close*24));
-    return {...r,intensity,label:intensity>=80?'PERSONAL':intensity>=60?'HEATED':intensity>=40?'GRUDGE':'BANTER'};
-  }).sort((a,b)=>b.intensity-a.intensity).slice(0,12);
+  const archivedGames=(data.seasonHistory||[]).flatMap(s=>s?.games||[]);
+  const h2h=buildHeadToHead([...(data.games||[]),...archivedGames],teams,data.seasonHistory||[]);
+  const byPair=new Map(h2h.map(r=>[[r.teamAId,r.teamBId].sort().join('|'),r]));
+  const rows=[];
+  for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
+    const a=teams[i],b=teams[j];
+    const key=[a.id,b.id].sort().join('|');
+    const r=byPair.get(key)||{teamAId:a.id,teamBId:b.id,teamA:a,teamB:b,aWins:0,bWins:0,games:0,postseasonGames:0,meetings:[]};
+    const sameDivision=a.league===b.league&&a.division===b.division;
+    const sameLeague=a.league===b.league;
+    const close=r.games?1-Math.abs(safe(r.aWins)-safe(r.bWins))/Math.max(1,r.games):0;
+    const meetingHeat=safe(r.games)*7+safe(r.postseasonGames)*20+close*(r.games?22:0);
+    const structural=sameDivision?30:sameLeague?14:5;
+    const streakSpice=(String(a.streak||'').startsWith('W')||String(b.streak||'').startsWith('W'))?3:0;
+    const intensity=Math.min(100,Math.round(structural+meetingHeat+streakSpice));
+    const label=intensity>=82?'PERSONAL':intensity>=62?'HEATED':intensity>=40?'GRUDGE':intensity>=20?'TENSE':'BANTER';
+    const reason=safe(r.postseasonGames)?`${r.postseasonGames} postseason meeting${r.postseasonGames===1?'':'s'}`:sameDivision?(r.games?`Division rivals · ${r.games} tracked meeting${r.games===1?'':'s'}`:'Division rivals — history waiting to happen'):r.games?`${r.games} tracked meeting${r.games===1?'':'s'}`:sameLeague?'League familiarity':'Interleague side-eye';
+    rows.push({...r,teamA:r.teamA||a,teamB:r.teamB||b,intensity,label,reason});
+  }
+  return rows.sort((a,b)=>b.intensity-a.intensity||b.postseasonGames-a.postseasonGames||b.games-a.games);
 }
 
 export function buildHonorInterviews(data={}){

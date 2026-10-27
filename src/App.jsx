@@ -1907,9 +1907,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.16</span>
+    <span className="version-pill version-pill-v3">v4.18</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.17.1 · Supercharged Universe · 40-game living universe</p>
+  <p>SMB4 Franchise Central · Version 4.18 · Fandom Districts · 40-game living universe</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1920,19 +1920,17 @@ const dashboardStories = [
 </div>
 </div>
 
-<div className="nav">
-  <button onClick={() => setPage("dashboard")}>Dashboard</button>
-  <button onClick={() => setPage("standings")}>Standings</button>
-  <button onClick={() => setPage("bracket")}>Bracket</button>
-  <button onClick={() => setPage("history")}>History</button>
-  <button onClick={() => setPage("records")}>Records</button>
-  <button onClick={() => setPage("news")}>News</button>
-  <button onClick={() => setPage("league")}>League Hub</button>
-  <button className="v4-nav-button" onClick={() => setPage("v4")}>V4 Center</button>
-  <button className="fandom-nav-button" onClick={() => setPage("fandom")}>Fandom</button>
-
-  {controlsUnlocked && <button className="league-office-nav-button" onClick={() => setPage("office")}>League Office</button>}
-  
+<div className="nav nav-v418">
+  <button className={`nav-core nav-dashboard ${page === "dashboard" ? "active" : ""}`} onClick={() => setPage("dashboard")}>Dashboard</button>
+  <button className={`nav-core nav-fandom ${page === "fandom" ? "active" : ""}`} onClick={() => setPage("fandom")}>Fandom</button>
+  <button className={`nav-core nav-league-center ${page === "v4" ? "active" : ""}`} onClick={() => setPage("v4")}>League Center</button>
+  <button className={`nav-core nav-standings ${page === "standings" ? "active" : ""}`} onClick={() => setPage("standings")}>Standings</button>
+  <button className={`nav-core nav-bracket ${page === "bracket" ? "active" : ""}`} onClick={() => setPage("bracket")}>Bracket</button>
+  <button className={`nav-core nav-news ${page === "news" ? "active" : ""}`} onClick={() => setPage("news")}>News</button>
+  <button className={`nav-core nav-league ${page === "league" ? "active" : ""}`} onClick={() => setPage("league")}>League Hub</button>
+  <button className={`nav-core nav-history ${page === "history" ? "active" : ""}`} onClick={() => setPage("history")}>History</button>
+  <button className={`nav-core nav-records ${page === "records" ? "active" : ""}`} onClick={() => setPage("records")}>Records</button>
+  {controlsUnlocked && <button className={`nav-core nav-office ${page === "office" ? "active" : ""}`} onClick={() => setPage("office")}>League Office</button>}
 </div>
 <WorldPulseRibbon data={data} teams={teams} playoffPicture={playoffPicture} page={page} />
 

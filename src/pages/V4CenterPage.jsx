@@ -107,7 +107,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className="v4-page">
     <section className={`card v4-hero v4-theme-${theme.toLowerCase().replace(/\s+/g,'-')}`}>
-      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.16</div><h1>League Command Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
+      <div><div className="v4-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.18</div><h1>League Center</h1><p>The living layer: projections, banners, fan chatter, milestone history, broadcast modes, ceremonies and season storytelling.</p></div>
       <div className="v4-hero-pills"><Pill tone="live">V4 LIVE</Pill><Pill>{theme}</Pill><Pill>{(data.games||[]).length} games stored</Pill><Pill>{(data.seasonHistory||[]).length} seasons archived</Pill></div>
     </section>
     <nav className="v4-tabbar">{TABS.map(([id,label])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
