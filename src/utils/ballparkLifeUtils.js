@@ -203,3 +203,58 @@ export function buildCulturalAwards(data={},teams=[]){
     {award:'Take That Aged Worst',winner:'SMB media desk',detail:'The receipts folder remains open.'},
   ];
 }
+
+const PARK_WORDS_A=['Harbor','Crown','Summit','Liberty','Foundry','Riverside','Union','Pioneer','Victory','Gateway','Heritage','Skyline','Civic','Frontier','Bayfront','Monument'];
+const PARK_WORDS_B=['Park','Field','Ballpark','Yard','Grounds','Stadium'];
+const SIGNATURE_FOODS=['Loaded garlic fries','Smoked stadium dogs','Grandstand nachos','Chili helmet fries','Caramel corn sundae','Fire-roasted sausage','Loaded tater basket','Ballpark pretzel melt','Street-taco trio','Double-stack stadium burger'];
+const FAMOUS_SECTIONS=['The Loud Corner','The Rail','Right Field Rowdies','The Upper Deck Crew','The Bleacher Block','The Home Run Porch','The Grandstand','The Rally Deck'];
+
+export function buildBallparkProfile(data={},team){
+  if(!team)return null;
+  const override=data.leagueExtras?.ballparks?.[team.id]||{};
+  const seed=hash(team.id||team.abbr||team.name);
+  const city=team.city||team.abbr||'League';
+  const autoName=`${city} ${PARK_WORDS_A[seed%PARK_WORDS_A.length]} ${PARK_WORDS_B[(seed>>4)%PARK_WORDS_B.length]}`;
+  const capacity=30000+(seed%10001);
+  const crowd=buildCrowdPersonality(data,[team],team.id);
+  return {
+    team,
+    name:override.name||autoName,
+    capacity:Math.max(28000,Math.min(45000,Number(override.capacity)||capacity)),
+    signatureFood:override.signatureFood||SIGNATURE_FOODS[(seed>>6)%SIGNATURE_FOODS.length],
+    famousSection:override.famousSection||FAMOUS_SECTIONS[(seed>>9)%FAMOUS_SECTIONS.length],
+    tradition:override.tradition||crowd?.ritual||'gets louder late',
+    atmosphere:override.atmosphere||crowd?.type||'BASEBALL CROWD',
+    opened:override.opened||`Season ${1+(seed%3)}`,
+  };
+}
+
+export function buildBallparkDirectory(data={},teams=[]){
+  return teams.map(t=>buildBallparkProfile(data,t)).filter(Boolean);
+}
+
+export function buildAttendanceForecast(data={},teams=[],homeTeamId,awayTeamId,promo=null,rivalry=null){
+  const home=teamById(teams,homeTeamId)||teams[0];
+  const away=teamById(teams,awayTeamId);
+  const park=buildBallparkProfile(data,home);
+  if(!park)return null;
+  const gp=n(home?.wins)+n(home?.losses); const pct=gp?n(home.wins)/gp:.5;
+  const streak=String(home?.streak||''); const streakN=n(streak.slice(1));
+  let demand=34+pct*34+Math.max(0,n(home?.runDiff))*.22+safePromo(promo,'attendance')*1.35+safePromo(promo,'hype')*.75+n(rivalry?.heat)*.28;
+  if(streak[0]==='W')demand+=streakN*3.5;
+  if(away){const ag=n(away.wins)+n(away.losses);demand+=(ag?n(away.wins)/ag:.5)*10;}
+  demand=clamp(Math.round(demand));
+  const pctFull=Math.max(.48,Math.min(1.02,.43+demand*.006));
+  const projected=Math.min(park.capacity,Math.round(park.capacity*pctFull/25)*25);
+  const roadShare=Math.max(4,Math.min(32,Math.round(5+(away?((n(away.wins)+1)/(n(away.wins)+n(away.losses)+2))*12:0)+(n(rivalry?.heat)||0)*.08)));
+  const cg=data.currentGame||{}; const active=cg.homeTeamId===home?.id&&cg.awayTeamId===away?.id&&['Live','Delay','Final'].includes(cg.status);
+  const actual=active?Math.min(park.capacity,Math.max(0,Math.round(projected*(.965+(hash(`${cg.id||cg.date||'game'}-${home?.id}`)%71)/1000)/25)*25)):null;
+  return {home,away,park,demand,projected,actual,pctFull:Math.round((actual||projected)/park.capacity*100),roadShare,label:demand>=90?'SELLOUT WATCH':demand>=78?'VERY HIGH':demand>=64?'HIGH':demand>=48?'STEADY':'EASY TICKET'};
+}
+function safePromo(p,key){return Number(p?.[key]||0)}
+
+export function audienceScaleForSeason(data={}){
+  const text=String(data.activeSeasonName||'Season 3');
+  const season=Math.max(1,Number(text.match(/\d+/)?.[0]||3));
+  return {season,baseGrowth:Math.pow(1.55,Math.max(0,season-3)),leagueMaturity:Math.min(2.4,1+Math.max(0,season-3)*.22)};
+}

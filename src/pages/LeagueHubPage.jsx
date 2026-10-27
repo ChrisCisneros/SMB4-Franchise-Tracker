@@ -152,7 +152,7 @@ export default function LeagueHubPage({ ctx }) {
 
   return <div className="universe-page v3-universe">
     <div className="card universe-hero v3-universe-hero">
-      <div><div className="universe-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.19</div><h2>League Universe</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
+      <div><div className="universe-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.20</div><h2>League Universe</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
       <div className="universe-hero-stats"><Pill>{records.summary.seasonsArchived} archived seasons</Pill><Pill>{gameRecords.games.length} permanent games</Pill><Pill>{records.summary.teamsTracked} franchises</Pill><Pill>{careerBoard.length} tracked players</Pill></div>
     </div>
     <div className="universe-tabs v3-tab-rail">{TABS.map(([id,label])=><button key={id} className={tab===id?'active-tab':''} onClick={()=>setTab(id)}>{label}</button>)}</div>

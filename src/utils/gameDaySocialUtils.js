@@ -273,22 +273,25 @@ function officialMoment(game,away,home,brand){
   return '';
 }
 
-function liveWatchingCount(phase,game,awayState,homeState,rivalry,bucket,promo){
+function liveWatchingCount(phase,game,awayState,homeState,rivalry,bucket,promo,data){
   const heat=safe(awayState?.marketHeat)+safe(homeState?.marketHeat);
   const hype=safe(awayState?.hype)+safe(homeState?.hype);
-  let viewers=1400+heat*115+hype*45+safe(rivalry?.heat)*135;
-  if(game?.gameType==='playoff')viewers+=18000;
-  if(late(game)&&close(game))viewers+=11000;
-  if(safe(game?.inning)>=9&&close(game))viewers+=7000;
-  if(safe(game?.inning)>=10)viewers+=8500;
-  if(isBigPlay(game))viewers+=6500;
-  if(game?.walkoffCandidate)viewers+=12000;
-  if(occupied(game?.bases)>=2&&late(game))viewers+=3500;
-  if(phase==='warmup')viewers*=.48;
-  if(phase==='postgame')viewers*=.68;
-  if(promo)viewers+=safe(promo.attendance)*220+safe(promo.hype)*120;
+  const season=Math.max(1,Number(String(data?.activeSeasonName||'Season 3').match(/\d+/)?.[0]||3));
+  const growth=Math.pow(1.55,Math.max(0,season-3));
+  let viewers=(18000+heat*520+hype*250+safe(rivalry?.heat)*620)*growth;
+  if(game?.gameType==='playoff')viewers+=120000*growth;
+  if(late(game)&&close(game))viewers+=55000*growth;
+  if(safe(game?.inning)>=9&&close(game))viewers+=45000*growth;
+  if(safe(game?.inning)>=10)viewers+=70000*growth;
+  if(isBigPlay(game))viewers+=35000*growth;
+  if(game?.walkoffCandidate)viewers+=85000*growth;
+  if(occupied(game?.bases)>=2&&late(game))viewers+=22000*growth;
+  if(safe(rivalry?.heat)>=75)viewers+=90000*growth;
+  if(phase==='warmup')viewers*=.58;
+  if(phase==='postgame')viewers*=.72;
+  if(promo)viewers+=(safe(promo.attendance)*1400+safe(promo.hype)*900)*growth;
   const jitter=.94+seeded(`watch-${bucket}-${game?.awayTeamId}-${game?.homeTeamId}`)*.14;
-  return Math.max(250,Math.round(viewers*jitter/25)*25);
+  return Math.max(Math.round(18000*growth),Math.round(viewers*jitter/500)*500);
 }
 
 
@@ -429,7 +432,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     leaguePosts.push({id:`${keyBase}-media-${m.id}`,kind:'media',name:m.name,handle:m.handle,badge:`${m.role} · ${m.show}`,team:null,text,tone:m.style==='hot'?'spicy':'media',time:'live'});
   });
 
-  const watching=liveWatchingCount(phase,activeGame,awayState,homeState,rivalry,bucket,promo);
+  const watching=liveWatchingCount(phase,activeGame,awayState,homeState,rivalry,bucket,promo,data);
   const bigMoment=isBigPlay(activeGame);
   const beneficiary=eventBeneficiary(activeGame,away,home);
   const primary=beneficiary?.id===away.id?awayPosts:beneficiary?.id===home.id?homePosts:[];

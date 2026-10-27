@@ -14,6 +14,13 @@ export const CEREMONY_TYPES=[
   {id:'anniversary',icon:'🎉',name:'Championship Anniversary Night',tone:'gold'},
   {id:'first-pitch',icon:'⚾',name:'Ceremonial First Pitch',tone:'event'},
   {id:'legend',icon:'⭐',name:'Franchise Legend Day',tone:'legacy'},
+  {id:'milestone',icon:'📍',name:'Franchise Milestone Ceremony',tone:'event'},
+  {id:'tribute',icon:'🕯️',name:'Memorial / Tribute Ceremony',tone:'legacy'},
+  {id:'opening-day',icon:'⚾',name:'Opening Day Ceremony',tone:'event'},
+  {id:'fan-appreciation',icon:'❤️',name:'Fan Appreciation Ceremony',tone:'event'},
+  {id:'reunion',icon:'🤝',name:'Championship Reunion',tone:'gold'},
+  {id:'league-award',icon:'🏅',name:'League Award Presentation',tone:'gold'},
+  {id:'historic-team',icon:'📜',name:'Historic Team Recognition',tone:'legacy'},
 ];
 
 export function previousSeasonChampions(data={},teams=[]){

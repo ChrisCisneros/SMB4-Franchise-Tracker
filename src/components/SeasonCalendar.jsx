@@ -61,13 +61,14 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
               const isCurrent=current&&slot.slotIndex===current.slotIndex;
               const isHome=slot.schedule?.location==='home',isAway=slot.schedule?.location==='away';
               const milestone=MILESTONES[slot.gameNumber];
+              const timeType=data.leagueExtras?.gameDayMeta?.[String(slot.gameNumber)]?.timeType||'NIGHT';
               const opponent=slot.schedule?.opponentAbbr;
               const prevGame=slots[slot.slotIndex-1],nextGame=slots[slot.slotIndex+1];
               const seriesWithPrev=opponent&&prevGame?.schedule?.opponentAbbr===opponent;
               const seriesWithNext=opponent&&nextGame?.schedule?.opponentAbbr===opponent;
               const seg=segmentKind(slots,slot.slotIndex);
               return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${isHome?'is-home':''} ${isAway?'is-away':''} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''} ${seg}`} onClick={()=>{if(editable)onToggle?.(slot.slotIndex);else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?'Click to remove this Game Day':'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
-                <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span>{slot.gameNumber?<b>G{slot.gameNumber}</b>:<b>OFF</b>}</div>
+                <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span>{slot.gameNumber?<b>G{slot.gameNumber} · {timeType}</b>:<b>OFF</b>}</div>
                 {slot.gameNumber?<>
                   <div className="season-cal-flags">{milestone&&<span className="season-cal-milestone">★ {milestone}</span>}{(seriesWithPrev||seriesWithNext)&&<span className="season-cal-series">SERIES</span>}</div>
                   <strong className="season-cal-matchup">{scheduleEntryLabel(slot.schedule)}</strong>

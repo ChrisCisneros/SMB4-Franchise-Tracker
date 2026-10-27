@@ -20,7 +20,7 @@ import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../ut
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
-import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch } from "../utils/ballparkLifeUtils";
+import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile } from "../utils/ballparkLifeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -82,7 +82,12 @@ export default function DashboardPage({ ctx }) {
   const v4NoHit = useMemo(()=>buildNoHitWatch(currentGame,teams),[currentGame,teams]);
   const v4Importance = useMemo(()=>buildGamesThatMatter(currentGame,v4Metrics),[currentGame,v4Metrics]);
   const v4Rivalries = useMemo(()=>buildHeadToHead(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
+  const calendarAnchorTeam = teams.find(t=>t.abbr===(data.leagueExtras?.calendarAnchorTeamAbbr||'SF'))||favoriteTeam;
+  const todayOpponent = teams.find(t=>t.abbr===todaySlot?.schedule?.opponentAbbr);
+  const forecastHome = currentGame?.homeTeamId ? teams.find(t=>t.id===currentGame.homeTeamId) : (todaySlot?.schedule?.location==='away'?todayOpponent:calendarAnchorTeam);
+  const forecastAway = currentGame?.awayTeamId ? teams.find(t=>t.id===currentGame.awayTeamId) : (todaySlot?.schedule?.location==='away'?calendarAnchorTeam:todayOpponent);
   const v4Rivalry = currentGame?.awayTeamId&&currentGame?.homeTeamId ? v4Rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)) : null;
+  const attendanceForecast = useMemo(()=>buildAttendanceForecast(data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry),[data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry]);
   const gameRecords = useMemo(()=>buildGameRecords(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
   const alerts = useMemo(()=>buildDashboardAlerts(data,teams),[data,teams]);
   const power = useMemo(()=>buildPowerRankings(teams).slice(0,5),[teams]);
@@ -149,65 +154,17 @@ export default function DashboardPage({ ctx }) {
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
-    <section className="v3-dashboard-masthead">
-      <div>
-        <div className="v3-eyebrow">SMB4 FRANCHISE CENTRAL · VERSION 4.19</div>
-        <h2>{activeSeason}</h2>
-        <p>{seasonTagline || (gamesPlayedTotal ? `${Math.round(gamesPlayedTotal)} league games completed` : "Opening Day awaits — the league is reset and ready.")}</p>
-      </div>
-      <div className="v3-season-status">
-        <div><span>Season Progress</span><strong>{seasonProgress}%</strong></div>
-        <div className="v3-progress-track"><i style={{width:`${seasonProgress}%`}} /></div>
-        <div className="v3-status-pills"><MiniPill tone="live">V4 LIVE</MiniPill><MiniPill>{gameRecords.games.length} archived games</MiniPill>{openingCountdown!==null&&openingCountdown>=0&&<MiniPill>{openingCountdown===0?'Opening Day':`${openingCountdown} days to Opening Day`}</MiniPill>}{defendingChampion&&<MiniPill tone="gold">🏆 {defendingChampion.abbr} defending champ</MiniPill>}</div>
-      </div>
+
+    <section className="dashboard-universe-plaza dashboard-network-top">
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.20</small></div>
+      <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
+      <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
     <section className="dashboard-world-pulse"><div className="dashboard-world-live"><i/> WORLD PULSE</div><div className="dashboard-world-moments">{worldState.moments.map((m,i)=><span key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</span>)}</div><div className="dashboard-world-tags">{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
     <section className="card dashboard-today-package">
       <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'Schedule Day TBD'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Game Day'}`}</p></div><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button></div>
-      <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.name}`:'Regular Game Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||'The baseball world is getting ready.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated live viewers`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>GAME IMPORTANCE</small><strong>{v4Importance?.label||'Regular Season'}</strong><span>{v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'}</span></div></div>
+      <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.name}`:'Regular Game Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||'The baseball world is getting ready.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated live viewers`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>GAME IMPORTANCE</small><strong>{v4Importance?.label||'Regular Season'}</strong><span>{v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'}</span></div><div><small>BALLPARK</small><strong>{attendanceForecast?.park?.name||'League Ballpark'}</strong><span>{attendanceForecast?`${(attendanceForecast.actual||attendanceForecast.projected).toLocaleString()} ${attendanceForecast.actual?'in park':'projected'} · ${attendanceForecast.pctFull}% full`:'Attendance forecast building'}</span></div></div>
     </section>
-
-    <section className="dashboard-media-memory-grid">
-      <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
-      <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
-      <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
-    </section>
-
-    <section className="dashboard-life-charge-grid">
-      <article className="card dashboard-main-character"><small>{lifeMainCharacter.label}</small><strong>{lifeMainCharacter.title}</strong><span>{lifeMainCharacter.detail}</span><div className="life-heat-track"><i style={{width:`${lifeMainCharacter.heat}%`}}/></div></article>
-      <article className="card dashboard-topic-life"><small>TOPIC LIFECYCLE</small><strong>{lifeTopics[0]?.stage||'EMERGING'} · {lifeTopics[0]?.topic||'Season conversation'}</strong><span>{lifeTopics[0]?.fatigue||'The story is still forming.'}</span></article>
-      <article className="card dashboard-receipt"><small>RECEIPT DESK</small><strong>{lifeReceipts[0]?.team?.abbr||'LEAGUE'} · {lifeReceipts[0]?.verdict||'NO RECEIPT YET'}</strong><span>{lifeReceipts[0]?.oldTake||lifeOutlets[0]?.stance}</span></article>
-      <article className="card dashboard-offday"><small>{offDayWorld.label}</small><strong>{offDayWorld.items[0]?.title||'The league keeps moving'}</strong><span>{offDayWorld.items[0]?.detail}</span></article>
-    </section>
-
-    <section className="dashboard-next-strip card">
-      <div className="dashboard-next-label"><span>COMING UP</span><strong>Next on the franchise calendar</strong></div>
-      <div className="dashboard-next-games">{upcomingSlots.length?upcomingSlots.map((slot,i)=><button type="button" key={slot.slotIndex} onClick={()=>setPage?.('fandom')} className={i===0?'next':''}><small>{i===0?'NEXT':`AFTER THAT`} · W{slot.week} {slot.weekday}</small><b>{scheduleEntryLabel(slot.schedule)}</b><span>{slot.promo?`${slot.promo.icon||'🎟️'} ${slot.promo.name}`:slot.dateLabel||`Game ${slot.gameNumber}`}</span></button>):<div className="dashboard-next-empty">No future franchise games are placed yet.</div>}</div>
-    </section>
-
-    <section className="dashboard-universe-plaza">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>THE HOME OF YOUR LEAGUE</small></div>
-      <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
-      <button type="button" className="dashboard-plaza-shop" onClick={()=>setPage?.('fandom')}>TEAM STORE + FAN ZONE →</button>
-    </section>
-
-    {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
-
-    <section className="card dashboard-v4-intel">
-      <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
-      <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
-      <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
-      <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
-      <div><span>Game Importance</span><strong>{v4Importance?.label || "—"}</strong></div>
-      {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
-    </section>
-    {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
-
-    {dashboardMerch.length>0 && <section className="dashboard-market-row">
-      <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
-      {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
-    </section>}
-
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
         <div className={`card v3-broadcast-hero ${liveLeaderClass} ${scoreFlashSide?`scorebug-flash-${scoreFlashSide}`:""} ${isPlayoffLiveGame?"playoff-broadcast-bg":""}`} style={playoffBroadcastVars}>
@@ -255,8 +212,6 @@ export default function DashboardPage({ ctx }) {
           </div>}
         </div>
 
-        <div className="v3-section-heading"><div><span>THE LEAGUE TODAY</span><h3>Top Stories</h3></div><button onClick={()=>setPage?.('news')}>Open Newsroom →</button></div>
-        <div className="v3-story-grid">{news.length ? news.map((story,i)=><article className={`card v3-story-card ${i===0?'lead':''}`} key={story.id||i}><div className="v3-story-meta"><span>{story.category}</span><small>{story.dateLabel}</small></div><h3>{story.headline}</h3><p>{story.dek}</p></article>) : <article className="card v3-story-card lead"><div className="v3-story-meta"><span>SEASON PREVIEW</span></div><h3>The league is quiet now. It won’t stay that way.</h3><p>Game finals, playoff races, record alerts and championship stories will populate this desk automatically.</p></article>}</div>
       </div>
 
       <aside className="v3-dashboard-rail">
@@ -274,6 +229,42 @@ export default function DashboardPage({ ctx }) {
       </aside>
     </section>
 
+    {dashboardMerch.length>0 && <section className="dashboard-market-row">
+      <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
+      {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
+    </section>}
+
+    {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
+
+    <section className="card dashboard-v4-intel">
+      <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
+      <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
+      <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
+      <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
+      <div><span>Game Importance</span><strong>{v4Importance?.label || "—"}</strong></div>
+      {v4Rivalry && <div><span>Rivalry</span><strong>{v4Rivalry.games} meetings</strong></div>}
+    </section>
+
+    {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
+
+    <section className="dashboard-media-memory-grid">
+      <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
+      <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
+      <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
+    </section>
+
+    <section className="dashboard-life-charge-grid">
+      <article className="card dashboard-main-character"><small>{lifeMainCharacter.label}</small><strong>{lifeMainCharacter.title}</strong><span>{lifeMainCharacter.detail}</span><div className="life-heat-track"><i style={{width:`${lifeMainCharacter.heat}%`}}/></div></article>
+      <article className="card dashboard-topic-life"><small>TOPIC LIFECYCLE</small><strong>{lifeTopics[0]?.stage||'EMERGING'} · {lifeTopics[0]?.topic||'Season conversation'}</strong><span>{lifeTopics[0]?.fatigue||'The story is still forming.'}</span></article>
+      <article className="card dashboard-receipt"><small>RECEIPT DESK</small><strong>{lifeReceipts[0]?.team?.abbr||'LEAGUE'} · {lifeReceipts[0]?.verdict||'NO RECEIPT YET'}</strong><span>{lifeReceipts[0]?.oldTake||lifeOutlets[0]?.stance}</span></article>
+      <article className="card dashboard-offday"><small>{offDayWorld.label}</small><strong>{offDayWorld.items[0]?.title||'The league keeps moving'}</strong><span>{offDayWorld.items[0]?.detail}</span></article>
+    </section>
+
+    <section className="dashboard-next-strip card">
+      <div className="dashboard-next-label"><span>COMING UP</span><strong>Next on the franchise calendar</strong></div>
+      <div className="dashboard-next-games">{upcomingSlots.length?upcomingSlots.map((slot,i)=><button type="button" key={slot.slotIndex} onClick={()=>setPage?.('fandom')} className={i===0?'next':''}><small>{i===0?'NEXT':`AFTER THAT`} · W{slot.week} {slot.weekday}</small><b>{scheduleEntryLabel(slot.schedule)}</b><span>{slot.promo?`${slot.promo.icon||'🎟️'} ${slot.promo.name}`:slot.dateLabel||`Game ${slot.gameNumber}`}</span></button>):<div className="dashboard-next-empty">No future franchise games are placed yet.</div>}</div>
+    </section>
+
     {clinchedTeams.length > 0 && <section className="v3-clinch-strip"><div className="v3-section-heading compact"><div><span>POSTSEASON TICKETS PUNCHED</span><h3>Clinched</h3></div></div><div className="v3-clinch-list">{clinchedTeams.map(({team,marker})=><div className="v3-clinch-card" key={team.id}><span>{clinchLabel(marker)}</span><strong>{team.abbr}</strong><small>{team.wins}-{team.losses}</small></div>)}</div></section>}
 
 
@@ -283,13 +274,7 @@ export default function DashboardPage({ ctx }) {
       <div className="card dashboard-ad-rotation"><div className="v3-section-heading compact"><div><span>COMMERCIAL BREAK</span><h3>From around the league</h3></div></div>{dynamicAds.slice(0,3).map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><p>{ad.copy}</p><b>{ad.cta} →</b></article>)}</div>
     </section>
 
-    <section className="v3-dashboard-bottom-grid">
-      <div className="card v3-race-card"><div className="v3-section-heading compact"><div><span>POSTSEASON RACE</span><h3>Playoff Picture</h3></div><button onClick={()=>setPage?.('standings')}>Full Standings →</button></div><div className="dashboard-playoff-grid">{playoffPicture.map(picture=><div className="dashboard-playoff-card v3-playoff-card" key={picture.league}><h3>{picture.league}</h3><div className="playoff-section-label">Division Leaders</div>{picture.divisionLeaders.map((team,index)=><div className="dashboard-race-row" key={team.id}><strong>{index+1}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{team.runDiff>0?`+${team.runDiff}`:team.runDiff}</span></div>)}<div className="playoff-section-label">Wild Card Cut</div>{picture.wildcardTeams.slice(Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2),WILD_CARD_TEAMS_PER_LEAGUE+2).map((team,index)=>{const actualIndex=Math.max(0,WILD_CARD_TEAMS_PER_LEAGUE-2)+index;const isCutoff=actualIndex===WILD_CARD_TEAMS_PER_LEAGUE-1;return <div className={`dashboard-race-row ${isCutoff?'dashboard-cutoff-row':''}`} key={team.id}><strong>{actualIndex<WILD_CARD_TEAMS_PER_LEAGUE?`WC${actualIndex+1}`:'OUT'}</strong><span>{team.abbr}</span><span>{team.wins}-{team.losses}</span><span>{wildCardGamesBack(team,picture.cutoffTeam,actualIndex)}</span></div>})}</div>)}</div></div>
-
-      <div className="card v3-league-pulse"><div className="v3-section-heading compact"><div><span>LEAGUE PULSE</span><h3>At a Glance</h3></div></div><div className="v3-pulse-grid"><div><span>Best Record</span><strong>{bestRecordTeam?`${bestRecordTeam.abbr} ${bestRecordTeam.wins}-${bestRecordTeam.losses}`:'—'}</strong></div><div><span>Run Diff Leader</span><strong>{bestRunDiff?`${bestRunDiff.abbr} ${bestRunDiff.runDiff>0?'+':''}${bestRunDiff.runDiff}`:'—'}</strong></div><div><span>Bottom Record</span><strong>{worstRecordTeam?`${worstRecordTeam.abbr} ${worstRecordTeam.wins}-${worstRecordTeam.losses}`:'—'}</strong></div><div><span>Tightest Race</span><strong>{tightestDivisionRace?`${tightestDivisionRace.league} ${tightestDivisionRace.division}`:'—'}</strong></div><div><span>Archived Seasons</span><strong>{leagueRecords.summary.seasonsArchived}</strong></div><div><span>Permanent Games</span><strong>{gameRecords.games.length}</strong></div></div></div>
-
-      <div className="card v3-recent-results"><div className="v3-section-heading compact"><div><span>SCOREBOARD</span><h3>Recent Finals</h3></div><button onClick={()=>setPage?.('league')}>Game Archive →</button></div><div className="v3-recent-list">{gameRecords.games.length?gameRecords.games.slice(0,6).map(g=><div key={g.id}><small>{g.date} · {g.gameType==='playoff'?'POST':'REG'}</small><strong>{g.away?.abbr||'AWY'} {g.awayScore} <em>–</em> {g.home?.abbr||'HME'} {g.homeScore}</strong></div>):<div className="v3-empty-compact">Season 4 finals will appear here automatically.</div>}</div></div>
-    </section>
+    <section className="dashboard-recent-only"><div className="card v3-recent-results"><div className="v3-section-heading compact"><div><span>SCOREBOARD</span><h3>Recent Finals</h3></div><button onClick={()=>setPage?.('league')}>Game Archive →</button></div><div className="v3-recent-list">{gameRecords.games.length?gameRecords.games.slice(0,6).map(g=><div key={g.id}><small>{g.date} · {g.gameType==='playoff'?'POST':'REG'}</small><strong>{g.away?.abbr||'AWY'} {g.awayScore} <em>–</em> {g.home?.abbr||'HME'} {g.homeScore}</strong></div>):<div className="v3-empty-compact">Season finals will appear here automatically.</div>}</div></div></section>
 
     <section className="card v3-opponent-book">
       <div className="v3-section-heading compact"><div><span>{activeSeason.toUpperCase()} SERIES BOOK</span><h3>{favoriteTeam?.abbr || 'Franchise'} vs Opponents</h3></div><MiniPill>{opponentRows.reduce((sum,row)=>sum+row.games,0)} scored games</MiniPill></div>
