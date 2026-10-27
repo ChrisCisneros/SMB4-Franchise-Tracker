@@ -11,9 +11,10 @@ import {
 import { buildAnalystRecords, buildCultureAwards, buildCultureDebates, buildCultureTrends, buildFanSurvey, buildGameThreadArchive, buildGiveawayMarket, buildLocalBusinesses, buildSocialGrowth, buildTeamCultureProfiles, buildTicketMarket } from '../utils/cultureUtils';
 import { buildPlayerFanPages } from '../utils/livingWorldUtils';
 import { buildRivalryTimeline,buildSeasonScrapbook,buildTeamVibes } from '../utils/mediaMemoryUtils';
+import { buildDefiningMoments,buildFranchiseReputations,buildStadiumFolklore,buildTeamTraditionFiles } from '../utils/lifeSystemsUtils';
 
 const TABS = [
-  ['profiles','Team Profiles'],['scrapbook','Season Scrapbook'],['culture','Culture & Lore'],['power','Power Rankings'],['games','Game Archive'],['careers','Player Careers'],
+  ['profiles','Team Profiles'],['scrapbook','Season Scrapbook'],['living-lore','Living Lore'],['culture','Culture & Lore'],['power','Power Rankings'],['games','Game Archive'],['careers','Player Careers'],
   ['awards','Awards'],['timeline','Timeline'],['dynasty','Dynasties & Trophies'],['rivalries','Rivalries'],
   ['hall','Hall of Fame'],['operations','League Operations'],['compare','Season Compare'],
   ['season','Season Preview / Recap'],['today','On This Day']
@@ -58,6 +59,10 @@ export default function LeagueHubPage({ ctx }) {
   const archivedRivalries = useMemo(()=>buildRivalries(history,teams),[history,teams]);
   const liveRivalries = useMemo(()=>buildHeadToHead(games,teams,history),[games,teams,history]);
   const rivalries = liveRivalries.length ? liveRivalries : archivedRivalries;
+  const franchiseReputations = useMemo(()=>buildFranchiseReputations(data,teams),[data,teams]);
+  const stadiumFolklore = useMemo(()=>buildStadiumFolklore(data,teams),[data,teams]);
+  const traditionFiles = useMemo(()=>buildTeamTraditionFiles(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const definingMoments = useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
   const preview = useMemo(()=>buildSeasonPreview(history,teams),[history,teams]);
   const archiveToday = useMemo(()=>buildOnThisDay(history,lastFinalGame,teams),[history,lastFinalGame,teams]);
   const gameRecords = useMemo(()=>buildGameRecords(games,teams,history),[games,teams,history]);
@@ -223,6 +228,18 @@ export default function LeagueHubPage({ ctx }) {
       </div>
       <div className="card"><div className="universe-section-title"><div><h3>Player Career Center</h3><p className="muted">Version 3 permanently tracks batting and pitcher decisions from Season 4 forward.</p></div><Pill>Tracking begins V3</Pill></div><div className="career-table"><div className="career-row career-head"><span>Player</span><span>Team</span><span>Season H/AB</span><span>AVG</span><span>Career H/AB</span><span>HR</span><span>W-L</span></div>{careerBoard.length ? careerBoard.map(p=><button className={`career-row career-button-row ${playerId===p.id?'selected':''}`} key={p.id} onClick={()=>setPlayerId(p.id)}><strong>{p.name}</strong><span>{teamMap.get(p.teamId)?.abbr||'FA'}</span><span>{p.seasonHits}/{p.seasonAB}</span><span>{avg(p.seasonHits,p.seasonAB)}</span><span>{p.careerHits}/{p.careerAB}</span><span>{p.careerHR}</span><span>{p.careerPitchingWins}-{p.careerPitchingLosses}</span></button>) : <Empty>Add players to begin career tracking.</Empty>}</div></div>
       {selectedCareer && <><div className="card leaguehub-player-fandom"><div><small>PLAYER FAN CULTURE</small><h3>{selectedPlayerFanPage?.name||`${selectedCareer.name} Fan Watch`}</h3><p>{selectedPlayerFanPage?.handle||'Fan page still forming'} · {selectedPlayerFanPage?`${selectedPlayerFanPage.followers.toLocaleString()} followers`:'No dedicated following yet'}</p></div><div><span>POPULARITY SIGNAL</span><strong>{selectedPlayerFanPage?Math.min(100,Math.round(35+selectedPlayerFanPage.impact*1.8)):35}</strong><small>{selectedPlayerFanPage?.impact>20?'CULT-HERO BUZZ':selectedPlayerFanPage?.impact>8?'GROWING':'EARLY FOLLOWING'}</small></div></div><div className="universe-two-col"><div className="card player-career-profile"><div className="universe-kicker">CAREER PROFILE</div><h2>{selectedCareer.name}</h2><p>{teamMap.get(selectedCareer.teamId)?.abbr||'Free Agent'} · #{selectedCareer.number||'—'}</p><div className="player-stat-matrix">{[['AVG',avg(selectedCareer.careerHits,selectedCareer.careerAB)],['H',selectedCareer.careerHits],['2B',selectedCareer.careerDoubles],['3B',selectedCareer.careerTriples],['HR',selectedCareer.careerHR],['BB',selectedCareer.careerWalks],['K',selectedCareer.careerStrikeouts],['HBP',selectedCareer.careerHBP],['Pitch W',selectedCareer.careerPitchingWins],['Pitch L',selectedCareer.careerPitchingLosses]].map(([k,v])=><div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div></div><div className="card"><h3>Archived Seasons</h3><div className="universe-scroll-list">{selectedPlayerSeasons.length?selectedPlayerSeasons.map(p=><div className="universe-list-row" key={`${p.seasonId}-${p.id}`}><strong>{p.seasonName}</strong><span>{p.seasonHits||0}/{p.seasonAB||0} · {p.seasonHR||0} HR · {p.seasonPitchingWins||0}-{p.seasonPitchingLosses||0}</span></div>):<Empty>Season 4 will become the first archived player season in Version 3.</Empty>}</div></div></div></>}
+    </div>}
+
+    {tab==='living-lore' && <div className="universe-section">
+      <section className="card universe-section-title"><div><h3>Living League Lore</h3><p className="muted">The reputations, traditions, folklore and season memories that make this league feel older than the current scoreboard.</p></div><Pill>Always evolving</Pill></section>
+      <div className="living-lore-grid">
+        <article className="card"><h3>Franchise Reputation Board</h3><div className="universe-scroll-list">{franchiseReputations.slice(0,12).map(r=><div className="universe-list-row lore-rep-row" key={r.team.id}><strong>{r.team.abbr} · {r.era}</strong><span>{r.labels.join(' · ')}</span><small>{r.score}/100 reputation</small></div>)}</div></article>
+        <article className="card"><h3>Season-Defining Moments</h3><div className="universe-scroll-list">{definingMoments.length?definingMoments.map(m=><div className="universe-list-row" key={m.id}><strong>#{m.rank} {m.tier} · {m.title}</strong><span>{m.detail}</span></div>):<Empty>The season is still waiting for its first defining memory.</Empty>}</div></article>
+      </div>
+      <div className="living-lore-grid">
+        <article className="card"><h3>Ballpark Folklore</h3><div className="universe-scroll-list">{stadiumFolklore.slice(0,10).map(f=><div className="lore-file" key={f.team.id}><strong>{f.team.abbr} · {f.legend}</strong><p>{f.lore[0]}</p><small>{f.superstition}</small></div>)}</div></article>
+        <article className="card"><h3>Traditions & Rituals</h3><div className="universe-scroll-list">{traditionFiles.slice(0,10).map(t=><div className="lore-file" key={t.team.id}><strong>{t.team.abbr} · {t.chant}</strong><p>{t.ritual}</p><small>{t.postWin}</small></div>)}</div></article>
+      </div>
     </div>}
 
     {tab==='awards' && <div className="card"><div className="universe-section-title"><div><h3>Season Awards</h3><p className="muted">Permanent award shelf for MVPs, Cy Youngs, rookies and anything else you want to honor.</p></div>{controlsUnlocked && <button onClick={addAward}>Add Award</button>}</div><div className="award-grid">{(extras.awards||[]).length ? extras.awards.map(a=><div className="award-card" key={a.id}><span>{a.season}</span><h4>{a.award}</h4><strong>{a.winner}</strong><small>{a.teamAbbr}</small>{controlsUnlocked&&<button className="tiny-danger" onClick={()=>removeExtra('awards',a.id)}>×</button>}</div>) : <Empty>No awards entered yet.</Empty>}</div></div>}

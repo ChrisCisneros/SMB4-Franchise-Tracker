@@ -183,10 +183,24 @@ function adjustTeamNumber(teamId, field, amount) {
           ? Math.max(0, current + amount)
           : current + amount;
 
-      return {
+      const updated = {
         ...team,
         [field]: nextValue,
       };
+
+      // Quick forward record entry should carry momentum with it.
+      // Removing a win/loss cannot safely reconstruct the previous streak, so
+      // negative corrections leave streak alone and the manual controls remain available.
+      if (amount > 0 && (field === "wins" || field === "losses")) {
+        const resultType = field === "wins" ? "W" : "L";
+        const currentStreak = String(team.streak || "").toUpperCase();
+        const currentNumber = currentStreak.startsWith(resultType)
+          ? Number(currentStreak.slice(1) || 0)
+          : 0;
+        updated.streak = `${resultType}${currentNumber + 1}`;
+      }
+
+      return updated;
     });
 
     syncTeamsToFirebase(nextTeams);

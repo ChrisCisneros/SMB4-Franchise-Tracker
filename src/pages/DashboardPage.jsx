@@ -19,6 +19,7 @@ import { buildWorldState } from "../utils/cultureUtils";
 import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
+import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -50,6 +51,11 @@ export default function DashboardPage({ ctx }) {
   const talkingAbout = useMemo(()=>buildFansTalkingAbout(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
   const dynamicAds = useMemo(()=>buildDynamicAds(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
   const weeklyRoundup = useMemo(()=>buildWeeklyMediaRoundup(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const lifeMainCharacter = useMemo(()=>buildLeagueMainCharacter(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const lifeTopics = useMemo(()=>buildTopicLifecycles(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const lifeReceipts = useMemo(()=>buildPredictionReceipts(data,teams),[data,teams]);
+  const lifeOutlets = useMemo(()=>buildMediaOutlets(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const offDayWorld = useMemo(()=>buildOffDayWorld(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
@@ -161,6 +167,13 @@ export default function DashboardPage({ ctx }) {
       <article className="card dashboard-ticket-forecast"><small>TICKET FORECAST</small><strong>{ticketForecast.label}</strong><span>{ticketForecast.team?.abbr||'—'} {ticketForecast.opponent?`vs ${ticketForecast.opponent.abbr}`:''} · demand {ticketForecast.demand}/100</span><div className="dashboard-demand-meter"><i style={{width:`${ticketForecast.demand}%`}}/></div></article>
       <article className="card dashboard-hot-cold"><small>HOT / COLD</small><strong>{hotCold.hot[0]?`🔥 ${hotCold.hot[0].abbr} ${hotCold.hot[0].streak}`:'No hot streak yet'}</strong><span>{hotCold.cold[0]?`🥶 ${hotCold.cold[0].abbr} ${hotCold.cold[0].streak}`:'No cold streak yet'}</span></article>
       <article className="card dashboard-weekly-roundup"><small>WEEK {weeklyRoundup.week} MEDIA ROUNDUP</small><strong>{weeklyRoundup.headline}</strong><span>{weeklyRoundup.rivalry?`${weeklyRoundup.rivalry.teamA?.abbr}/${weeklyRoundup.rivalry.teamB?.abbr} is the loudest rivalry`:weeklyRoundup.phase}</span></article>
+    </section>
+
+    <section className="dashboard-life-charge-grid">
+      <article className="card dashboard-main-character"><small>{lifeMainCharacter.label}</small><strong>{lifeMainCharacter.title}</strong><span>{lifeMainCharacter.detail}</span><div className="life-heat-track"><i style={{width:`${lifeMainCharacter.heat}%`}}/></div></article>
+      <article className="card dashboard-topic-life"><small>TOPIC LIFECYCLE</small><strong>{lifeTopics[0]?.stage||'EMERGING'} · {lifeTopics[0]?.topic||'Season conversation'}</strong><span>{lifeTopics[0]?.fatigue||'The story is still forming.'}</span></article>
+      <article className="card dashboard-receipt"><small>RECEIPT DESK</small><strong>{lifeReceipts[0]?.team?.abbr||'LEAGUE'} · {lifeReceipts[0]?.verdict||'NO RECEIPT YET'}</strong><span>{lifeReceipts[0]?.oldTake||lifeOutlets[0]?.stance}</span></article>
+      <article className="card dashboard-offday"><small>{offDayWorld.label}</small><strong>{offDayWorld.items[0]?.title||'The league keeps moving'}</strong><span>{offDayWorld.items[0]?.detail}</span></article>
     </section>
 
     <section className="dashboard-next-strip card">

@@ -5,6 +5,7 @@ import { buildWorldState } from "../utils/cultureUtils";
 import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHonorInterviews, buildHotColdBoard, buildOnThisDateMoments, buildFakePodcasts, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
+import { buildBroadcastBooth, buildDefiningMoments, buildMediaOutlets, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -83,6 +84,11 @@ export default function NewsPage({ ctx }) {
   const hotCold=useMemo(()=>buildHotColdBoard(teams),[teams]);
   const ads=useMemo(()=>buildDynamicAds(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
   const weekly=useMemo(()=>buildWeeklyMediaRoundup(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const mediaOutlets=useMemo(()=>buildMediaOutlets(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const topicLifecycles=useMemo(()=>buildTopicLifecycles(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const predictionReceipts=useMemo(()=>buildPredictionReceipts(data,teams),[data,teams]);
+  const broadcastBooth=useMemo(()=>buildBroadcastBooth(data,teams),[data,teams]);
+  const definingMoments=useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
   const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -142,6 +148,16 @@ export default function NewsPage({ ctx }) {
         <article className="card news-hot-cold-board"><div className="news-kicker">HOT / COLD BOARD</div><h3>Streak Watch</h3><div><strong>🔥 HOT</strong>{hotCold.hot.slice(0,3).map(t=><span key={t.id}>{t.abbr} {t.streak}</span>)}</div><div><strong>🥶 COLD</strong>{hotCold.cold.slice(0,3).map(t=><span key={t.id}>{t.abbr} {t.streak}</span>)}</div></article>
         <article className="card news-weekly-roundup"><div className="news-kicker">WEEK {weekly.week} ROUNDUP</div><h3>{weekly.headline}</h3><p>{weekly.teamOfWeek?`${weekly.teamOfWeek.abbr} is the media desk's team of the week.`:weekly.phase}</p>{weekly.rivalry&&<p><b>Rivalry:</b> {weekly.rivalry.teamA?.abbr} / {weekly.rivalry.teamB?.abbr}</p>}</article>
       </section>
+
+      <section className="news-life-network">
+        <article className="card"><div className="news-kicker">MEDIA PERSONALITIES</div><h3>Same league. Different agendas.</h3>{mediaOutlets.slice(0,4).map(o=><div className="life-media-row" key={o.id}><div><strong>{o.name}</strong><small>{o.type} · {o.tone}</small></div><span>{o.stance}</span></div>)}</article>
+        <article className="card"><div className="news-kicker">STORY LIFECYCLES</div><h3>What is rising — and what is getting old</h3>{topicLifecycles.slice(0,5).map(t=><div className={`life-topic-row stage-${t.stage.toLowerCase()}`} key={t.topic}><b>{t.stage}</b><strong>{t.topic}</strong><span>{t.fatigue}</span></div>)}</article>
+        <article className="card"><div className="news-kicker">PREDICTION RECEIPTS</div><h3>The desk remembers.</h3>{predictionReceipts.slice(0,4).map(r=><div className="life-receipt-row" key={r.team?.id}><b>{r.team?.abbr}</b><div><strong>{r.verdict}</strong><span>{r.oldTake}</span><small>{r.now}</small></div></div>)}</article>
+      </section>
+
+      <section className="news-booth-strip card"><div><div className="news-kicker">TONIGHT'S BROADCAST CREW</div><h3>The booth has opinions too</h3></div>{broadcastBooth.slice(0,3).map(b=><div key={b.name}><strong>{b.name}</strong><span>{b.role} · {b.style}</span><small>{b.trait}</small></div>)}</section>
+
+      {definingMoments.length>0&&<section className="news-defining-moment card"><div><small>SEASON MEMORY WATCH</small><strong>#{definingMoments[0].rank} · {definingMoments[0].tier}</strong></div><h3>{definingMoments[0].title}</h3><p>{definingMoments[0].detail}</p></section>}
 
       <section className="news-talking card"><div><div className="news-kicker">FANS ARE TALKING ABOUT</div><h3>The conversation right now</h3></div><div>{talkingAbout.map((x,i)=><span key={`${x.label}-${i}`}><b>{x.icon} {x.label}</b><small>{x.detail}</small></span>)}</div></section>
 
