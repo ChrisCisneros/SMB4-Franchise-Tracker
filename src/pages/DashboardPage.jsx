@@ -84,7 +84,9 @@ export default function DashboardPage({ ctx }) {
     const ceremonies=(extras.ceremonies||[]).map(c=>c.id===ceremony.id?{...c,status:'completed',completedAt:new Date().toISOString()}:c);
     const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,completedAt:new Date().toISOString()};
     const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
-    const next={...extras,ceremonies,ceremonyCompletions};
+    const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
+    const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
+    const next={...extras,ceremonies,ceremonyCompletions,worldMoments};
     syncLeagueExtrasToFirebase?.(next); setData?.(p=>({...p,leagueExtras:next})); setActiveCeremony(null);
   };
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
@@ -169,7 +171,7 @@ export default function DashboardPage({ ctx }) {
     {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
 
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.21</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.22</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>

@@ -52,3 +52,42 @@ export function ceremonyRevealTypes(c){
   if(c?.type==='trophy')return ['trophy'];
   return [];
 }
+
+export function buildLegacyPrestige(data={},teams=[]){
+  const history=safeArr(data.seasonHistory);
+  const rows=teams.map(team=>{
+    let world=0,league=0,playoffs=0;
+    history.forEach(season=>{
+      const bracket=makeSafePlayoffBracket(season.playoffBracket);
+      const seasonTeams=season.teams||[];
+      const byId=id=>seasonTeams.find(t=>t.id===id)||teams.find(t=>t.id===id)||null;
+      const champ=byId(season.championTeamId||bracket.finals?.winnerTeamId);
+      const al=byId(bracket.al?.lc?.winnerTeamId),nl=byId(bracket.nl?.lc?.winnerTeamId);
+      if(champ?.id===team.id)world++;
+      if(al?.id===team.id||nl?.id===team.id)league++;
+      const st=seasonTeams.find(t=>t.id===team.id);
+      if(st?.playoffSeed||st?.clinchedPlayoffs||st?.madePlayoffs)playoffs++;
+    });
+    const currentWins=Number(team.wins||0);
+    const score=world*48+league*22+playoffs*6+Math.min(18,currentWins*.45);
+    const tier=score>=120?'LEGENDARY':score>=82?'DYNASTY':score>=48?'PRESTIGE':score>=24?'ESTABLISHED':'RISING';
+    return {team,world,league,playoffs,score:Math.round(score),tier};
+  });
+  return rows.sort((a,b)=>b.score-a.score||String(a.team.abbr).localeCompare(String(b.team.abbr)));
+}
+
+export function buildCeremonyArchive(data={},teams=[]){
+  const ceremonies=safeArr(data.leagueExtras?.ceremonies);
+  return ceremonies.filter(c=>c.status==='completed').sort((a,b)=>(Date.parse(b.completedAt||'')||0)-(Date.parse(a.completedAt||'')||0)).map(c=>({
+    ...c,
+    team:teams.find(t=>t.id===c.teamId)||teams.find(t=>t.abbr===c.teamAbbr)||null,
+    completion:safeArr(data.leagueExtras?.ceremonyCompletions).find(x=>x.ceremonyId===c.id)||null
+  }));
+}
+
+export function hardwareTitle(hw){
+  if(hw?.type==='banner')return `${hw.leagueLabel} CHAMPIONSHIP BANNER`;
+  if(hw?.type==='trophy')return 'WORLD SERIES TROPHY';
+  if(hw?.type==='rings')return 'WORLD SERIES CHAMPIONSHIP RING';
+  return 'CHAMPIONSHIP HARDWARE';
+}
