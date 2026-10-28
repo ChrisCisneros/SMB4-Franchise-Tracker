@@ -10,3 +10,21 @@
 @media(max-width:520px){.hall-glory-legacy-strip,.office-ceremony-board{grid-template-columns:1fr}.hall-glory-season{flex-basis:94vw}.hall-glory-header{align-items:flex-start;flex-direction:column}}
 .ceremony-road-steps{display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px}.ceremony-road-steps span{padding:8px 10px;border:1px solid #5f4b18;border-radius:999px;background:#130f07;color:#f5df94;font-size:9px;font-weight:950;letter-spacing:.08em}.ceremony-road-steps i{font-style:normal;color:#8d7430}.ceremony-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}.ceremony-confetti i{position:absolute;top:-8%;width:7px;height:18px;background:#e2b93f;opacity:.72;animation:gloryConfetti 6s linear infinite}.ceremony-confetti i:nth-child(3n){background:#f8fafc}.ceremony-confetti i:nth-child(4n){background:#94a3b8}.ceremony-confetti i:nth-child(1){left:3%;animation-delay:-1s}.ceremony-confetti i:nth-child(2){left:7%;animation-delay:-3.4s}.ceremony-confetti i:nth-child(3){left:12%;animation-delay:-4.2s}.ceremony-confetti i:nth-child(4){left:17%;animation-delay:-2s}.ceremony-confetti i:nth-child(5){left:22%;animation-delay:-5s}.ceremony-confetti i:nth-child(6){left:27%;animation-delay:-.7s}.ceremony-confetti i:nth-child(7){left:31%;animation-delay:-4.8s}.ceremony-confetti i:nth-child(8){left:36%;animation-delay:-2.8s}.ceremony-confetti i:nth-child(9){left:41%;animation-delay:-5.4s}.ceremony-confetti i:nth-child(10){left:46%;animation-delay:-1.7s}.ceremony-confetti i:nth-child(11){left:51%;animation-delay:-3.8s}.ceremony-confetti i:nth-child(12){left:56%;animation-delay:-.2s}.ceremony-confetti i:nth-child(13){left:61%;animation-delay:-4.5s}.ceremony-confetti i:nth-child(14){left:66%;animation-delay:-2.2s}.ceremony-confetti i:nth-child(15){left:71%;animation-delay:-5.7s}.ceremony-confetti i:nth-child(16){left:76%;animation-delay:-1.3s}.ceremony-confetti i:nth-child(17){left:81%;animation-delay:-3.2s}.ceremony-confetti i:nth-child(18){left:86%;animation-delay:-4.9s}.ceremony-confetti i:nth-child(19){left:91%;animation-delay:-.9s}.ceremony-confetti i:nth-child(20){left:96%;animation-delay:-2.6s}.ceremony-confetti i:nth-child(n+21){display:none}@keyframes gloryConfetti{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(720px) rotate(540deg)}}
 @media(prefers-reduced-motion:reduce){.ceremony-confetti i{animation:none;display:none}}
+
+/* V4.22.1 Hall cover containment fix */
+.hall-glory-piece.covered > button{
+  opacity:0 !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+.hall-glory-piece.covered:after{
+  z-index:10;
+  overflow:hidden;
+  border-radius:inherit;
+}
+.hall-glory-piece.covered > small{
+  z-index:11;
+}
+.hall-glory-piece.covered:before{
+  opacity:0;
+}
