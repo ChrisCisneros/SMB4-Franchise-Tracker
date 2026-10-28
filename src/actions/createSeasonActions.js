@@ -62,6 +62,8 @@ export default function createSeasonActions({
       careerStrikeouts: Number(player.careerStrikeouts || 0), careerHBP: Number(player.careerHBP || 0),
       careerPitchingWins: Number(player.careerPitchingWins || 0), careerPitchingLosses: Number(player.careerPitchingLosses || 0),
     })),
+    awards: (data.leagueExtras?.awards || []).filter((a) => a?.winner && (!a.season || a.season === (data.activeSeasonName || "Season 4"))).map((a)=>({...a})),
+    achievements: (data.leagueExtras?.achievements || []).filter((a) => !a.season || a.season === (data.activeSeasonName || "Season 4")).map((a)=>({...a})),
   };
 
   const nextHistory = [snapshot, ...(data.seasonHistory || [])].slice(0, 25);

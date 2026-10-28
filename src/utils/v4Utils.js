@@ -82,20 +82,51 @@ export function buildGamesThatMatter(currentGame, metrics=[]){
 }
 
 export function buildWinProbability(currentGame, teams=[]){
-  if(!currentGame?.awayTeamId||!currentGame?.homeTeamId)return {home:50,away:50,leverage:'LOW',crowd:50};
+  if(!currentGame?.awayTeamId||!currentGame?.homeTeamId)return {home:50,away:50,leverage:'LOW',crowd:50,leverageScore:0};
   const away=teams.find(t=>t.id===currentGame.awayTeamId),home=teams.find(t=>t.id===currentGame.homeTeamId);
-  const inning=Math.max(1,Number(currentGame.inning||1)); const outs=Number(currentGame.outs||0); const half=currentGame.half||'Top';
+  const inning=Math.max(1,Number(currentGame.inning||1));
+  const outs=Math.max(0,Math.min(3,Number(currentGame.outs||0)));
+  const half=currentGame.half||'Top';
+  const battingHome=half==='Bottom';
   const homeLead=Number(currentGame.homeScore||0)-Number(currentGame.awayScore||0);
-  const baseValue=(currentGame.bases?.first?1:0)+(currentGame.bases?.second?1.4:0)+(currentGame.bases?.third?2:0);
-  const late=Math.min(1,inning/9); const battingHome=half==='Bottom';
-  const strength=((teamPct(home)-teamPct(away))*18)+((Number(home?.runDiff||0)-Number(away?.runDiff||0))*0.12);
-  const state=homeLead*(5+late*6)+(battingHome?baseValue*(1.8+late*2):-baseValue*(1.8+late*2));
-  const homeProb=clamp(50+strength+state,3,97);
-  const closeness=Math.max(0,1-Math.min(1,Math.abs(homeLead)/5));
-  const traffic=Math.min(1,(baseValue+outs*.25)/3.6); const leverageScore=clamp((late*.5+closeness*.35+traffic*.15)*100);
-  const leverage=leverageScore>=80?'EXTREME':leverageScore>=62?'HIGH':leverageScore>=38?'MEDIUM':'LOW';
-  const crowd=clamp(50+homeLead*8+(battingHome?baseValue*5:0)+(inning>=8?10:0));
-  return {home:Math.round(homeProb),away:Math.round(100-homeProb),leverage,crowd:Math.round(crowd),leverageScore};
+  if(currentGame.status==='Final'){
+    const homeProb=homeLead>0?100:homeLead<0?0:50;
+    return {home:homeProb,away:100-homeProb,leverage:'FINAL',crowd:homeLead>0?100:20,leverageScore:0};
+  }
+
+  const onFirst=currentGame.bases?.first?1:0;
+  const onSecond=currentGame.bases?.second?1:0;
+  const onThird=currentGame.bases?.third?1:0;
+  const baseThreat=(onFirst*.28)+(onSecond*.46)+(onThird*.68);
+  const outPenalty=[1,.78,.35,.12][outs] ?? .12;
+  const runnerImpact=baseThreat*outPenalty*(battingHome?1:-1);
+
+  // Score matters much more as the game approaches its final outs.
+  const progress=Math.max(0,Math.min(1,(inning-1)/8));
+  const lateMultiplier=.62+(progress*1.35)+(inning>=9?.40:0)+(outs===2&&inning>=8?.18:0);
+  const scoreLogit=homeLead*lateMultiplier;
+
+  // Team quality remains a modest pregame prior; live game state dominates late.
+  const strength=((teamPct(home)-teamPct(away))*1.15)+((Number(home?.runDiff||0)-Number(away?.runDiff||0))*0.0045);
+  const homeField=.10;
+  const battingOpportunity=(battingHome?0.10:-0.03)*(1-progress);
+  let logit=scoreLogit+(runnerImpact*(.75+progress*.75))+strength+homeField+battingOpportunity;
+
+  // Ninth-inning/extras survival logic: with two outs, trailing clubs should be in real danger.
+  if(inning>=9&&outs===2){
+    if(battingHome&&homeLead<0) logit-=.30*Math.abs(homeLead);
+    if(!battingHome&&homeLead>0) logit+=.35*Math.abs(homeLead);
+  }
+  if(inning>=9&&battingHome&&homeLead===0) logit+=.32; // home team can win immediately.
+
+  const logistic=1/(1+Math.exp(-logit));
+  const homeProb=clamp(Math.round(logistic*100),1,99);
+  const closeness=Math.max(0,1-Math.min(1,Math.abs(homeLead)/4));
+  const traffic=Math.min(1,(baseThreat+outs*.18)/1.8);
+  const leverageScore=clamp((progress*.50+closeness*.34+traffic*.16)*100);
+  const leverage=leverageScore>=82?'EXTREME':leverageScore>=64?'HIGH':leverageScore>=40?'MEDIUM':'LOW';
+  const crowd=clamp(48+homeLead*7+(battingHome?baseThreat*12:0)+(inning>=8?9:0));
+  return {home:homeProb,away:100-homeProb,leverage,crowd:Math.round(crowd),leverageScore};
 }
 
 export function buildGameExcitement(game){

@@ -94,6 +94,26 @@ function warmupLines(team,foe,rivalry,key){
   if((rivalry?.heat||0)>=35)lines.push(`${foe.abbr} again. Good. I wanted the stressful version of baseball tonight.`,`Rivalry night means every harmless single will be treated like a declaration of war.`,`Saving screenshots now. Somebody is getting receipts after this one.`);
   return pick(lines,key);
 }
+function delayLines(team,foe,game,key){
+  const reason=game?.delayReason||'Delay';
+  const lines=[
+    `${reason}. The concourse has officially become the main event for a while.`,
+    `${reason} and now everybody is checking the radar, the scoreboard, and their snack situation.`,
+    `We have entered the dangerous part of the night where fans start making friends with strangers in line for food.`,
+    `Baseball is paused. The group chat absolutely is not.`,
+    `Delay update: morale holding, patience questionable, concession spending rising.`,
+    `The field is quiet and the stands somehow got louder.`,
+    `If this delay lasts much longer, somebody is going to start a full stadium singalong.`,
+    `${team.abbr} fans have turned waiting into its own competitive sport.`,
+    `Nothing tests a fanbase like being told to sit with its thoughts between pitches.`,
+    `The booth is filling time and the internet is doing what it does best: making everything weird.`
+  ];
+  if(/weather/i.test(reason))lines.push(`Every person in the building is suddenly a meteorologist.`,`Radar screenshots are now the hottest content in ${team.abbr} circles.`);
+  if(/ceremony/i.test(reason))lines.push(`Honestly, if the ceremony runs long, let it. Some nights deserve the extra moment.`,`The hardware is getting its time. First pitch can wait a minute.`);
+  if(/technical|field/i.test(reason))lines.push(`Somebody somewhere is holding a wrench and feeling tremendous pressure.`,`The grounds crew just became the most important unit in the organization.`);
+  return pick(lines,key);
+}
+
 function liveLines(team,foe,game,isBatting,key){
   const diff=team.id===game.awayTeamId?safe(game.awayScore)-safe(game.homeScore):safe(game.homeScore)-safe(game.awayScore);
   const type=playType(game); const bases=occupied(game.bases); const runs=runsOnPlay(game); const lines=[]; const ended=eventEndedHalf(game);
@@ -217,6 +237,7 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
     if(promo&&atHome)lines.unshift(`${promo.icon||'🎟️'} ${promo.name} tonight. ${promo.giveaway||'Special game-day event'} — arrive early.`);
     return {...acct,id:`${key}-teamofficial-${team.id}`,text:pick(lines,`${key}-warm-${team.id}`),time:'pregame'};
   }
+  if(phase==='delay')return null;
   if(phase==='postgame'){
     const won=game.winnerTeamId===team.id||(team.id===game.awayTeamId?safe(game.awayScore)>safe(game.homeScore):safe(game.homeScore)>safe(game.awayScore));
     const wonHome=[`FINAL: ${score}. That's a ${team.abbr} WIN at home.`,`HOME WIN. Thank you for making the building sound like that.`,`Ballgame. The lights stay bright a little longer after a win like this.`,`Another one for the home crowd. Save the scorecard.`];
@@ -356,11 +377,11 @@ function ambientGameDayPost(team,foe,phase,bucket,slot,promo){
 export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.now()){
   const game=data.currentGame||{}; const matchup=liveMatchup(game,teams); const recent=recentFinal(data,teams,now);
   let phase='idle', activeGame=null, away=null, home=null;
-  if(matchup.away&&matchup.home){activeGame=game;away=matchup.away;home=matchup.home;phase=game.status==='Live'||game.status==='Delay'?'live':'warmup';}
+  if(matchup.away&&matchup.home){activeGame=game;away=matchup.away;home=matchup.home;phase=game.status==='Delay'?'delay':game.status==='Live'?'live':'warmup';}
   else if(recent?.away&&recent?.home){activeGame=recent.game;away=recent.away;home=recent.home;phase='postgame';}
   if(!activeGame||!away||!home)return {phase:'idle',posts:[],awayPosts:[],homePosts:[],leaguePosts:[],away:null,home:null,brand:getLeagueBrand(data),watching:0};
 
-  const brand=getLeagueBrand(data); const bucket=Math.floor(now/(phase==='live'?7000:14000));
+  const brand=getLeagueBrand(data); const bucket=Math.floor(now/(phase==='live'?7000:phase==='delay'?11000:14000));
   const postgameAgeMs=phase==='postgame'?safe(recent?.ageMs):0;
   const postgameStage=phase!=='postgame'?'':postgameAgeMs<5*60*1000?'REACTION CHAOS':postgameAgeMs<15*60*1000?'CELEBRATION + BLAME':postgameAgeMs<30*60*1000?'POSTGAME ANALYSIS':'MEMES + RECEIPTS';
   const seasonSlot=currentSeasonDay(data,teams);
@@ -380,7 +401,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     const clubPool=clubs.filter(c=>c.team.id===team.id); const state=teamStates.get(team.id); const eventTeam=eventBattingTeam(activeGame,away,home); const isBatting=(explicitEvent(activeGame)?eventTeam:battingTeam(activeGame,away,home))?.id===team.id;
     const posts=[];
     shuffle(clubPool,`${keyBase}-${team.id}`).slice(0,2).forEach((club,i)=>{
-      const text=phase==='warmup'?warmupLines(team,foe,rivalry,`${keyBase}-warm-${team.id}-${i}`):phase==='postgame'?postgameLines(team,foe,activeGame,`${keyBase}-post-${team.id}-${i}`):liveLines(team,foe,activeGame,isBatting,`${keyBase}-live-${team.id}-${i}`);
+      const text=phase==='warmup'?warmupLines(team,foe,rivalry,`${keyBase}-warm-${team.id}-${i}`):phase==='delay'?delayLines(team,foe,activeGame,`${keyBase}-delay-${team.id}-${i}`):phase==='postgame'?postgameLines(team,foe,activeGame,`${keyBase}-post-${team.id}-${i}`):liveLines(team,foe,activeGame,isBatting,`${keyBase}-live-${team.id}-${i}`);
       posts.push({id:`${keyBase}-${club?.id||team.id}-${i}`,kind:'fan',name:club?.name||`${team.abbr} Fans`,handle:club?.handle||`@${team.abbr}Fans`,badge:club?.archetype?.label||'Fan Page',team,text,tone:phase==='live'&&isBigPlay(activeGame)?'spicy':state?.approval<35?'down':'neutral',time:phase==='warmup'?'pregame':phase==='postgame'?'postgame':'live'});
     });
     const officialTeamPost=teamOfficialLine(team,foe,activeGame,phase,isBatting,state,rivalry,keyBase,bucket,promo);
@@ -396,6 +417,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
         posts.unshift({...officialAcct,id:`${keyBase}-cer-official-${team.id}-${ci}`,text:pick(officialLines,`${keyBase}-cer-official-line-${team.id}`),time:'pregame'});
       });
     }
+    if(phase==='delay'){const officialAcct=teamOfficial(team);posts.unshift({...officialAcct,id:`${keyBase}-delay-official-${team.id}`,text:`${activeGame.delayReason||'Game delay'}: we will update everyone as soon as play can resume. Thanks for hanging with us.`,time:'delay'});}
     const playerCandidates=playerPages.filter(p=>p.team?.id===team.id);
     if(playerCandidates.length&&phase==='live'&&(playType(activeGame)||runnerEvent(activeGame))){
       const p=pick(playerCandidates,`${keyBase}-player-${team.id}`); const type=playType(activeGame);
@@ -423,6 +445,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   const magnitude=analyzeGameMagnitude(activeGame,teams);
   if(magnitude.score>=60&&phase==='live')leaguePosts.push({id:`${keyBase}-extreme`,kind:'league',name:brand.name,handle:brand.handle,badge:magnitude.score>=75?'🚨 LEAGUE ALERT':'👀 DEVELOPING',team:null,text:`${magnitude.headline}. ${scoreText(activeGame,away,home)} — ${eventInningText(activeGame)}.`,tone:'official',time:'now'});
   if(official&&(phase==='postgame'||isBigPlay(activeGame)||safe(activeGame.inning)>=6))leaguePosts.push({id:`${keyBase}-official`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:official,tone:'official',time:'now'});
+  if(phase==='delay')leaguePosts.push({id:`${keyBase}-official-delay`,kind:'league',name:brand.name,handle:brand.handle,badge:'⏸ DELAY',team:null,text:`${activeGame.delayReason||'Game delay'} in ${away.abbr} at ${home.abbr}. The league feed will stay with the ballpark until play resumes.`,tone:'official',time:'delay'});
   if(phase==='warmup')leaguePosts.push({id:`${keyBase}-official-warm`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:`Game day: ${away.abbr} at ${home.abbr}. Warmups are underway.${promo?` ${promo.icon||'🎟️'} ${promo.name} tonight.`:''}${ceremonies.length?` ${ceremonies[0].title} is part of tonight's pregame program.`:''}`,tone:'official',time:'pregame'});
   if(phase==='postgame'&&!official)leaguePosts.push({id:`${keyBase}-official-final`,kind:'league',name:brand.name,handle:brand.handle,badge:'✓ OFFICIAL',team:null,text:`FINAL: ${scoreText(activeGame,away,home)}.`,tone:'official',time:'postgame'});
 
@@ -443,7 +466,7 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     ? [...officialLeague,...primary.filter(p=>p.kind!=='rivalry'),...secondary.filter(p=>p.kind==='fan'),...mediaPosts,...primary.filter(p=>p.kind==='rivalry'),...secondary.filter(p=>p.kind!=='fan')]
     : shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   const posts=shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
-  const chatterScore=Math.max(0,Math.min(100,Math.round(20+Math.min(35,watching/1200)+safe(rivalry?.heat)*.25+(bigMoment?28:0)+(phase==='live'?8:0)+Math.max(0,(magnitude.score-45)*.35))));
+  const chatterScore=Math.max(0,Math.min(100,Math.round(20+Math.min(35,watching/1200)+safe(rivalry?.heat)*.25+(bigMoment?28:0)+(phase==='live'?8:0)+(phase==='delay'?12:0)+Math.max(0,(magnitude.score-45)*.35))));
   const chatterHeat=chatterScore>=90?'CHAOS':chatterScore>=74?'HOT':chatterScore>=58?'BUZZING':chatterScore>=38?'ACTIVE':'QUIET';
-  return {phase,game:activeGame,away,home,rivalry,brand,promo,ceremonies,gameNumber:socialGameNumber,postgameStage,postgameAgeMs,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:phase==='live'?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,chatterScore,chatterHeat,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};
+  return {phase,game:activeGame,away,home,rivalry,brand,promo,ceremonies,gameNumber:socialGameNumber,postgameStage,postgameAgeMs,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:(phase==='live'||phase==='delay')?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,chatterScore,chatterHeat,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};
 }

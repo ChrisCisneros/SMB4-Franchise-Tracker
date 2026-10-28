@@ -7,6 +7,7 @@ import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHonorInterviews, buildHotColdBoard, buildOnThisDateMoments, buildFakePodcasts, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildBroadcastBooth, buildDefiningMoments, buildMediaOutlets, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildCityBuzz, buildConsequenceChains, buildHistoricGameAlerts, buildRevengeWatch } from "../utils/ballparkLifeUtils";
+import { buildSpecialAchievements } from "../utils/playerLegacyUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -95,6 +96,7 @@ export default function NewsPage({ ctx }) {
   const predictionReceipts=useMemo(()=>buildPredictionReceipts(data,teams),[data,teams]);
   const broadcastBooth=useMemo(()=>buildBroadcastBooth(data,teams),[data,teams]);
   const definingMoments=useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
+  const preservedAchievements=useMemo(()=>buildSpecialAchievements(data,teams),[data,teams]);
   const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -148,6 +150,8 @@ export default function NewsPage({ ctx }) {
       </section>
 
       {historicAlerts[0]&&<section className={`news-extreme-alert card ${historicAlerts[0].live?'is-live':''}`}><div><small>{historicAlerts[0].kicker}</small><strong>{historicAlerts[0].tier} · {historicAlerts[0].score}/100</strong></div><h2>{historicAlerts[0].headline}</h2><p>{historicAlerts[0].detail}</p><div>{(historicAlerts[0].tags||[]).map(t=><span key={t}>{t}</span>)}</div></section>}
+
+      {preservedAchievements[0]&&<section className="news-player-milestone card"><div><small>🏅 MILESTONE DESK</small><strong>{preservedAchievements[0].season||data.activeSeasonName}</strong></div><h2>{preservedAchievements[0].playerName||preservedAchievements[0].teamAbbr||'Player Milestone'} · {preservedAchievements[0].title}</h2><p>{preservedAchievements[0].note||'A player milestone has been preserved in league history.'}</p><span>{preservedAchievements[0].teamAbbr||'LEAGUE'} · PERMANENT ACHIEVEMENT</span></section>}
 
       <section className="news-living-league-grid">
         <article className="card"><div className="news-kicker">BALLPARK LIFE</div><h3>{ballparkLife.label}</h3>{ballparkLife.events.slice(0,3).map(e=><p key={e.id}><b>{e.icon} {e.phase}</b><span>{e.title} · {e.detail}</span></p>)}</article>

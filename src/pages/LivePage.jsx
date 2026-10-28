@@ -9,7 +9,7 @@ export default function LivePage({ ctx }) {
   const [showFieldMode, setShowFieldMode] = useState(false);
   const [fieldPlayCategory, setFieldPlayCategory] = useState("hit");
   const [fieldPlayType, setFieldPlayType] = useState("single");
-  const { adjustLiveInning, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+  const { adjustLiveInning, setData, syncLeagueExtrasToFirebase, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
 
   const fieldPlayGroups = {
     hit: [
@@ -30,6 +30,23 @@ export default function LivePage({ ctx }) {
   };
 
   const selectedFieldPlayLabel = fieldPlayGroups[fieldPlayCategory]?.find(([type]) => type === fieldPlayType)?.[1] || "Play";
+  const capturePlayerMilestone=()=>{
+    const playerName=window.prompt('Player name:',''); if(!playerName)return;
+    const defaultTeam=currentGame.half==='Top'?(awayTeam?.abbr||''):(homeTeam?.abbr||'');
+    const teamAbbr=(window.prompt('Team abbreviation:',defaultTeam)||'').toUpperCase(); if(!teamAbbr)return;
+    const title=window.prompt('Milestone / achievement:','50th Career Home Run'); if(!title)return;
+    const note=window.prompt('Game context / detail:',`${awayTeam?.abbr||'AWY'} ${currentGame.awayScore} – ${currentGame.homeScore} ${homeTeam?.abbr||'HME'} · ${currentGame.half} ${currentGame.inning}`)||'';
+    setData(prev=>{
+      const extras=prev.leagueExtras||{}; const now=new Date().toISOString();
+      const achievementId=crypto.randomUUID(), historyId=crypto.randomUUID();
+      const achievement={id:achievementId,linkedHistoryId:historyId,createdAt:now,playerName,teamAbbr,title,note,season:prev.activeSeasonName||'Season',icon:'🏅'};
+      const history={id:historyId,linkedAchievementId:achievementId,createdAt:now,date:prev.activeSeasonName||'Season',teamAbbr,playerName,title,note};
+      const nextExtras={...extras,achievements:[achievement,...(extras.achievements||[])],manualEvents:[history,...(extras.manualEvents||[])]};
+      syncLeagueExtrasToFirebase?.(nextExtras);
+      return {...prev,leagueExtras:nextExtras};
+    });
+    window.alert(`${playerName} — ${title} preserved in Player Achievements and History.`);
+  };
 
   return (
     <div className="live-ipad-page">
@@ -127,6 +144,19 @@ export default function LivePage({ ctx }) {
               </select>
             </div>
     
+            {currentGame.status === "Delay" && <div>
+              <label>Delay Reason</label>
+              <select value={currentGame.delayReason || "Weather Delay"} onChange={(e)=>updateCurrentGame("delayReason",e.target.value)}>
+                <option>Weather Delay</option>
+                <option>Ceremony Delay</option>
+                <option>Technical Delay</option>
+                <option>Field Maintenance</option>
+                <option>Crowd Delay</option>
+                <option>League Review</option>
+                <option>Custom Delay</option>
+              </select>
+            </div>}
+
             <div>
               <label>Game Type</label>
               <select
@@ -517,6 +547,7 @@ export default function LivePage({ ctx }) {
       <button className="live-secondary-toggle" onClick={() => setShowMoments((value) => !value)}>
         {showMoments ? "Hide Broadcast Moments" : "Broadcast Moments"}
       </button>
+      <button className="live-secondary-toggle milestone-capture" onClick={capturePlayerMilestone}>🏅 Save Player Milestone</button>
       {showMoments && (
         <div className="ipad-big-moment-actions">
           <button onClick={() => triggerLiveMoment("homeRun")}>Home Run</button>

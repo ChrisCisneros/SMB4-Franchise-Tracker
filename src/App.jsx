@@ -546,6 +546,13 @@ useEffect(() => {
       nextGame.homeLook = { mode: "primary", index: 0 };
     }
 
+    if ((field === "awayTeamId" || field === "homeTeamId") && nextGame.awayTeamId && nextGame.homeTeamId && ["Not Started", ""].includes(nextGame.status || "")) {
+      nextGame.status = "Warmup";
+      nextGame.delayReason = "";
+    }
+    if (field === "status" && value === "Delay" && !nextGame.delayReason) nextGame.delayReason = "Weather Delay";
+    if (field === "status" && value !== "Delay") nextGame.delayReason = "";
+
     syncCurrentGameToFirebase(nextGame);
 
     return { ...prev, currentGame: nextGame };
@@ -1907,9 +1914,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.22.2</span>
+    <span className="version-pill version-pill-v3">v4.23</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.22.2 · Living League · 40-game living universe</p>
+  <p>SMB4 Franchise Central · Version 4.23 · Living League · 40-game living universe</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (

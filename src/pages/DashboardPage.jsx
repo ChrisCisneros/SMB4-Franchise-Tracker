@@ -171,7 +171,7 @@ export default function DashboardPage({ ctx }) {
     {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
 
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.22.2</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.23</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>

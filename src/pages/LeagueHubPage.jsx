@@ -12,6 +12,7 @@ import { buildAnalystRecords, buildCultureAwards, buildCultureDebates, buildCult
 import { buildPlayerFanPages } from '../utils/livingWorldUtils';
 import { buildRivalryTimeline,buildSeasonScrapbook,buildTeamVibes } from '../utils/mediaMemoryUtils';
 import { buildDefiningMoments,buildFranchiseReputations,buildStadiumFolklore,buildTeamTraditionFiles } from '../utils/lifeSystemsUtils';
+import { achievementsForTeam, awardsForTeam, SEASON_AWARD_TYPES } from '../utils/playerLegacyUtils';
 
 const TABS = [
   ['profiles','Team Profiles'],['scrapbook','Season Scrapbook'],['living-lore','Living Lore'],['culture','Culture & Lore'],['power','Power Rankings'],['games','Game Archive'],['careers','Player Careers'],
@@ -88,6 +89,9 @@ export default function LeagueHubPage({ ctx }) {
   const rivalryTimelines=useMemo(()=>buildRivalryTimeline(data,teams),[data,teams]);
   const teamVibes=useMemo(()=>buildTeamVibes(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const teamVibe=teamVibes.find(x=>x.team.id===teamId)||null;
+  const selectedTeam=teams.find(t=>t.id===teamId)||null;
+  const teamAchievements=useMemo(()=>achievementsForTeam(data,teams,teamId),[data,teams,teamId]);
+  const teamAwards=useMemo(()=>awardsForTeam(data,selectedTeam?.abbr||''),[data,selectedTeam?.abbr]);
   useEffect(()=>{ if (!playerId && careerBoard[0]?.id) setPlayerId(careerBoard[0].id); },[playerId,careerBoard]);
   const selectedCareer = careerBoard.find(p=>p.id===playerId) || null;
   const selectedPlayerSeasons = history.flatMap(season => (season.players || []).filter(p=>p.id===playerId).map(p=>({...p,seasonName:season.name,seasonId:season.id})));
@@ -115,7 +119,7 @@ export default function LeagueHubPage({ ctx }) {
     saveExtras({...extras,[key]:(extras[key]||[]).filter(x=>x.id!==id)});
   };
 
-  const addAward = () => addSimple('awards', [['season','Season name:',data.activeSeasonName||'Season 4'],['award','Award:','MVP'],['winner','Winner name:'],['teamAbbr','Team abbreviation (optional):']]);
+  const addAward = () => { const menu=SEASON_AWARD_TYPES.map((a,i)=>`${i+1}. ${a.name} — ${a.category}`).join('\n'); const raw=window.prompt(`Choose award number:\n${menu}`,'1'); if(raw===null)return; const def=SEASON_AWARD_TYPES[Math.max(0,Math.min(SEASON_AWARD_TYPES.length-1,Number(raw||1)-1))]; const winner=window.prompt(`${def.name} winner:`,''); if(!winner)return; const teamAbbr=String(window.prompt('Team abbreviation:','')||'').toUpperCase(); const note=window.prompt('Optional stat / note:','')||''; const row={id:crypto.randomUUID(),createdAt:new Date().toISOString(),season:data.activeSeasonName||'Season 4',awardId:def.id,award:def.name,category:def.category,icon:def.icon,winner,teamAbbr,note}; saveExtras({...extras,awards:[row,...(extras.awards||[])]}); }; 
   const addHall = () => addSimple('hallOfFame', [['name','Hall of Fame / Legends name:'],['teamAbbr','Primary team abbreviation (optional):'],['note','Why are they a legend?']]);
   const savePowerSnapshot = () => {
     const snapshot = {
@@ -152,7 +156,7 @@ export default function LeagueHubPage({ ctx }) {
 
   return <div className="universe-page v3-universe">
     <div className="card universe-hero v3-universe-hero">
-      <div><div className="universe-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.22.2</div><h2>League Universe</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
+      <div><div className="universe-kicker">SMB4 FRANCHISE CENTRAL · VERSION 4.23</div><h2>League Universe</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
       <div className="universe-hero-stats"><Pill>{records.summary.seasonsArchived} archived seasons</Pill><Pill>{gameRecords.games.length} permanent games</Pill><Pill>{records.summary.teamsTracked} franchises</Pill><Pill>{careerBoard.length} tracked players</Pill></div>
     </div>
     <div className="universe-tabs v3-tab-rail">{TABS.map(([id,label])=><button key={id} className={tab===id?'active-tab':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
@@ -162,6 +166,7 @@ export default function LeagueHubPage({ ctx }) {
       {profile?.teamId ? <>
         <div className="card franchise-profile-hero v3-profile-hero"><div className="profile-abbr">{profile.abbr}</div><div><div className="universe-kicker">FRANCHISE DATABASE</div><h2>{profile.city} {profile.name}</h2><p>{profile.league} {profile.division}</p></div><div className="profile-trophy-count">🏆 {profile.championships || 0}</div></div>
         {teamCulture&&<div className="card leaguehub-culture-strip"><div><small>FAN CULTURE</small><strong>{teamVibe?.vibe||teamCulture.identity}</strong><span>{teamCulture.mood} · Hype {Math.round(teamCulture.hype||0)} · {teamVibe?.nickname||teamCulture.identity}</span></div><div><small>CULT HERO</small><strong>{teamCulture.hero?.name||'Still emerging'}</strong><span>{teamCulture.hero?`${teamCulture.hero.seasonHR||0} HR · ${teamCulture.hero.seasonHits||0} H`:'The fanbase is waiting for one.'}</span></div><div><small>PUBLIC ENEMY</small><strong>{teamCulture.villain?.name||teamCulture.hatedOpponent?.abbr||'Nobody yet'}</strong><span>{teamCulture.hatedOpponent?`${teamCulture.hatedOpponent.abbr} rivalry heat`:'No grudge has taken hold.'}</span></div><div><small>SOCIAL + TICKETS</small><strong>{teamSocial?teamSocial.followers.toLocaleString():'—'} followers</strong><span>{teamTickets?`${teamTickets.label} demand · ${teamTickets.roadInvasion}% road presence`:'Market still forming'}</span></div></div>}
+        {(teamAchievements.length>0||teamAwards.length>0)&&<div className="card leaguehub-player-legacy"><div className="universe-section-title"><div><h3>Player Honors & Milestones</h3><p className="muted">Only preserved milestones and actually-awarded honors appear here.</p></div></div><div className="leaguehub-legacy-grid">{teamAchievements.map(a=><article key={a.id}><span>{a.icon||'🏅'}</span><small>{a.season}</small><strong>{a.playerName||'Player Milestone'}</strong><b>{a.title}</b><p>{a.note}</p></article>)}{teamAwards.map(a=><article key={a.id}><span>{a.icon||'🏆'}</span><small>{a.season}</small><strong>{a.winner}</strong><b>{a.award}</b><p>{a.note||a.category||''}</p></article>)}</div></div>}
         <div className="universe-stat-grid">
           {[['All-Time Record',`${profile.wins||0}-${profile.losses||0}`],['V3 Games',teamGames.games.length],['Playoff Apps',profile.playoffAppearances||0],['World Series',profile.wsAppearances||0],['Titles',profile.championships||0],['League Pennants',profile.leagueChampionships||0],['Playoff Wins',profile.playoffGameWins||0],['V3 Home',`${teamGames.homeWins}-${teamGames.homeLosses}`],['V3 Away',`${teamGames.awayWins}-${teamGames.awayLosses}`],['Best W Streak',teamGames.longestWinStreak||0],['Division Titles',profile.divisionTitles||0],['#1 Seeds',profile.topSeeds||0],['V3 Run Diff',`${teamGames.runsFor-teamGames.runsAgainst>=0?'+':''}${teamGames.runsFor-teamGames.runsAgainst}`]].map(([k,v])=><div className="card universe-stat" key={k}><span>{k}</span><strong>{v}</strong></div>)}
         </div>
@@ -242,7 +247,7 @@ export default function LeagueHubPage({ ctx }) {
       </div>
     </div>}
 
-    {tab==='awards' && <div className="card"><div className="universe-section-title"><div><h3>Season Awards</h3><p className="muted">Permanent award shelf for MVPs, Cy Youngs, rookies and anything else you want to honor.</p></div>{controlsUnlocked && <button onClick={addAward}>Add Award</button>}</div><div className="award-grid">{(extras.awards||[]).length ? extras.awards.map(a=><div className="award-card" key={a.id}><span>{a.season}</span><h4>{a.award}</h4><strong>{a.winner}</strong><small>{a.teamAbbr}</small>{controlsUnlocked&&<button className="tiny-danger" onClick={()=>removeExtra('awards',a.id)}>×</button>}</div>) : <Empty>No awards entered yet.</Empty>}</div></div>}
+    {tab==='awards' && <div className="card"><div className="universe-section-title"><div><h3>Season Awards</h3><p className="muted">Permanent award shelf for the league honors you actually award. Unused categories stay invisible.</p></div>{controlsUnlocked && <button onClick={addAward}>Add Award</button>}</div><div className="award-grid">{(extras.awards||[]).some(a=>a&&a.winner) ? (extras.awards||[]).filter(a=>a&&a.winner).map(a=><div className="award-card" key={a.id}><span>{a.season}</span><h4>{a.award}</h4><strong>{a.winner}</strong><small>{a.teamAbbr}</small>{controlsUnlocked&&<button className="tiny-danger" onClick={()=>removeExtra('awards',a.id)}>×</button>}</div>) : <Empty>No awards entered yet.</Empty>}</div></div>}
 
     {tab==='timeline' && <div className="card"><h3>League Timeline</h3><div className="timeline-list">{timeline.length ? timeline.map((e,i)=><div className="timeline-item" key={`${e.seasonName}-${i}`}><span className="timeline-dot"/><div><small>{e.seasonName}</small><h4>{e.title}</h4><p>{e.detail}</p></div></div>) : <Empty>Archive a season to begin the timeline.</Empty>}</div></div>}
 

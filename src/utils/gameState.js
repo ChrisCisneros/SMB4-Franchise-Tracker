@@ -44,6 +44,7 @@ export const defaultCurrentGame = () => ({
   bases: { first: false, second: false, third: false },
   fieldState: defaultFieldState(),
   status: "Not Started",
+  delayReason: "",
   gameType: "regular",
   seasonGameNumber: 0,
 playoffSeriesId: "",

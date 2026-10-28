@@ -108,6 +108,7 @@ export default function HistoryPage({ ctx }) {
                     <div className="card"><span>HR Leader</span><strong>{hrLeader?.name || '—'}</strong><small>{hrLeader?.seasonHR || 0} HR</small></div>
                     <div className="card"><span>Pitching Wins</span><strong>{winLeader?.name || '—'}</strong><small>{winLeader?.seasonPitchingWins || 0} wins</small></div>
                   </div>}
+                  {((snapshot.awards||[]).length>0||(snapshot.achievements||[]).length>0)&&<div className="history-honors-shelf">{(snapshot.awards||[]).map(a=><article className="card" key={a.id}><span>{a.icon||'🏆'} {a.award}</span><strong>{a.winner}</strong><small>{a.teamAbbr||''}{a.note?` · ${a.note}`:''}</small></article>)}{(snapshot.achievements||[]).map(a=><article className="card" key={a.id}><span>{a.icon||'🏅'} PLAYER MILESTONE</span><strong>{a.playerName||a.title}</strong><small>{a.title}{a.note?` · ${a.note}`:''}</small></article>)}</div>}
                   <div className="history-grid">
                     <div>
                       <h4>Final Standings Snapshot</h4>

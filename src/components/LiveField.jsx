@@ -479,7 +479,7 @@ export default function LiveField({
             <div key={`ribbon-${playEvent.id}`} className={`field-play-ribbon ribbon-${String(playEvent.type || "play")}`}>
               <span>{cueGlyph}</span><strong>{cueLabel}</strong>
             </div>
-            {!["single", "double", "triple"].includes(playEvent.type) && (
+            {!["single","double","triple","flyout","groundout","lineout","popup","fielderschoice","doubleplay","strikeout","calledstrikeout","caughtstealing","pickoff1","pickoff2","pickoff3","sacfly"].includes(playEvent.type) && (
               <div
                 key={`marker-${playEvent.id}`}
                 className={`field-play-marker marker-${String(playEvent.type || "play")}`}
