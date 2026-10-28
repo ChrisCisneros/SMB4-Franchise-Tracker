@@ -37,7 +37,7 @@ export function buildChampionshipHardware(data={},teams=[]){
     const name=season.name||`Season ${seasonNumber(season)||index+1}`;
     const newest=seasonNumber(season)===latestNum;
     const entry={id:season.id||`season-${index}`,name,number:seasonNumber(season)||index+1,newest,al,nl,champ,hardware:[]};
-    [[al,'AMERICAN LEAGUE'],[nl,'NATIONAL LEAGUE']].forEach(([t,leagueLabel])=>{if(!t)return;entry.hardware.push({id:`${entry.id}-${t.id}-banner`,type:'banner',team:t,seasonName:name,leagueLabel,theme:hardwareTheme(t.abbr),revealed:!newest||completeKey(name,t.abbr,'banner')});});
+    [[al,'AMERICAN LEAGUE'],[nl,'NATIONAL LEAGUE']].forEach(([t,leagueLabel])=>{if(!t)return;const worldSeriesChampion=champ?.id===t.id;entry.hardware.push({id:`${entry.id}-${t.id}-banner`,type:'banner',team:t,seasonName:name,leagueLabel:worldSeriesChampion?'WORLD SERIES':leagueLabel,bannerKind:worldSeriesChampion?'world-series':'league',theme:hardwareTheme(t.abbr),revealed:!newest||completeKey(name,t.abbr,'banner')});});
     if(champ){
       entry.hardware.push({id:`${entry.id}-${champ.id}-trophy`,type:'trophy',team:champ,seasonName:name,leagueLabel:'WORLD SERIES',theme:hardwareTheme(champ.abbr),revealed:!newest||completeKey(name,champ.abbr,'trophy')});
       entry.hardware.push({id:`${entry.id}-${champ.id}-rings`,type:'rings',team:champ,seasonName:name,leagueLabel:'WORLD SERIES',theme:hardwareTheme(champ.abbr),revealed:!newest||completeKey(name,champ.abbr,'rings')});
@@ -86,7 +86,7 @@ export function buildCeremonyArchive(data={},teams=[]){
 }
 
 export function hardwareTitle(hw){
-  if(hw?.type==='banner')return `${hw.leagueLabel} CHAMPIONSHIP BANNER`;
+  if(hw?.type==='banner')return hw.bannerKind==='world-series'?'WORLD SERIES CHAMPIONSHIP BANNER':`${hw.leagueLabel} CHAMPIONSHIP BANNER`;
   if(hw?.type==='trophy')return 'WORLD SERIES TROPHY';
   if(hw?.type==='rings')return 'WORLD SERIES CHAMPIONSHIP RING';
   return 'CHAMPIONSHIP HARDWARE';

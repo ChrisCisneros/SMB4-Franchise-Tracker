@@ -50,7 +50,7 @@ export function seedOpeningCeremonies(data={},teams=[]){
     events.push({id:uid(),type:'banner',teamId:team.id,teamAbbr:team.abbr,title:`${prev.season.name||'Previous Season'} League Championship Banner Ceremony — ${team.abbr}`,detail:`Celebrating ${team.abbr}'s ${prev.season.name||'previous season'} league championship. Choose the Game Day or standalone league date when you want the banner raised.`,seasonName,gameNumber:0,timing:'PREGAME',status:'pending',source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
   });
   if(prev.champ){
-    events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.season.name||'Previous Season'} World Series Banner, Trophy & Ring Ceremony — ${prev.champ.abbr}`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their league banner, present the trophy and receive championship rings. Choose exactly when the full reveal happens.`,seasonName,gameNumber:0,timing:'PREGAME',status:'pending',includes:['banner','trophy','rings'],source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
+    events.push({id:uid(),type:'championship-opening',teamId:prev.champ.id,teamAbbr:prev.champ.abbr,title:`${prev.season.name||'Previous Season'} World Series Banner, Trophy & Ring Ceremony — ${prev.champ.abbr}`,detail:`The ${prev.season.name||'previous season'} World Series champions raise their World Series banner, present the trophy and receive championship rings. Choose exactly when the full reveal happens.`,seasonName,gameNumber:0,timing:'PREGAME',status:'pending',includes:['banner','trophy','rings'],source:'opening-seed',originSeasonName:prev.season.name||'',createdAt:new Date().toISOString()});
   }
   return events;
 }
@@ -64,7 +64,7 @@ export function ceremonyTheme(ceremony){
 export function ceremonySocialLines(ceremony,team){
   const abbr=team?.abbr||ceremony?.teamAbbr||'TEAM';
   const type=ceremony?.type;
-  if(type==='championship-opening')return [`The rings are out. The trophy is here. ${abbr} gets one more night to celebrate the title.`,`Seeing the championship banner go up in person is unreal.`,`That ring reveal just made the whole building louder.`,`The trophy presentation got a standing ovation before first pitch.`,`New season, same hardware. Everybody wants what ${abbr} has.`];
+  if(type==='championship-opening')return [`The rings are out. The trophy is here. ${abbr} gets one more night to celebrate the title.`,`Seeing the World Series banner go up in person is unreal.`,`That ring reveal just made the whole building louder.`,`The trophy presentation got a standing ovation before first pitch.`,`New season, same hardware. Everybody wants what ${abbr} has.`];
   if(type==='banner')return [`The banner is going up. That season is officially in the rafters now.`,`Seeing ${abbr}'s league title become permanent hits different.`,`One more banner in the building. Earned.`];
   if(type==='retired-number')return [`That number belongs in the rafters forever.`,`Whole place stood up for that one. What a career.`];
   return [`Special ceremony tonight for ${abbr}. The building feels different already.`,`This is one of those nights fans remember.`];

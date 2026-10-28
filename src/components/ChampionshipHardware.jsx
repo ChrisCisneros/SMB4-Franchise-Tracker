@@ -1,10 +1,14 @@
 import React from 'react';
 import { hardwareTheme } from '../utils/championshipHardwareUtils';
 
-export function ChampionshipBanner({team,leagueLabel='LEAGUE',seasonName='',size='large'}){
+export function ChampionshipBanner({team,leagueLabel='LEAGUE',seasonName='',size='large',worldSeries=false}){
   const t=hardwareTheme(team?.abbr);
-  return <div className={`hall-banner hall-banner-${size}`} style={{'--hall-main':t.main,'--hall-accent':t.accent,'--hall-border':t.border,'--hall-text':t.text}}>
-    <i className="hall-banner-rod"/><span>{leagueLabel}</span><strong>{team?.abbr||'—'}</strong><b>CHAMPIONS</b><small>{seasonName}</small><i className="hall-banner-stitch"/>
+  const isWorld=worldSeries||String(leagueLabel||'').toUpperCase()==='WORLD SERIES';
+  return <div className={`hall-banner hall-banner-${size} ${isWorld?'hall-banner-world':'hall-banner-league'}`} style={{'--hall-main':t.main,'--hall-accent':t.accent,'--hall-border':t.border,'--hall-text':t.text}}>
+    <i className="hall-banner-rod"/>
+    {isWorld&&<><i className="hall-banner-crown">★</i><div className="hall-banner-stars"><i>★</i><i>★</i><i>★</i></div></>}
+    <span>{isWorld?'WORLD SERIES':leagueLabel}</span><strong>{team?.abbr||'—'}</strong><b>CHAMPIONS</b><small>{seasonName}</small><i className="hall-banner-stitch"/>
+    {isWorld&&<em className="hall-banner-world-mark">WORLD CHAMPIONS</em>}
   </div>;
 }
 
