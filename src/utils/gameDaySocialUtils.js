@@ -317,6 +317,7 @@ function officialMoment(game,away,home,brand){
   return '';
 }
 
+function nowForAudience(bucket,phase){return bucket*(phase==='live'?7000:phase==='delay'?11000:14000)}
 function liveWatchingCount(phase,game,awayState,homeState,rivalry,bucket,promo,data){
   const heat=safe(awayState?.marketHeat)+safe(homeState?.marketHeat);
   const hype=safe(awayState?.hype)+safe(homeState?.hype);
@@ -334,7 +335,8 @@ function liveWatchingCount(phase,game,awayState,homeState,rivalry,bucket,promo,d
   if(phase==='warmup')viewers*=.58;
   if(phase==='postgame')viewers*=.72;
   if(promo)viewers+=(safe(promo.attendance)*1400+safe(promo.hype)*900)*growth;
-  const jitter=.94+seeded(`watch-${bucket}-${game?.awayTeamId}-${game?.homeTeamId}`)*.14;
+  const watchPhase=(hash(`${game?.awayTeamId}-${game?.homeTeamId}`)%628)/100;
+  const jitter=.985+Math.sin(nowForAudience(bucket,phase)/26000+watchPhase)*.025+Math.sin(nowForAudience(bucket,phase)/76000+watchPhase*.7)*.012;
   return Math.max(Math.round(18000*growth),Math.round(viewers*jitter/500)*500);
 }
 
@@ -491,19 +493,20 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     : shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   const posts=shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   // Chatter is intentionally continuous instead of a fixed baseline + big-moment switch.
-  // A play creates a surge that fades over roughly 40 seconds, while close games,
-  // baserunners, inning leverage and a small deterministic crowd drift keep the meter alive.
+  // A play creates a surge that eases away over a couple of minutes instead of falling off a cliff,
+  // while close games, baserunners, inning leverage and a small deterministic crowd drift keep the meter alive.
   const rawEvent=activeGame?.fieldState?.socialEvent||activeGame?.fieldState?.playEvent||activeGame?.fieldState?.runnerEvent||activeGame?.fieldState?.cueEvent||null;
   const rawEventTime=Number(rawEvent?.id||0);
   const eventAge=rawEventTime>1_000_000_000_000?Math.max(0,now-rawEventTime):Number.POSITIVE_INFINITY;
-  const eventStrength=rawEventTime?clamp(1-eventAge/40000,0,1):0;
+  const eventStrength=rawEventTime?clamp(Math.exp(-eventAge/95000),0,1):0;
   const scoreGap=Math.abs(safe(activeGame.awayScore)-safe(activeGame.homeScore));
   const inning=safe(activeGame.inning)||1;
   const traffic=occupied(activeGame.bases);
   const leveragePressure=(phase==='live'?Math.max(0,inning-4)*1.7:0)+(phase==='live'&&scoreGap<=2?6:0)+(phase==='live'&&scoreGap<=1?4:0)+(phase==='live'?traffic*2.2:0)+(phase==='live'&&safe(activeGame.outs)===2&&traffic?2.5:0);
   const eventSurge=(bigMoment?18:6)*eventStrength+(magnitude.score>=65?7*eventStrength:0);
-  const drift=(seeded(`chatter-${bucket}-${away.id}-${home.id}`)-.5)*10+(seeded(`chatter-slow-${Math.floor(bucket/3)}-${away.id}-${home.id}`)-.5)*8;
-  const quietInningRelief=phase==='live'&&!eventStrength&&traffic===0&&scoreGap>=4?-5:0;
+  const driftPhase=(hash(`${away.id}-${home.id}-chatter`)%628)/100;
+  const drift=Math.sin(now/24000+driftPhase)*2.8+Math.sin(now/72000+driftPhase*.63)*2.2;
+  const quietInningRelief=phase==='live'&&eventStrength<.18&&traffic===0&&scoreGap>=4?-4:0;
   const chatterScore=clamp(Math.round(18+Math.min(30,watching/1500)+safe(rivalry?.heat)*.18+(phase==='live'?6:0)+(phase==='delay'?9:0)+Math.max(0,(magnitude.score-45)*.22)+leveragePressure+eventSurge+drift+quietInningRelief),0,100);
   const chatterHeat=chatterScore>=90?'CHAOS':chatterScore>=74?'HOT':chatterScore>=58?'BUZZING':chatterScore>=38?'ACTIVE':'QUIET';
   return {phase,game:activeGame,away,home,rivalry,brand,promo,ceremonies,gameNumber:socialGameNumber,postgameStage,postgameAgeMs,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:(phase==='live'||phase==='delay')?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,chatterScore,chatterHeat,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};

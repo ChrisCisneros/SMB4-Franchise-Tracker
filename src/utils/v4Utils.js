@@ -97,35 +97,52 @@ export function buildWinProbability(currentGame, teams=[]){
   const onFirst=currentGame.bases?.first?1:0;
   const onSecond=currentGame.bases?.second?1:0;
   const onThird=currentGame.bases?.third?1:0;
-  const baseThreat=(onFirst*.28)+(onSecond*.46)+(onThird*.68);
-  const outPenalty=[1,.78,.35,.12][outs] ?? .12;
+  const baseThreat=(onFirst*.24)+(onSecond*.42)+(onThird*.64);
+  const outPenalty=[1,.76,.42,.12][outs] ?? .12;
   const runnerImpact=baseThreat*outPenalty*(battingHome?1:-1);
 
-  // Score matters much more as the game approaches its final outs.
-  const progress=Math.max(0,Math.min(1,(inning-1)/8));
-  const lateMultiplier=.62+(progress*1.35)+(inning>=9?.40:0)+(outs===2&&inning>=8?.18:0);
-  const scoreLogit=homeLead*lateMultiplier;
+  // Measure actual game progress by completed outs, not simply by inning number.
+  // This keeps early leads meaningful without making a 2-run third-inning game feel decided.
+  const completedOuts=Math.max(0,((inning-1)*6)+(battingHome?3:0)+outs);
+  const regulationProgress=clamp(completedOuts/54,0,1);
+  const progress=inning>9?1:regulationProgress;
 
-  // Team quality remains a modest pregame prior; live game state dominates late.
-  const strength=((teamPct(home)-teamPct(away))*1.15)+((Number(home?.runDiff||0)-Number(away?.runDiff||0))*0.0045);
-  const homeField=.10;
-  const battingOpportunity=(battingHome?0.10:-0.03)*(1-progress);
-  let logit=scoreLogit+(runnerImpact*(.75+progress*.75))+strength+homeField+battingOpportunity;
+  // A run is worth relatively little early and increasingly more as the final outs disappear.
+  // Rough guide: a 2-run lead is only a moderate edge in the 3rd, strong in the 6th,
+  // and overwhelming in the 9th unless the tying run is actively threatening.
+  let perRunWeight=.20+1.10*Math.pow(progress,1.85);
+  if(inning>9)perRunWeight=1.34+Math.min(.22,(inning-10)*.05);
+  const scoreLogit=homeLead*perRunWeight;
 
-  // Ninth-inning/extras survival logic: with two outs, trailing clubs should be in real danger.
-  if(inning>=9&&outs===2){
-    if(battingHome&&homeLead<0) logit-=.30*Math.abs(homeLead);
-    if(!battingHome&&homeLead>0) logit+=.35*Math.abs(homeLead);
+  // Team quality is a pregame prior, not a live-game bulldozer.
+  const homeGames=gp(home),awayGames=gp(away);
+  const homePct=homeGames?teamPct(home):.5;
+  const awayPct=awayGames?teamPct(away):.5;
+  const homeRdRate=homeGames?Number(home?.runDiff||0)/homeGames:0;
+  const awayRdRate=awayGames?Number(away?.runDiff||0)/awayGames:0;
+  const strength=clamp((homePct-awayPct)*1.15+(homeRdRate-awayRdRate)*.055,-.42,.42);
+  const homeField=.09;
+
+  // Baserunners and batting half matter more as the game gets late, but should not create
+  // wild early-inning swings by themselves.
+  const runnerLogit=runnerImpact*(.18+progress*.62);
+  const battingOpportunity=(battingHome?.055:-.015)*(1-progress);
+  let logit=scoreLogit+runnerLogit+strength+homeField+battingOpportunity;
+
+  // Late-game survival / walk-off context adds pressure only when the game is actually late.
+  if(inning>=9){
+    if(battingHome&&homeLead===0)logit+=.28;
+    if(outs===2&&battingHome&&homeLead<0)logit-=.15*Math.min(3,Math.abs(homeLead));
+    if(outs===2&&!battingHome&&homeLead>0)logit+=.16*Math.min(3,Math.abs(homeLead));
   }
-  if(inning>=9&&battingHome&&homeLead===0) logit+=.32; // home team can win immediately.
 
   const logistic=1/(1+Math.exp(-logit));
   const homeProb=clamp(Math.round(logistic*100),1,99);
   const closeness=Math.max(0,1-Math.min(1,Math.abs(homeLead)/4));
-  const traffic=Math.min(1,(baseThreat+outs*.18)/1.8);
-  const leverageScore=clamp((progress*.50+closeness*.34+traffic*.16)*100);
+  const traffic=Math.min(1,(baseThreat+outs*.14)/1.65);
+  const leverageScore=clamp((progress*.54+closeness*.32+traffic*.14)*100);
   const leverage=leverageScore>=82?'EXTREME':leverageScore>=64?'HIGH':leverageScore>=40?'MEDIUM':'LOW';
-  const crowd=clamp(48+homeLead*7+(battingHome?baseThreat*12:0)+(inning>=8?9:0));
+  const crowd=clamp(48+homeLead*5+(battingHome?baseThreat*10:0)+(progress>=.75?7:0));
   return {home:homeProb,away:100-homeProb,leverage,crowd:Math.round(crowd),leverageScore};
 }
 

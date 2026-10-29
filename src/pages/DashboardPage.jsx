@@ -21,7 +21,7 @@ import { ceremonyForGame } from "../utils/ceremonyUtils";
 import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
-import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile } from "../utils/ballparkLifeUtils";
+import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile, buildGameConditions } from "../utils/ballparkLifeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -102,6 +102,10 @@ export default function DashboardPage({ ctx }) {
   const forecastAway = currentGame?.awayTeamId ? teams.find(t=>t.id===currentGame.awayTeamId) : (todaySlot?.schedule?.location==='away'?calendarAnchorTeam:todayOpponent);
   const v4Rivalry = currentGame?.awayTeamId&&currentGame?.homeTeamId ? v4Rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)) : null;
   const attendanceForecast = useMemo(()=>buildAttendanceForecast(data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry),[data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry]);
+  const gameConditions = useMemo(()=>buildGameConditions(data,currentGame,forecastHome,forecastAway),[data.activeSeasonName,currentGame,forecastHome,forecastAway]);
+  const attendanceCount = attendanceForecast?.actual||attendanceForecast?.projected||0;
+  const attendanceCapacity = attendanceForecast?.park?.capacity||0;
+  const isSellout = Boolean(attendanceCapacity && attendanceCount >= attendanceCapacity*.995);
   const gameRecords = useMemo(()=>buildGameRecords(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
   const alerts = useMemo(()=>buildDashboardAlerts(data,teams),[data,teams]);
   const power = useMemo(()=>buildPowerRankings(teams).slice(0,5),[teams]);
@@ -127,6 +131,10 @@ export default function DashboardPage({ ctx }) {
   const v4Opening = avgGamesPerTeam <= 1;
   const v4Championship = isPlayoffLiveGame && ["finals","worldSeries"].includes(currentGame.playoffSeriesId);
   const v4Theme = v4Championship ? "championship" : isPlayoffLiveGame ? "playoff" : (v4Rivalry?.games||0)>=2 ? "rivalry" : v4Midseason ? "allstar" : v4Opening ? "opening" : "regular";
+  const v4BuntingGameNumber = Number(gameDaySocial?.gameNumber || todaySlot?.gameNumber || currentGame?.seasonGameNumber || 0);
+  const v4ShowBunting = v4BuntingGameNumber === 1 || v4BuntingGameNumber === 20 || isPlayoffLiveGame;
+  const v4BuntingTheme = isPlayoffLiveGame ? "postseason" : v4BuntingGameNumber === 20 ? "allstar" : "opening";
+  const atmosphereLabel = isPlayoffLiveGame ? 'POSTSEASON ATMOSPHERE' : (v4Rivalry?.heat||0)>=55 ? 'RIVALRY NIGHT' : v4BuntingGameNumber===20 ? 'MIDSEASON CELEBRATION' : v4BuntingGameNumber===1 ? 'OPENING DAY' : v4Importance?.label==='MUST WATCH' ? 'MARQUEE NIGHT' : attendanceForecast?.park?.atmosphere||'BASEBALL NIGHT';
   const tickerItems = useMemo(()=>{
     const items=[
       ...news.slice(0,4).map(x=>`${x.category}: ${x.headline}`),
@@ -219,12 +227,20 @@ export default function DashboardPage({ ctx }) {
 
           {hasLiveMatchup && (
             <div className={`dashboard-live-stage ${gameDaySocial.phase!=='idle'?'has-social':''}`}>
-              <div className="v3-dashboard-field-wrap">
-                <LiveField
-                  game={currentGame}
-                  battingColors={battingBaseColors}
-                  compact
-                />
+              <div className="dashboard-field-column">
+                <div className="dashboard-game-conditions">
+                  <div><small>VENUE</small><strong>{attendanceForecast?.park?.name||`${homeTeam?.city||homeTeam?.abbr||'Home'} Ballpark`}</strong><span>{homeTeam?.city||homeTeam?.name||'Home field'} · {attendanceForecast?.park?.famousSection||'Grandstand'}</span></div>
+                  <div><small>WEATHER</small><strong>{gameConditions?.summary||'Baseball weather'}</strong><span>{gameConditions?`${gameConditions.wind} · ${gameConditions.firstPitch}`:'Conditions settling in'}</span></div>
+                  <div><small>ATTENDANCE</small><strong>{attendanceCount?`${attendanceCount.toLocaleString()} / ${attendanceCapacity.toLocaleString()}`:'Crowd arriving'}</strong><span className={isSellout?'is-sellout':''}>{isSellout?'● SELLOUT':attendanceForecast?`${attendanceForecast.pctFull}% FULL · ${attendanceForecast.label}`:'Forecast building'}</span></div>
+                  <div><small>ATMOSPHERE</small><strong>{atmosphereLabel}</strong><span>{attendanceForecast?.park?.tradition||'The crowd is settling in.'}</span></div>
+                </div>
+                <div className="v3-dashboard-field-wrap">
+                  <LiveField
+                    game={currentGame}
+                    battingColors={battingBaseColors}
+                    compact
+                  />
+                </div>
               </div>
               {gameDaySocial.phase!=='idle' && <div className="dashboard-live-social-panel"><GameDaySocial social={gameDaySocial} compact onOpenFandom={()=>setPage?.('fandom')} /></div>}
             </div>
@@ -275,7 +291,7 @@ export default function DashboardPage({ ctx }) {
     </section>
 
 
-    {(v4Opening || v4Midseason) && <div className={`dashboard-v4-bunting ${v4Midseason ? "allstar" : "opening"}`}>{Array.from({length:15},(_,i)=><i key={i}/>)}</div>}
+    {v4ShowBunting && <div className={`dashboard-v4-bunting ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
 
 
 

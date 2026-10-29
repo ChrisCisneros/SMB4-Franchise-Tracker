@@ -233,6 +233,22 @@ export function buildBallparkDirectory(data={},teams=[]){
   return teams.map(t=>buildBallparkProfile(data,t)).filter(Boolean);
 }
 
+const WEATHER_CONDITIONS=['Clear','Partly Cloudy','High Clouds','Crisp & Clear','Warm & Clear','Breezy','Mild','Cool & Clear'];
+const WIND_DIRECTIONS=['N','NE','E','SE','S','SW','W','NW'];
+export function buildGameConditions(data={},game={},homeTeam=null,awayTeam=null){
+  if(!homeTeam)return null;
+  const gameNo=n(game?.seasonGameNumber)||n(currentSeasonDay(data,[homeTeam,awayTeam].filter(Boolean))?.gameNumber)||1;
+  const key=`${data.activeSeasonName||'season'}-${homeTeam.id||homeTeam.abbr}-${awayTeam?.id||awayTeam?.abbr||'visitor'}-${gameNo}-${game?.id||game?.date||''}`;
+  const seed=hash(key);
+  const condition=game?.status==='Delay'?'Cloudy / Delay Watch':WEATHER_CONDITIONS[seed%WEATHER_CONDITIONS.length];
+  const tempF=56+(seed%33);
+  const windMph=2+((seed>>4)%16);
+  const windDirection=WIND_DIRECTIONS[(seed>>8)%WIND_DIRECTIONS.length];
+  const firstPitch=['Day game','Late afternoon','Under the lights'][(seed>>11)%3];
+  const humidity=34+((seed>>13)%43);
+  return {condition,tempF,windMph,windDirection,firstPitch,humidity,summary:`${tempF}°F · ${condition}`,wind:`${windDirection} ${windMph} mph`};
+}
+
 export function buildAttendanceForecast(data={},teams=[],homeTeamId,awayTeamId,promo=null,rivalry=null){
   const home=teamById(teams,homeTeamId)||teams[0];
   const away=teamById(teams,awayTeamId);
