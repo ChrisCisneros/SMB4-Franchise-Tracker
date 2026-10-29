@@ -89,7 +89,9 @@ function warmupLines(team,foe,rivalry,key){
     `Today's agenda: score first, add on, do not make me learn new forms of anxiety.`,
     `Every fanbase thinks tonight is the night. Ours is obviously correct.`,
     `Pregame take I may regret later: I like this matchup for ${team.abbr}.`,
-    `One clean first inning and I promise to become completely reasonable. Probably.`
+    `One clean first inning and I promise to become completely reasonable. Probably.`,
+    `Time to show these chumps who runs the field in ${team.abbr}.`,
+    `We come here to watch teams play... but we all know that ${foe.abbr} is going to win hands down!`
   ];
   if((rivalry?.heat||0)>=35)lines.push(`${foe.abbr} again. Good. I wanted the stressful version of baseball tonight.`,`Rivalry night means every harmless single will be treated like a declaration of war.`,`Saving screenshots now. Somebody is getting receipts after this one.`);
   return pick(lines,key);
@@ -150,7 +152,17 @@ function liveLines(team,foe,game,isBatting,key){
     `That thing left in a HURRY.`,
     `Somebody check on the people who were still finding their seats.`,
     `We are so unbelievably back.`,
-    `I have seen enough. Build the statue.`
+    `I have seen enough. Build the statue.`,
+    `HIGH DRIVEEEEEEE DEEEEEEEP AND IT'S OUTAAA HEREEEEEEEEEEEE`,
+    `Does this mean we get a free drink or something???`,
+    `THAT BALL IS NOT COMING BACK!!!!`,
+    `#LOSINGIT`,
+    `How much does this boost our odds of winning???`,
+    `Watch that again on the replay!!!`,
+    `Bye Bye Baby!!!`,
+    `THATS HOW WE DO IT IN ${team.abbr}`,
+    `I never doubted you for a second!!! LETS GO ${team.abbr}`,
+    `You sure are quiet now! Aren't you ${foe.abbr}?????`
   );
   if(type==='homerun'&&!isBatting)lines.push(
     `I would like to unsubscribe from home runs hit by ${foe.abbr}.`,
@@ -160,10 +172,14 @@ function liveLines(team,foe,game,isBatting,key){
     `Somewhere there was a better pitch selection. We did not choose it.`,
     `I am choosing to blame the dimensions, the weather, and several cosmic forces.`,
     `Well that escalated quickly.`,
-    `Can we get the ball back and pretend none of that happened?`
+    `Can we get the ball back and pretend none of that happened?`,
+    `Can we change pitchers now??`,
+    `If I close my eyes... I can pretend that I did not see that..`,
+    `#SADDDD`,
+    `#SawThatComing`
   );
-  if(type==='triple'&&isBatting)lines.push(`A TRIPLE??? We are running until the earth stops spinning.`,`Three bags! Baseball needs more triples and specifically more triples for us.`,`That ball found grass and suddenly everybody was sprinting.`,`The outfield gap just became a racetrack.`,`Triples are chaos distilled into one beautiful play.`,`I looked down for one second and suddenly we are standing on third.`);
-  if(type==='double'&&isBatting)lines.push(`Two bags. Keep the pressure on.`,`That double opened this inning right up.`,`Gap shot! Now make it hurt.`,`That is exactly the kind of extra-base hit this inning needed.`,`Standing on second and the whole dugout just got louder.`,`Into the gap and suddenly the pressure meter jumped.`);
+  if(type==='triple'&&isBatting)lines.push(`A TRIPLE??? We are running until the earth stops spinning.`,`Three bags! Baseball needs more triples and specifically more triples for us.`,`That ball found grass and suddenly everybody was sprinting.`,`The outfield gap just became a racetrack.`,`Triples are chaos distilled into one beautiful play.`,`I looked down for one second and suddenly we are standing on third.`,`GO! GO! GO!`);
+  if(type==='double'&&isBatting)lines.push(`Two bags. Keep the pressure on.`,`That double opened this inning right up.`,`Gap shot! Now make it hurt.`,`That is exactly the kind of extra-base hit this inning needed.`,`Standing on second and the whole dugout just got louder.`,`Into the gap and suddenly the pressure meter jumped.`,`A shot into the gap! I can now breathe`,`That one is down in the gap!!! GO # ${team.abbr}!!!`);
   if(type==='single'&&isBatting&&runs)lines.push(`BASE HIT. RUN IN. Keep the line moving.`,`That is a beautiful little piece of situational baseball.`,`Nothing fancy. Just put the run on the board.`,`Single, RBI, thank you very much.`,`Put it where they are not and let the scoreboard handle the rest.`,`That is a tiny hit with a very loud consequence.`);
   if(['strikeout','calledstrikeout'].includes(type)&&!isBatting){
     if(ended)lines.push(`K TO END THE INNING. Exhale.`,`STRIKE THREE. INNING OVER. That is how you shut the door.`,`Huge K. Threat erased. Everybody unclench.`,`Needed one pitch. Got one pitch. Side retired.`,`That inning was trying to become a problem. Not anymore.`);
@@ -173,7 +189,7 @@ function liveLines(team,foe,game,isBatting,key){
     if(ended)lines.push(`Stranded them. That one hurts.`,`Ending the inning like THAT is going to bother me for a while.`,`We had a chance and watched it disappear. Cool cool cool.`);
     lines.push(`You cannot leave that at-bat there. Reset and go get the next one.`,`I had a whole rally planned in my head and then that happened.`,`Tip the cap, complain quietly, move on.`,`That was not the ending I ordered for this plate appearance.`,`Okay. New inning, new emotional damage.`,`I would like that at-bat back, please.`);
   }
-  if(type==='doubleplay'&&!isBatting)lines.push(`TURN TWO. Absolutely gorgeous.`,`Two for the price of one. Gorgeous baseball.`,`That double play just saved everybody's blood pressure.`,`Pitcher's best friend reporting for duty.`,`ROLL IT. Threat deleted.`,`Six-four-three therapy session.`,`That rally just hit a brick wall shaped like a double play.`,`Nothing calms a stadium like two outs on one ball.`);
+  if(type==='doubleplay'&&!isBatting)lines.push(`TURN TWO. Absolutely gorgeous.`,`Two for the price of one. Gorgeous baseball.`,`That double play just saved everybody's blood pressure.`,`Pitcher's best friend reporting for duty.`,`ROLL IT. Threat deleted.`,`Six-four-three therapy session.`,`That rally just hit a brick wall shaped like a double play.`,`Nothing calms a stadium like two outs on one ball.`,`One Two Punch!!!`);
   if(type==='doubleplay'&&isBatting)lines.push(`A double play is a personal attack.`,`Nothing makes a rally evaporate faster. Pain.`,`The inning had dreams. The double play had other plans.`,`Delete that ground ball from history.`,`We went from traffic to silence in one ground ball.`,`That is the baseball equivalent of stepping on a rake.`,`I would like to appeal the existence of double plays.`);
   if(type==='caughtstealing'&&!isBatting)lines.push(`THROWN OUT. Do not run on us.`,`Nope. Bag closed.`,`Caught stealing and the vibes improve immediately.`,`That jump was not good enough. Sit down.`,`The catcher just sent a very clear message.`,`Risk assessed. Risk denied.`,`That base was not available for purchase.`);
   if(type==='caughtstealing'&&isBatting)lines.push(`Okay maybe we simply never speak of that steal attempt again.`,`Aggression is fun until the umpire says out.`,`That was ambitious. I will leave it at that.`,`We tested the arm. The arm passed.`,`I support aggression conceptually. Not that specific aggression.`,`That steal attempt has been removed from my personal memory.`);
@@ -181,14 +197,14 @@ function liveLines(team,foe,game,isBatting,key){
   if(type==='walk'&&isBatting)lines.push(`Take your base. Make them pay for it.`,`Four balls is a hit in my heart.`,`Free baserunner. I accept this gift.`,`Good eye. Now cash it in.`);
   if(type==='hitbypitch'&&isBatting)lines.push(`Free baserunner. Fine. Put it on the scoreboard.`,`Ow. Also: first base.`,`Not how I wanted the rally to start, but we take those.`);
   if(type==='error'&&isBatting)lines.push(`Pressure creates mistakes. Keep moving.`,`Thank you for the extra out. Please make it expensive.`,`Baseball gods just handed us something. Do not waste it.`);
-  if(game.walkoffCandidate&&team.id===game.homeTeamId)lines.push(`DID WE JUST WALK THIS OFF??? THE PLACE IS ERUPTING.`,`EVERYBODY IS RUNNING ONTO THE FIELD. WHAT JUST HAPPENED.`,`BALLGAME. ABSOLUTE SCENES.`);
-  if(safe(game.inning)>=10)lines.push(`Extra innings. I have work tomorrow. Nobody involved cares.`,`Free baseball, paid anxiety.`,`We have entered the portion of the evening where every pitch feels illegal.`);
+  if(game.walkoffCandidate&&team.id===game.homeTeamId)lines.push(`DID WE JUST WALK THIS OFF??? THE PLACE IS ERUPTING.`,`EVERYBODY IS RUNNING ONTO THE FIELD. WHAT JUST HAPPENED.`,`BALLGAME. ABSOLUTE SCENES.`,`I CAN'T BELIEVE IT!!!!`,`#WALKOFFFFFFFFFFFFFFFFFFFFFF!!!!`,`AND THIS BALLGAME IS OVER!!!!`,`IT'S TIME TO GO HOME!!!`,`THEY DID IT!! I CAN'T BELIEVE IT!! THEY DID IT!!`);
+  if(safe(game.inning)>=10)lines.push(`Extra innings. I have work tomorrow. Nobody involved cares.`,`Free baseball, paid anxiety.`,`We have entered the portion of the evening where every pitch feels illegal.`,`We have extra baseball folks!!`,`It's time for #ExtraInningsBaseball!!`);
   if(late(game)&&close(game))lines.push(`${inningText(game)}. My heart rate is not league approved.`,`Every pitch has become a referendum on my happiness.`,`This is objectively great baseball and subjectively terrible for me.`);
-  if(bases>=2&&isBatting)lines.push(`${bases===3?'BASES LOADED':'Traffic everywhere'} with ${game.outs} out${game.outs===1?'':'s'}. Please cash this in.`,`This inning is begging for the big hit.`,`The table is set. Somebody eat.`);
+  if(bases>=2&&isBatting)lines.push(`${bases===3?'BASES LOADED':'Traffic everywhere'} with ${game.outs} out${game.outs===1?'':'s'}. Please cash this in.`,`This inning is begging for the big hit.`,`The table is set. Somebody eat.`,`Bases Juiced... I can't breathe`,`Please get a big hit here!! I'm BEGGING you!!`,`Five bucks says they get a hit here!`);
   if(bases>=2&&!isBatting)lines.push(`There are too many runners on base. I dislike this development.`,`One clean pitch away from peace. Please.`,`This is where I begin negotiating with the baseball gods.`);
   if(diff>=4)lines.push(`I am choosing to enjoy this lead and absolutely not think about baseball's capacity for violence.`,`Comfortable lead. Allegedly.`,`I would like several more insurance runs because I know this sport.`);
   if(diff<=-4)lines.push(`Okay, the comeback starts with one baserunner. I have moved into bargaining.`,`I've seen stranger things. Not many, but stranger things.`,`Just win the next inning. Then lie to me again.`);
-  if(diff>0&&late(game))lines.push(`Protect. The. Lead.`,`Six outs feel like sixty.`,`Insurance runs are not optional. They are emotional support.`);
+  if(diff>0&&late(game))lines.push(`Protect. The. Lead.`,`Six outs feel like sixty.`,`Insurance runs are not optional. They are emotional support.`,`We need to keep holding. Keep it up guys!`,`Sitting here, tense, we need to keep this lead`,`Just a few more outs to go, you guys got this!`,`Can we just call the game now???`,`This is so #MakingMeGoCrazy!!!`);
   if(diff<0&&late(game))lines.push(`We need a rally immediately. Not in ten minutes. Now.`,`Someone start the comeback montage.`,`One baserunner. Then another. Do not make this complicated.`);
   if(diff===0&&late(game))lines.push(`Tie game late. Nobody breathe.`,`This is why we watch and also why we age.`,`One swing decides who gets to be unbearable online tonight.`);
   if(!lines.length)lines.push(
@@ -197,8 +213,12 @@ function liveLines(team,foe,game,isBatting,key){
     isBatting?`Just get somebody on and let the inning build itself.`:`No free passes. Make them earn everything.`,
     isBatting?`The rally has to start somewhere.`:`Routine inning. I am asking for one routine inning.`,
     isBatting?`I am once again requesting a baseball into the gap.`:`Attack the zone and let the defense work.`,
+    isBatting?`Don't need a big hit here. Small ball works too` : 'Pitch with confidence. They can smell weakness',
+    isBatting?`Come on ${team.abbr}. Make it hurt!` : `We need to step it up and make sure ${foe.abbr} doesn't get too comfortable!`,
     `This game has that weird quiet feeling before something happens.`,
-    `Baseball is ninety percent waiting for your next emotional emergency.`
+    `Baseball is ninety percent waiting for your next emotional emergency.`,
+    `How can you not love baseball??`,
+
   );
   return pick(lines,key);
 }
@@ -214,7 +234,16 @@ function postgameLines(team,foe,game,key){
     `I will be completely normal about this victory until approximately never.`,
     `Good teams bank wins. Tonight goes in the bank.`,
     `Everybody who said it was over midway through the game: your posts have been archived.`,
-    `The vibes have been upgraded to immaculate.`
+    `The vibes have been upgraded to immaculate.`,
+    `Play the winning song!!!`,
+    `Thank you ${team.abbr}, I get to go to sleep happy tonight`,
+    `${team.abbr} is where it's at!!!`,
+    `Time to rewatch all my favorite highlights later!`,
+    `#Winners`,
+    `Same time tomorrow ${foe.abbr}?`,
+    `What a game!!`,
+    `It's never a dull moment here in ${team.abbr}!`
+
   ]:[
     `I have prepared a calm and rational postgame response: absolutely not.`,
     `Flush it. Tomorrow exists. Unfortunately so does the box score.`,
@@ -225,7 +254,17 @@ function postgameLines(team,foe,game,key){
     `Delete the tape, keep the lessons, never mention this to me again.`,
     `Baseball gives and baseball takes. Tonight it mostly took.`,
     `Tomorrow's lineup better arrive angry.`,
-    `The postgame show is just going to be me saying “why” for forty minutes.`
+    `The postgame show is just going to be me saying “why” for forty minutes.`,
+    `It's okay ${team.abbr}. Let's get it next time`,
+    `I'm not crying... You're crying!`,
+    `I will now proceed to cry in my pillow all night`,
+    `We win some, we lose some. let's get it tomorrow`,
+    `#SAD`,
+    `GG ${foe.abbr}.`,
+    `Someone check the umpire scorecard when it releases!`,
+    `One bad game, we will get back up!`,
+    `No one is happy leaving the ballpark right now`,
+    `Time to go home.`
   ];
   if(game.walkoff)lines.push(won?`A WALK-OFF. Nobody leave the ballpark. We live here now.`:`Walk-off losses should be illegal.`,won?`I will be watching that ending until next week.`:`That is an exceptionally rude way to lose a baseball game.`);
   return pick(lines,key);
@@ -245,7 +284,13 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
       `Warmups are underway. Drop your score prediction and get loud early.`,
       `Pregame roll call: what section are you checking in from?`,
       `Team Store open. Concourse busy. Baseball soon. This is the good part.`,
-      `The lights are on and the building is waking up. Welcome home.`
+      `The lights are on and the building is waking up. Welcome home.`,
+      `To those coming from ${foe.abbr}, welcome to ${team.abbr}!!!`,
+      `I love watching batting practice before the game`,
+      `Time to do my routine lap around the ballpark!`,
+      `Hmm, what to grab before I go to my seat`,
+      `The suspense is killing me!!! ...I don't feel so good...`,
+      `Rocking ${team.abbr} Colors!!!! LETS GO!!`
     ];
     const roadLines=[
       `Road game check-in: ${team.abbr} is in ${crowdHome?.city||crowdHome?.abbr||'enemy territory'} tonight.`,
@@ -272,7 +317,7 @@ function teamOfficialLine(team,foe,game,phase,isBatting,state,rivalry,key,bucket
   if(ours){
     const lines=[];
     if(type==='homerun'){
-      if(isBatting&&atHome)lines.push(`💥 HOME RUN ${team.abbr}! LISTEN TO THIS PLACE.`,`🚀 GONE. The home crowd knew immediately.`,`💣 BIG FLY AT HOME. This building just erupted.`,`📣 HOME RUN. Everybody in ${team.abbr} colors is on their feet.`,`🌋 THAT ONE IS OUT. Home-field volume: MAXIMUM.`);
+      if(isBatting&&atHome)lines.push(`💥 HOME RUN ${team.abbr}! LISTEN TO THIS PLACE.`,`🚀 GONE. The home crowd knew immediately.`,`💣 BIG FLY AT HOME. This building just erupted.`,`📣 HOME RUN. Everybody in ${team.abbr} colors is on their feet.`,`🌋 THAT ONE IS OUT. Home-field volume: MAXIMUM.`, `THAT BALL IS GONE!!! ARE YOU NOT ENTERTAINED!?!?!?`, `LET ME HEAR YOU ${team.abbr} FANS!!!`);
       if(isBatting&&!atHome)lines.push(`💥 ROAD HOME RUN. ${team.abbr} just quieted the building.`,`🚀 GONE. You can hear the traveling ${team.abbr} fans now.`,`💣 BIG FLY ON THE ROAD. That took the air out of the park.`,`🤫 HOME RUN ${team.abbr}. The loudest sound here is coming from the visitors.`,`📣 ROAD POWER. ${team.abbr} leaves the yard in enemy territory.`);
     }
     if(type==='triple'&&isBatting)lines.push(`⚡ THREE BAGS. ${team.abbr} is flying.`,`🏃 TRIPLE! The outfield gap never had a chance.`,`⚡ Wheels, chaos, three bases. We'll take it.`);
