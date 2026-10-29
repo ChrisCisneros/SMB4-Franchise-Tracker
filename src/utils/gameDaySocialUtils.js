@@ -119,20 +119,20 @@ function applyPosterVoice(text,club,team,foe,data,key){
   const memory=(data.games||[]).filter(g=>g?.status==='Final'&&((g.awayTeamId===team.id&&g.homeTeamId===foe.id)||(g.homeTeamId===team.id&&g.awayTeamId===foe.id))).slice(-1)[0];
   const memoryLine=memory?` Last meeting with ${foe.abbr}: ${memory.awayScore}-${memory.homeScore}. I remember.`:'';
   const flavor={
-    diehard:[` ${team.abbr} until the end.`,` I am here every pitch. No exceptions.`],
-    optimist:[` I choose to believe.`,` One good inning changes everything.`],
-    doomer:[` This is exactly how they get me.`,` I am not relaxing. I know better.`],
-    numbers:[` I need the leverage chart immediately.`,` Somebody update the run expectancy.`],
-    troll:[` Saving this post either way.`,` The receipts folder is open.`],
-    historian:[memoryLine||` This feels like something the archive will remember.`,` I have seen enough seasons to know this game is not done.`],
-    merch:[` If this holds, the lucky jersey stays undefeated.`,` The hat is staying on. Do not touch it.`],
-    radio:[` Put me on the postgame line.`,` I have three points and a phone call ready.`],
-    skeptic:[` I am not sold yet.`,` Do it again next inning and then we can talk.`],
-    chaos:[` I need this game to get weirder.`,` This is approaching my preferred level of nonsense.`],
-    superstition:[` Nobody change seats.`,` The lucky hat stays exactly where it is.`],
-    rivalry:[memoryLine||` I care about this one more than I should.`,` I have been saving energy for this matchup.`],
-    softie:[` This is why I love this ridiculous sport.`,` Remember the sound of the crowd right now.`],
-    meme:[` The reaction image is already drafted.`,` This is becoming excellent posting material.`],
+    diehard:[` ${team.abbr} until the end.`,` I am here every pitch. No exceptions.`,`Good, bad, ugly — I am not going anywhere.`,`I have watched too much ${team.abbr} baseball to leave now.`,`Same seat. Same team. Same completely unreasonable investment.`,`This is my evening now. The rest of the world can wait.`],
+    optimist:[` I choose to believe.`,` One good inning changes everything.`,`There is a rally hiding in here somewhere.`,`I have talked myself into the comeback already.`,`Baseball gives you 27 outs for a reason.`,`I refuse to spend this inning being negative.`],
+    doomer:[` This is exactly how they get me.`,` I am not relaxing. I know better.`,`I have seen this movie and I dislike the ending.`,`Every calm inning is merely setting up the next problem.`,`My concern level has become a full-time job.`,`I would love to be wrong. I am preparing to be extremely right.`],
+    numbers:[` I need the leverage chart immediately.`,` Somebody update the run expectancy.`,`The vibes are loud; I want the numbers.`,`I am mentally calculating win probability against my will.`,`Small sample, enormous emotional response. Classic.`,`Please provide the exit velocity before I form an irresponsible opinion.`],
+    troll:[` Saving this post either way.`,` The receipts folder is open.`,`I am bookmarking replies with malicious efficiency.`,`Somebody is deleting a post later and I intend to notice.`,`The quote posts after this inning are going to be incredible.`,`I came here to make the discourse worse and business is booming.`],
+    historian:[memoryLine||` This feels like something the archive will remember.`,` I have seen enough seasons to know this game is not done.`,`Every season gets one night people remember for weird reasons.`,`This has the shape of a game we will reference three seasons from now.`,`The old scorebooks are full of nights that started exactly this ordinary.`,`Context matters. This franchise has been here before.`],
+    merch:[` If this holds, the lucky jersey stays undefeated.`,` The hat is staying on. Do not touch it.`,`I am one good inning away from buying something irresponsible.`,`The throwback jersey is doing its job tonight.`,`Merch superstition is real and I will not be taking questions.`,`If we win, the team store is getting my money again.`],
+    radio:[` Put me on the postgame line.`,` I have three points and a phone call ready.`,`Producer, do not screen my call. I need the airwaves.`,`I am rehearsing the opening sentence of my rant.`,`The phone lines should already be blinking.`,`I need ninety uninterrupted seconds and a microphone.`],
+    skeptic:[` I am not sold yet.`,` Do it again next inning and then we can talk.`,`One good sequence does not erase my concerns.`,`I will believe this when the final out is recorded.`,`Show me this twice and I may cautiously move one eyebrow.`,`Promising. I remain annoyingly unconvinced.`],
+    chaos:[` I need this game to get weirder.`,` This is approaching my preferred level of nonsense.`,`More baserunners. More bad decisions. Feed me chaos.`,`Normal baseball has been cancelled for the evening.`,`I would like one impossible bounce and several confused fielders.`,`This game is one weird play away from becoming art.`],
+    superstition:[` Nobody change seats.`,` The lucky hat stays exactly where it is.`,`Do not mention the thing we are all thinking about.`,`I have not moved since the rally started and I will become furniture if necessary.`,`Whoever changed the channel, change it back immediately.`,`The ritual is working. Nobody ask how.`],
+    rivalry:[memoryLine||` I care about this one more than I should.`,` I have been saving energy for this matchup.`,`Every run against ${foe.abbr} counts emotionally double.`,`I am being perfectly normal about beating ${foe.abbr}. Obviously.`,`The standings matter. The receipts matter more.`,`This is not just another game and everybody in both fanbases knows it.`],
+    softie:[` This is why I love this ridiculous sport.`,` Remember the sound of the crowd right now.`,`Sometimes the little moments are the ones that stick.`,`This whole park feels alive tonight.`,`I am filing this under reasons baseball gets me every year.`,`Somewhere a kid is going to remember this inning forever.`],
+    meme:[` The reaction image is already drafted.`,` This is becoming excellent posting material.`,`I have three memes ready and the scoreboard will choose which one survives.`,`The timeline is about to become unusable.`,`This inning has tremendous screenshot potential.`,`My drafts folder is doing bullpen-level work tonight.`],
   }[id]||[];
   return text+(flavor.length?pick(flavor,`${key}-${club.id}`):'');
 }
@@ -490,7 +490,21 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     ? [...officialLeague,...primary.filter(p=>p.kind!=='rivalry'),...secondary.filter(p=>p.kind==='fan'),...mediaPosts,...primary.filter(p=>p.kind==='rivalry'),...secondary.filter(p=>p.kind!=='fan')]
     : shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
   const posts=shuffle([...awayPosts,...homePosts,...leaguePosts],`${keyBase}-all`);
-  const chatterScore=Math.max(0,Math.min(100,Math.round(20+Math.min(35,watching/1200)+safe(rivalry?.heat)*.25+(bigMoment?28:0)+(phase==='live'?8:0)+(phase==='delay'?12:0)+Math.max(0,(magnitude.score-45)*.35))));
+  // Chatter is intentionally continuous instead of a fixed baseline + big-moment switch.
+  // A play creates a surge that fades over roughly 40 seconds, while close games,
+  // baserunners, inning leverage and a small deterministic crowd drift keep the meter alive.
+  const rawEvent=activeGame?.fieldState?.socialEvent||activeGame?.fieldState?.playEvent||activeGame?.fieldState?.runnerEvent||activeGame?.fieldState?.cueEvent||null;
+  const rawEventTime=Number(rawEvent?.id||0);
+  const eventAge=rawEventTime>1_000_000_000_000?Math.max(0,now-rawEventTime):Number.POSITIVE_INFINITY;
+  const eventStrength=rawEventTime?clamp(1-eventAge/40000,0,1):0;
+  const scoreGap=Math.abs(safe(activeGame.awayScore)-safe(activeGame.homeScore));
+  const inning=safe(activeGame.inning)||1;
+  const traffic=occupied(activeGame.bases);
+  const leveragePressure=(phase==='live'?Math.max(0,inning-4)*1.7:0)+(phase==='live'&&scoreGap<=2?6:0)+(phase==='live'&&scoreGap<=1?4:0)+(phase==='live'?traffic*2.2:0)+(phase==='live'&&safe(activeGame.outs)===2&&traffic?2.5:0);
+  const eventSurge=(bigMoment?18:6)*eventStrength+(magnitude.score>=65?7*eventStrength:0);
+  const drift=(seeded(`chatter-${bucket}-${away.id}-${home.id}`)-.5)*10+(seeded(`chatter-slow-${Math.floor(bucket/3)}-${away.id}-${home.id}`)-.5)*8;
+  const quietInningRelief=phase==='live'&&!eventStrength&&traffic===0&&scoreGap>=4?-5:0;
+  const chatterScore=clamp(Math.round(18+Math.min(30,watching/1500)+safe(rivalry?.heat)*.18+(phase==='live'?6:0)+(phase==='delay'?9:0)+Math.max(0,(magnitude.score-45)*.22)+leveragePressure+eventSurge+drift+quietInningRelief),0,100);
   const chatterHeat=chatterScore>=90?'CHAOS':chatterScore>=74?'HOT':chatterScore>=58?'BUZZING':chatterScore>=38?'ACTIVE':'QUIET';
   return {phase,game:activeGame,away,home,rivalry,brand,promo,ceremonies,gameNumber:socialGameNumber,postgameStage,postgameAgeMs,posts,streamPosts,awayPosts,homePosts,leaguePosts,score:scoreText(activeGame,away,home),inning:(phase==='live'||phase==='delay')?inningText(activeGame):'',play:playLabel(playType(activeGame)),isBigMoment:bigMoment,watching,chatterScore,chatterHeat,eventToken:eventToken(activeGame),streamKey:keyBase,shouldAmbientPost:phase!=='live'||bucket%2===0};
 }
