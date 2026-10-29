@@ -163,3 +163,66 @@
   .fan-calendar-week-games{grid-template-columns:repeat(5,minmax(50px,1fr));min-width:300px}
   .fan-calendar-week{overflow-x:auto}
 }
+
+/* V4.25.1 — iPad dashboard live-social header repair */
+/* The main dashboard collapses at 1250px, so the live stage must collapse there too.
+   Waiting until 1100px left iPad landscape widths with a squeezed social rail. */
+@media(max-width:1250px){
+  .dashboard-live-stage.has-social{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .dashboard-live-stage .v3-dashboard-field-wrap .live-field-shell{
+    width:min(100%,620px);
+  }
+  .dashboard-live-social-panel .game-day-social{
+    height:auto;
+  }
+  .gds-dashboard-posts{
+    max-height:430px;
+  }
+}
+
+/* Keep the compact audience/chatter controls readable on tablet-sized cards. */
+@media(min-width:651px) and (max-width:1250px){
+  .game-day-social.is-dashboard-compact .gds-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    gap:10px;
+  }
+  .game-day-social.is-dashboard-compact .gds-head>div:first-child{
+    min-width:0;
+  }
+  .game-day-social.is-dashboard-compact .gds-head p{
+    max-width:none;
+  }
+  .game-day-social.is-dashboard-compact .gds-head-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;
+    align-items:center;
+    justify-content:stretch;
+    gap:8px;
+  }
+  .game-day-social.is-dashboard-compact .gds-watching,
+  .game-day-social.is-dashboard-compact .gds-chatter-heat{
+    min-width:0;
+    width:100%;
+    text-align:left;
+  }
+  .game-day-social.is-dashboard-compact .gds-head-actions>button{
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:820px){
+  .game-day-social.is-dashboard-compact .gds-head-actions{
+    grid-template-columns:1fr 1fr;
+  }
+  .game-day-social.is-dashboard-compact .gds-live-dot{
+    justify-self:start;
+  }
+  .game-day-social.is-dashboard-compact .gds-head-actions>button{
+    justify-self:end;
+  }
+}
