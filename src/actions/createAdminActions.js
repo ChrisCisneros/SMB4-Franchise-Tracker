@@ -1,7 +1,7 @@
 export default function createAdminActions({
   newTeam, newPlayer, playerNameInputRef, recentlyUpdatedTimerRef,
   setData, setNewPlayer, setNewTeam, setRecentlyUpdatedTeamId,
-  setSelectedAdminTeamId, syncPlayersToFirebase, syncTeamsToFirebase,
+  setSelectedAdminTeamId, syncPlayersToFirebase, syncTeamsToFirebase, syncLeagueExtrasToFirebase,
 }) {
   function addTeam() {
     if (!newTeam.city || !newTeam.name || !newTeam.abbr) return;
@@ -174,6 +174,7 @@ function adjustTeamNumber(teamId, field, amount) {
   }, 1000);
 
   setData((prev) => {
+    const beforeTeam = prev.teams.find((team) => team.id === teamId);
     const nextTeams = prev.teams.map((team) => {
       if (team.id !== teamId) return team;
 
@@ -204,11 +205,38 @@ function adjustTeamNumber(teamId, field, amount) {
     });
 
     syncTeamsToFirebase(nextTeams);
+    const afterTeam = nextTeams.find((team) => team.id === teamId);
+    const change = beforeTeam && afterTeam && (field === "wins" || field === "losses") ? {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      teamId,
+      field,
+      amount,
+      before: { wins: Number(beforeTeam.wins||0), losses: Number(beforeTeam.losses||0), runDiff: Number(beforeTeam.runDiff||0), streak: beforeTeam.streak||"" },
+      after: { wins: Number(afterTeam.wins||0), losses: Number(afterTeam.losses||0), runDiff: Number(afterTeam.runDiff||0), streak: afterTeam.streak||"" },
+    } : null;
+    const nextExtras = change ? { ...(prev.leagueExtras||{}), recordChangeHistory: [change, ...((prev.leagueExtras||{}).recordChangeHistory||[])].slice(0,250) } : (prev.leagueExtras||{});
+    if (change) syncLeagueExtrasToFirebase?.(nextExtras);
 
     return {
       ...prev,
       teams: nextTeams,
+      leagueExtras: nextExtras,
     };
+  });
+}
+
+function undoLastTeamRecordChange() {
+  setData((prev) => {
+    const history = [...((prev.leagueExtras||{}).recordChangeHistory||[])];
+    const last = history[0];
+    if (!last) return prev;
+    const nextTeams = prev.teams.map((team) => team.id === last.teamId ? { ...team, ...last.before } : team);
+    const nextExtras = { ...(prev.leagueExtras||{}), recordChangeHistory: history.slice(1) };
+    syncTeamsToFirebase(nextTeams);
+    syncLeagueExtrasToFirebase?.(nextExtras);
+    setRecentlyUpdatedTeamId(last.teamId);
+    return { ...prev, teams: nextTeams, leagueExtras: nextExtras };
   });
 }
 
@@ -245,6 +273,6 @@ function resetTeamStreak(teamId) {
 
   return {
     addTeam, deleteTeam, editTeam, addPlayer, deletePlayer, updateRecord,
-    adjustTeamNumber, adjustTeamStreak, resetTeamStreak,
+    adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange,
   };
 }

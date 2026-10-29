@@ -114,6 +114,29 @@ function delayLines(team,foe,game,key){
   return pick(lines,key);
 }
 
+function applyPosterVoice(text,club,team,foe,data,key){
+  const id=club?.archetype?.id; if(!id)return text;
+  const memory=(data.games||[]).filter(g=>g?.status==='Final'&&((g.awayTeamId===team.id&&g.homeTeamId===foe.id)||(g.homeTeamId===team.id&&g.awayTeamId===foe.id))).slice(-1)[0];
+  const memoryLine=memory?` Last meeting with ${foe.abbr}: ${memory.awayScore}-${memory.homeScore}. I remember.`:'';
+  const flavor={
+    diehard:[` ${team.abbr} until the end.`,` I am here every pitch. No exceptions.`],
+    optimist:[` I choose to believe.`,` One good inning changes everything.`],
+    doomer:[` This is exactly how they get me.`,` I am not relaxing. I know better.`],
+    numbers:[` I need the leverage chart immediately.`,` Somebody update the run expectancy.`],
+    troll:[` Saving this post either way.`,` The receipts folder is open.`],
+    historian:[memoryLine||` This feels like something the archive will remember.`,` I have seen enough seasons to know this game is not done.`],
+    merch:[` If this holds, the lucky jersey stays undefeated.`,` The hat is staying on. Do not touch it.`],
+    radio:[` Put me on the postgame line.`,` I have three points and a phone call ready.`],
+    skeptic:[` I am not sold yet.`,` Do it again next inning and then we can talk.`],
+    chaos:[` I need this game to get weirder.`,` This is approaching my preferred level of nonsense.`],
+    superstition:[` Nobody change seats.`,` The lucky hat stays exactly where it is.`],
+    rivalry:[memoryLine||` I care about this one more than I should.`,` I have been saving energy for this matchup.`],
+    softie:[` This is why I love this ridiculous sport.`,` Remember the sound of the crowd right now.`],
+    meme:[` The reaction image is already drafted.`,` This is becoming excellent posting material.`],
+  }[id]||[];
+  return text+(flavor.length?pick(flavor,`${key}-${club.id}`):'');
+}
+
 function liveLines(team,foe,game,isBatting,key){
   const diff=team.id===game.awayTeamId?safe(game.awayScore)-safe(game.homeScore):safe(game.homeScore)-safe(game.awayScore);
   const type=playType(game); const bases=occupied(game.bases); const runs=runsOnPlay(game); const lines=[]; const ended=eventEndedHalf(game);
@@ -401,8 +424,9 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
     const clubPool=clubs.filter(c=>c.team.id===team.id); const state=teamStates.get(team.id); const eventTeam=eventBattingTeam(activeGame,away,home); const isBatting=(explicitEvent(activeGame)?eventTeam:battingTeam(activeGame,away,home))?.id===team.id;
     const posts=[];
     shuffle(clubPool,`${keyBase}-${team.id}`).slice(0,2).forEach((club,i)=>{
-      const text=phase==='warmup'?warmupLines(team,foe,rivalry,`${keyBase}-warm-${team.id}-${i}`):phase==='delay'?delayLines(team,foe,activeGame,`${keyBase}-delay-${team.id}-${i}`):phase==='postgame'?postgameLines(team,foe,activeGame,`${keyBase}-post-${team.id}-${i}`):liveLines(team,foe,activeGame,isBatting,`${keyBase}-live-${team.id}-${i}`);
-      posts.push({id:`${keyBase}-${club?.id||team.id}-${i}`,kind:'fan',name:club?.name||`${team.abbr} Fans`,handle:club?.handle||`@${team.abbr}Fans`,badge:club?.archetype?.label||'Fan Page',team,text,tone:phase==='live'&&isBigPlay(activeGame)?'spicy':state?.approval<35?'down':'neutral',time:phase==='warmup'?'pregame':phase==='postgame'?'postgame':'live'});
+      const baseText=phase==='warmup'?warmupLines(team,foe,rivalry,`${keyBase}-warm-${team.id}-${i}`):phase==='delay'?delayLines(team,foe,activeGame,`${keyBase}-delay-${team.id}-${i}`):phase==='postgame'?postgameLines(team,foe,activeGame,`${keyBase}-post-${team.id}-${i}`):liveLines(team,foe,activeGame,isBatting,`${keyBase}-live-${team.id}-${i}`);
+      const text=applyPosterVoice(baseText,club,team,foe,data,`${keyBase}-${i}`);
+      posts.push({id:`${keyBase}-${club?.id||team.id}-${i}`,kind:'fan',name:club?.name||`${team.abbr} Fans`,handle:club?.handle||`@${team.abbr}Fans`,badge:club?.voice||club?.archetype?.label||'Fan Page',team,text,tone:phase==='live'&&isBigPlay(activeGame)?'spicy':state?.approval<35?'down':'neutral',time:phase==='warmup'?'pregame':phase==='postgame'?'postgame':'live'});
     });
     const officialTeamPost=teamOfficialLine(team,foe,activeGame,phase,isBatting,state,rivalry,keyBase,bucket,promo);
     if(officialTeamPost)posts.unshift(officialTeamPost);

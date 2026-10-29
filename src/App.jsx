@@ -46,6 +46,7 @@ import createPlayoffController from "./controllers/createPlayoffController";
 import createDailyResultsController from "./controllers/createDailyResultsController";
 import createGameFinalizationController from "./controllers/createGameFinalizationController";
 import { currentSeasonDay, isCalendarAnchorGame } from "./utils/seasonCalendarUtils";
+import { buildChronicleSnapshot, getChronicleWeek } from "./utils/seasonChronicleUtils";
 
 export default function App() {
   const [data, setData] = useState(getInitialData);
@@ -80,6 +81,7 @@ const recentlyUpdatedTimerRef = useRef(null);
 const fieldBallResetTimerRef = useRef(null);
 const fieldPlayLogTimerRef = useRef(null);
 const [expandedHistorySeasonIds, setExpandedHistorySeasonIds] = useState([]);
+const chronicleAutoKeyRef = useRef("");
 
 
   const {
@@ -420,6 +422,22 @@ useEffect(() => {
     playoffHomeScore, setPlayoffAwayScore, setPlayoffHomeScore,
     syncPlayoffBracketToFirebase,
   });
+
+  useEffect(() => {
+    const { completedWeek } = getChronicleWeek(data, teams);
+    if (!completedWeek) return;
+    const extras = data.leagueExtras || {};
+    const snapshots = extras.chronicleSnapshots || [];
+    const season = data.activeSeasonName || 'Season 4';
+    const autoKey = `${season}-${completedWeek}`;
+    if (snapshots.some((s) => s?.type === 'weekly' && s?.season === season && Number(s?.week) === Number(completedWeek))) { chronicleAutoKeyRef.current = autoKey; return; }
+    if (chronicleAutoKeyRef.current === autoKey) return;
+    chronicleAutoKeyRef.current = autoKey;
+    const draft = buildChronicleSnapshot(data, teams, playoffPicture, { week: completedWeek, type: 'weekly', status: 'draft', label: `${season} · Week ${completedWeek}` });
+    const nextExtras = { ...extras, chronicleSnapshots: [draft, ...snapshots].slice(0,120) };
+    syncLeagueExtrasToFirebase(nextExtras);
+    setData((prev) => ({ ...prev, leagueExtras: nextExtras }));
+  }, [data.activeSeasonName, data.games?.length, data.leagueExtras?.seasonCalendar, teams, playoffPicture, syncLeagueExtrasToFirebase]);
 
   function commitGameUpdate(mutator) {
   setData((prev) => {
@@ -1673,11 +1691,11 @@ if (pitchCountTypes.has(type)) {
 
   const {
     addTeam, deleteTeam, editTeam, addPlayer, deletePlayer, updateRecord,
-    adjustTeamNumber, adjustTeamStreak, resetTeamStreak,
+    adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange,
   } = createAdminActions({
     newTeam, newPlayer, playerNameInputRef, recentlyUpdatedTimerRef,
     setData, setNewPlayer, setNewTeam, setRecentlyUpdatedTeamId,
-    setSelectedAdminTeamId, syncPlayersToFirebase, syncTeamsToFirebase,
+    setSelectedAdminTeamId, syncPlayersToFirebase, syncTeamsToFirebase, syncLeagueExtrasToFirebase,
   });
 
   function setLineup(side, index, playerId) {
@@ -1906,7 +1924,7 @@ const dashboardStories = [
       : 'season-atmosphere-regular'
     : 'season-atmosphere-finale';
 
-  const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
+  const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
 
   return (
     <div className={`app-shell wide-shell ${seasonAtmosphereClass}`}>
@@ -1914,9 +1932,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v4.23</span>
+    <span className="version-pill version-pill-v3">v4.24</span>
   </div>
-  <p>SMB4 Franchise Central · Version 4.23 · Living League · 40-game living universe</p>
+  <p>SMB4 Franchise Central · Version 4.24 · Living League · 40-game living universe</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (

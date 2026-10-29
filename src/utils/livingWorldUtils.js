@@ -11,6 +11,39 @@ const pct=t=>gp(t)?Number(t.wins||0)/gp(t):.5;
 const safe=n=>Number(n||0);
 const shuffle=(arr,key)=>[...arr].sort((a,b)=>seeded(`${key}-${a.id||a.handle||a.name}`)-seeded(`${key}-${b.id||b.handle||b.name}`));
 
+
+const FAN_VOICES={
+  diehard:{label:'Loyalist',lines:t=>[`I do not care what the standings say. I am riding with ${t.abbr} until the lights go out.`,`Good team, bad team, weird team — I am here every night.`]},
+  optimist:{label:'Sunshine',lines:t=>[`One win fixes the mood. Two wins starts a run. I am already planning the run.`,`I have decided ${t.abbr} is about to get hot. Evidence is optional.`]},
+  doomer:{label:'Doomer',lines:t=>[`I have several concerns and unfortunately all of them are about ${t.abbr}.`,`This team keeps teaching me new ways to worry.`]},
+  numbers:{label:'Stat Nerd',lines:t=>[`The vibes are cute. I am looking at run differential, recent form, and whether ${t.abbr} can actually sustain this.`,`Please bring data to the argument. I already made a spreadsheet.`]},
+  troll:{label:'Instigator',lines:t=>[`I am only here to make the replies worse. ${t.abbr} discourse needed help.`,`If this take ages badly, delete nothing. I want the receipts.`]},
+  historian:{label:'Historian',lines:t=>[`Every ${t.abbr} season gets compared with the old ones eventually. I have the archive open.`,`You can tell who has been here a while by which old collapse they mention first.`]},
+  merch:{label:'Collector',lines:t=>[`Winning streak means the old jersey comes back out. Those are the rules.`,`If ${t.abbr} makes October, I am absolutely buying something unnecessary.`]},
+  radio:{label:'Caller',lines:t=>[`PUT ME ON THE AIR. I HAVE A PLAN FOR ${t.abbr}.`,`I have been waiting all day to call in about this team and none of my thoughts are calm.`]},
+  skeptic:{label:'Skeptic',lines:t=>[`Show me two more good series and then I will believe in ${t.abbr}.`,`I have been fooled by one hot week before. Earn my trust.`]},
+  chaos:{label:'Chaos Fan',lines:t=>[`I do not need a comfortable win. I need something deeply stupid to happen.`,`Give me extra innings, bad decisions, and one impossible bounce.`]},
+  superstition:{label:'Superstitious',lines:t=>[`Nobody move the hat. Nobody change seats. ${t.abbr} knows what we did.`,`I wore the same shirt yesterday and I am not about to test fate.`]},
+  rivalry:{label:'Rivalry Sicko',lines:t=>[`The record can wait. Tell me when we play the team I cannot stand.`,`I keep receipts by opponent. This is a healthy hobby.`]},
+  softie:{label:'Sentimental',lines:t=>[`Some nights I care less about the score than hearing the crowd behind ${t.abbr}.`,`Baseball gets attached to memories before you realize it.`]},
+  meme:{label:'Meme Account',lines:t=>[`I have the reaction image ready. ${t.abbr} just needs to choose the emotion.`,`Scoreboard says one thing. My meme folder says seventeen things.`]},
+};
+
+function posterMemory(data,state,archetype){
+  const teamId=state?.team?.id; if(!teamId)return '';
+  const games=(data.games||[]).filter(g=>g?.status==='Final'&&(g.awayTeamId===teamId||g.homeTeamId===teamId));
+  const recent=games.slice(-5); if(!recent.length)return '';
+  const wins=recent.filter(g=>{const isAway=g.awayTeamId===teamId;return isAway?Number(g.awayScore)>Number(g.homeScore):Number(g.homeScore)>Number(g.awayScore)}).length;
+  const losses=recent.length-wins;
+  const history=(data.seasonHistory||[]).filter(s=>(s.teams||[]).some(t=>t.id===teamId));
+  if(archetype?.id==='historian'&&history.length){const last=history.at(-1);return ` I remember ${last.name||'last season'} too, so I am not overreacting yet.`;}
+  if(archetype?.id==='doomer'&&losses>=3)return ` We are ${wins}-${losses} over the last ${recent.length}, which is exactly why I refuse to relax.`;
+  if(archetype?.id==='optimist'&&wins>=3)return ` That is ${wins} wins in the last ${recent.length}. I am choosing joy.`;
+  if(archetype?.id==='numbers')return ` Recent sample: ${wins}-${losses} over the last ${recent.length}.`;
+  if(archetype?.id==='troll'&&recent.length>=3)return ` I have screenshots from three games ago and I am prepared to use them.`;
+  return '';
+}
+
 const FAN_ARCHETYPES=[
   {id:'diehard',label:'Diehard',icon:'🧢'},
   {id:'optimist',label:'Eternal Optimist',icon:'☀️'},
@@ -20,6 +53,12 @@ const FAN_ARCHETYPES=[
   {id:'historian',label:'Old Head',icon:'📚'},
   {id:'merch',label:'Merch Hunter',icon:'🛍️'},
   {id:'radio',label:'Call-In Regular',icon:'📻'},
+  {id:'skeptic',label:'Skeptic',icon:'🤨'},
+  {id:'chaos',label:'Chaos Fan',icon:'🌀'},
+  {id:'superstition',label:'Superstitious',icon:'🧿'},
+  {id:'rivalry',label:'Rivalry Sicko',icon:'🔥'},
+  {id:'softie',label:'Sentimental Fan',icon:'🥹'},
+  {id:'meme',label:'Meme Account',icon:'🖼️'},
 ];
 
 const TEAM_PAGE_NAMES=['Bleacher Society','Section 117','Faithful Forever','The Dugout','Upper Deck Union','Diamond District','Left Field Loud','The Ninth Inning'];
@@ -34,17 +73,19 @@ export function buildFanClubs(data={},teams=[],playoffPicture=[]){
   const {teamStates}=buildFanUniverse(data,teams,playoffPicture);
   return teamStates.flatMap((state,idx)=>{
     const base=hash(state.team.id||state.team.abbr);
-    return [0,1,2,3].map(i=>({
+    return [0,1,2,3].map(i=>{const archetype=FAN_ARCHETYPES[(base+i)%FAN_ARCHETYPES.length];return {
       id:`club-${state.team.id}-${i}`,
       team:state.team,
       name:`${state.team.abbr} ${TEAM_PAGE_NAMES[(base+i*3)%TEAM_PAGE_NAMES.length]}`,
       handle:teamHandle(state.team,i),
-      archetype:FAN_ARCHETYPES[(base+i)%FAN_ARCHETYPES.length],
+      archetype,
+      voice:FAN_VOICES[archetype.id]?.label||archetype.label,
+      signature:`${state.team.abbr}-${archetype.id}-${i}`,
       followers:Math.round(1400+state.marketHeat*185+state.history.titles*5200+i*730),
       bio:[`Independent ${state.team.abbr} fan page. Scoreboard watching, receipts, and unreasonable optimism.`,`For ${state.team.abbr} fans who remember everything and forgive almost nothing.`,`Stats, lineup debates, ballpark chatter and the occasional terrible prediction.`,`Unofficial supporters group. Road trips, rituals, memes and way too much emotional investment.`][i%4],
       mood:state.mood,
       heat:state.marketHeat,
-    }));
+    }});
   });
 }
 
@@ -82,10 +123,12 @@ export function buildMediaUniverse(){
 function rivalryForTeam(rivalries,teamId){return rivalries.filter(r=>r.teamAId===teamId||r.teamBId===teamId).sort((a,b)=>b.heat-a.heat)[0]}
 function otherTeam(r,teamId){return r?.teamAId===teamId?r.teamB:r?.teamBId===teamId?r.teamA:null}
 
-function teamPost(state,key,rival){
+function teamPost(state,key,rival,club,data){
   const t=state.team; const streak=t.streak||''; const rivalTeam=otherTeam(rival,t.id);
   const winPct=pct(t);
   const options=[];
+  const voice=FAN_VOICES[club?.archetype?.id];
+  if(voice)options.push(...voice.lines(t).map(line=>line+posterMemory(data,state,club?.archetype)));
   if(state.mood==='EUPHORIC'||state.mood==='BUZZING') options.push(`I am trying to be normal about ${t.abbr} and it is simply not happening.`);
   if(state.mood==='FURIOUS'||state.mood==='HOPELESS') options.push(`I have seen enough. I will be back tomorrow because apparently I enjoy suffering.`);
   if(streak.startsWith('W')) options.push(`${streak} and suddenly everybody remembers where their ${t.abbr} hat is.`);
@@ -139,7 +182,7 @@ export function buildLivingFeed(data={},teams=[],playoffPicture=[],now=Date.now(
   focus.forEach((state,i)=>{
     const club=pick(fanClubs.filter(c=>c.team.id===state.team.id),`club-${bucket}-${state.team.id}`);
     const rival=rivalryForTeam(rivalries,state.team.id);
-    posts.push({id:`team-${bucket}-${state.team.id}-${i}`,kind:'fan',handle:club?.handle||teamHandle(state.team,i),name:club?.name||`${state.team.abbr} Fans`,team:state.team,text:teamPost(state,`teamtext-${bucket}-${state.team.id}`,rival),tone:state.approval>=60?'up':state.approval<38?'down':'neutral',badge:club?.archetype?.label||'Fan Page',time:'now'});
+    posts.push({id:`team-${bucket}-${state.team.id}-${i}`,kind:'fan',handle:club?.handle||teamHandle(state.team,i),name:club?.name||`${state.team.abbr} Fans`,team:state.team,text:teamPost(state,`teamtext-${bucket}-${state.team.id}`,rival,club,data),tone:state.approval>=60?'up':state.approval<38?'down':'neutral',badge:club?.voice||club?.archetype?.label||'Fan Page',time:'now'});
     if(rival&&rival.heat>=35&&i<4){const chirp=rivalChirp(state,rival,`chirp-${bucket}-${state.team.id}`);if(chirp)posts.push({id:`rival-${bucket}-${state.team.id}`,kind:'rivalry',handle:`@${state.team.abbr}RivalryDept`,name:`${state.team.abbr} Rivalry Department`,team:state.team,text:chirp,tone:'spicy',badge:`${rival.label} · ${Math.round(rival.heat)} HEAT`,time:'now'});}
   });
 

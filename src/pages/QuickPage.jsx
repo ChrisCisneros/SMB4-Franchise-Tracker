@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { SEASON_LENGTH } from "../config/constants";
 import { eliminationNumber, gamesBack, pct } from "../utils/standingsUtils";
+import { chronicleSnapshots, compareSnapshotToCurrent } from "../utils/seasonChronicleUtils";
 
 export default function QuickPage({ ctx }) {
-  const { adjustTeamNumber, adjustTeamStreak, resetTeamStreak, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, teams } = ctx;
+  const { adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, teams } = ctx;
   const [search, setSearch] = useState("");
   const [leagueFilter, setLeagueFilter] = useState("ALL");
   const [progressFilter, setProgressFilter] = useState("all");
@@ -25,6 +26,9 @@ export default function QuickPage({ ctx }) {
   const incompleteCount = teams.filter(
     (team) => Number(team.wins || 0) + Number(team.losses || 0) < SEASON_LENGTH
   ).length;
+  const latestLockedSnapshot = chronicleSnapshots(data).find((s) => s.status === "locked" && s.season === (data.activeSeasonName || "Season 4")) || null;
+  const sinceSnapshot = useMemo(() => compareSnapshotToCurrent(latestLockedSnapshot, teams), [latestLockedSnapshot, teams]);
+  const lastRecordChange = data.leagueExtras?.recordChangeHistory?.[0] || null;
 
   return (
     <div className="quick-groups-wrap quick-v3-page">
@@ -39,12 +43,10 @@ export default function QuickPage({ ctx }) {
           <div><span>Still Playing</span><strong>{incompleteCount}</strong></div>
           <div><span>Visible</span><strong>{visibleTeams.length}</strong></div>
         </div>
-        {controlsUnlocked && (
-          <button className="danger-lite" onClick={resetRegularSeasonStats}>
-            Reset Regular Season
-          </button>
-        )}
+        {controlsUnlocked && <div className="quick-header-actions">{lastRecordChange&&<button className="ghost" onClick={undoLastTeamRecordChange}>↶ Undo {lastRecordChange.teamId} {lastRecordChange.field==='wins'?'W':'L'} Change</button>}<button className="danger-lite" onClick={resetRegularSeasonStats}>Reset Regular Season</button></div>}
       </div>
+
+      {latestLockedSnapshot&&<div className="card quick-change-digest"><div><div className="operator-kicker">SINCE {latestLockedSnapshot.label.toUpperCase()}</div><h3>What Changed?</h3><p className="muted">A live commissioner digest from the last locked Chronicle snapshot.</p></div><div className="quick-change-list">{sinceSnapshot.length?sinceSnapshot.slice(0,12).map(x=><span key={x.team.id}><b>{x.team.abbr}</b> {x.winsDelta>0?`+${x.winsDelta}W`:''}{x.lossesDelta>0?` ${x.lossesDelta}L`:''} {x.team.streak?`· ${x.team.streak}`:''}</span>):<span>No record movement since the last locked snapshot.</span>}</div></div>}
 
       <div className="card quick-filter-bar">
         <div className="quick-search-wrap">

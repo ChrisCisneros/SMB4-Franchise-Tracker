@@ -1,6 +1,6 @@
 # V4.x — Living World / Culture
 
-## Current release: V4.13.1 — Living Season
+## Current release: V4.16 — Media + Memory
 
 V4.5–V4.12 built the living-world layer: Fandom, team fan districts, live social feeds, official team/league accounts, Live Watching, Game Day Social, chronological chatter, large ambient phrase banks, promotions/giveaways, Ballpark Life, reseller/collector culture, World Pulse, League Office, and the Hall of Banners & Awards.
 
@@ -62,3 +62,117 @@ Unlock with `SF`, then use **League Office** for schedule placement, matchup imp
 
 ### League identity
 `officialLeagueName` and `officialLeagueAbbr` remain configurable so the temporary Super Mega Baseball League / SMBL identity can be replaced later.
+
+### V4.13.3 schedule rail containment
+The League Office matchup editor now stays within the page frame at all schedule lengths. Games 1-40 remain on a fixed-width horizontal rail with local scrolling instead of expanding the whole League Office layout.
+
+### V4.14 Season Atmosphere
+- Calendar now uses franchise-color home cards, slate road cards, muted off-days, current-day gold, W/L result accents, weekly records, series/milestone labels, and a full-width All-Star Break intermission.
+- Dashboard adds a next-three-games strip plus a live “What’s Happening” universe card.
+- World Pulse on quieter public pages now includes the current franchise matchup and promotion.
+- News adds a Today’s Baseball World / Daily Diamond edition strip.
+- The overall shell subtly changes mood for Opening Week, All-Star, second half, pennant race and season finale.
+- Fandom districts get stronger team-color atmosphere; League Office gets a commissioner status strip.
+- GameCast adds restrained big-play broadcast emphasis and stronger airborne ball depth.
+- Promotion bank adds Fan Club Meetup, Ballpark Photo, Autograph, Season Ticket Holder, Mascot Race, Retro Scoreboard, City Night and Fan Cam Night.
+
+## Version 4.16 — Media + Memory / Social Variety 3.0
+
+- Social game threads remember substantially more recent text and phrase families.
+- If no fresh social candidate is available, the thread may stay quiet instead of immediately repeating itself.
+- Added additional stadium-life voices: concourse, restroom lines, scorekeepers, optimists, doomers, seat neighbors, group chats, hecklers, broadcast watchers, ticket talk, memories and offbeat baseball side quests.
+- Quick Results can directly maintain W/L streaks, powering Hot/Cold coverage throughout the public app.
+- Added Ticket Forecast, Fans Are Talking About, Around the League Tonight, Hot/Cold Board and Live Chatter Heat.
+- Added Season Scrapbook, rivalry timeline, fanbase grudges, fake podcasts, dynamic fictional advertising, weekly media roundups and honor-only interview cards.
+- League Office surfaces milestone ceremony suggestions when the current league data supports one.
+
+## Version 4.18 — Fandom Districts
+- Media outlets now have recurring tones, biases, credibility/heat profiles, and different takes on the same league story.
+- Topic lifecycles classify conversation as emerging, trending, saturated, fading, or dormant so coverage can cool down instead of repeating forever.
+- Prediction receipts turn old simulated desk takes into recurring media jokes as current records change.
+- Fan-account relationships add mutuals, reply-guys, group chats, rivalry beef, mutes, and receipt culture.
+- Franchise reputations evolve from titles, playoff history, current form, streaks, and league memory.
+- Ballparks accumulate folklore, lucky/cursed rituals, and fan superstitions from tracked history.
+- Team tradition files add chants, rituals, and post-win customs.
+- Off-day mode keeps the baseball world active with radio, archive, collector, rivalry, and next-game conversation without inventing scores.
+- Season-defining moments now receive memory tiers: Noteworthy, Memorable, Classic, Legendary.
+- Dashboard gains a Main Character / story lifecycle / receipt / off-day life rail.
+- News gains media personalities, topic fatigue, prediction receipts, a recurring broadcast booth, and Season Memory Watch.
+- Fandom gains fan relationships, franchise reputation, ballpark folklore, traditions, media bias, and topic-fatigue boards.
+- League Hub gains a Living Lore archive.
+- Quick +W / +L entries now automatically advance or flip the team's current streak; negative corrections leave streak unchanged for safety.
+
+### 4.18 Quick Results repair
+- Reflowed the six Quick operator sections into a contained mini-console.
+- Wide desktop: three division columns; medium: two; iPad/narrow: one.
+- Prevents streak/RD controls from overflowing or clipping.
+
+## Version 4.18 — Fandom Districts
+- Reordered the primary navigation to Dashboard, Fandom, League Center, Standings, Bracket, News, League Hub, History, Records, League Office.
+- Renamed the V4 Center navigation surface to League Center and unified navigation styling.
+- Rebuilt Fandom as a subtab hub: Overview, Fan District, Social, Calendar, Rivalries & Grudges, Media, Merch & Collectibles, Culture & Lore.
+- Fanbase grudges are now team-specific and can form from division familiarity, regular-season history, postseason history and accumulated meetings.
+- Added a team-specific relationship map, community mood history and stronger district-local context.
+
+## Version 4.20.1 — Living League / Ballpark Life
+
+V4.20.1 supercharges the fictional baseball universe around the games themselves.
+
+- Official team accounts now understand home vs road context and have much deeper event-specific copy for homers, extra-base hits, strikeouts, double plays, scoring bursts and finals.
+- Extreme-game detection watches inning scoring, run margin, total scoring, walk-offs, extras and shutouts. Monster innings and historic-looking blowouts can become live SMBL alerts, News stories, Dashboard alerts and heavier scrapbook memories.
+- Repeated blowouts now add humiliation heat to fanbase grudges and can create Revenge Game / Payback Watch storylines.
+- Fanbase relationships can also become FRIENDLY or ALLIES, especially when fanbases share a common enemy.
+- The Ballpark Life engine creates pregame, in-game, postgame and off-day experiences: fan festivals, autograph sessions, first-pitch ceremonies, mascot races, fan cams, giveaways, food debuts, postgame shows, movie nights, community events, alumni events and more.
+- League Office includes a Ballpark Life Director with quick event-bank controls and manual event scheduling.
+- Fandom includes a Ballpark Life subtab with crowd personality, city buzz, revenge watch, cultural awards and consequence chains.
+- News includes live Developing / League Alert coverage, Ballpark Life, Revenge Watch, City Buzz and consequence-chain coverage.
+- The living-world model now emphasizes cause → reaction → memory → future consequence.
+
+## V4.20.1 — Ballpark Broadcast & Game Day Control
+- Dashboard decluttered into SMB Network → World Pulse → Today in the League → live broadcast → Market, with redundant Top Stories / Playoff Picture / At a Glance removed.
+- League Office Game Day Control can directly select any scheduled game without removing/re-adding calendar dates.
+- Game timing supports DAY / AFTERNOON / TWILIGHT / NIGHT and is shown on calendar cards.
+- Promotions show their full names/details in operator controls; theme-night bank expanded substantially.
+- Ceremonies now attach to the selected game and include PREGAME / IN-GAME / POSTGAME timing plus additional ceremony types.
+- Every club receives a persistent ballpark identity with a 30k–40k-scale capacity, crowd atmosphere, famous section, food, and tradition.
+- Attendance forecasts use park capacity, team form, opponent interest, promotion and rivalry context.
+- Live Watching audiences now start in the tens of thousands in Season 3 and scale aggressively with league age, rivalry, leverage and postseason stakes, allowing 1M+ major games in later seasons.
+
+
+## V4.20.2 — Calendar & Ceremony Operator Polish
+Fast First Pitch Paint mode now supports bulk calendar time-of-day assignment while preserving the per-game editor. Opening championship ceremonies seed only from the latest completed season, and commissioner-created custom ceremonies can be attached to any selected Game Day.
+
+
+## V4.20.3 Championship Ceremony Fix
+- Latest championship ceremony lookup now selects the highest/latest archived season rather than relying on array order.
+- Latest league champions receive banner ceremony presets; the World Series champion receives a combined banner, trophy and rings ceremony.
+- Ceremony presets auto-attach to the first scheduled matchup against each champion when available, otherwise remain unassigned for manual placement.
+
+
+### V4.21 Rings & Rafters
+Championship ceremonies are now presentation events rather than calendar-only tags. The newest archived championship hardware remains covered in the Trophy Room until its scheduled ceremony is completed, then becomes a permanent displayed banner/ring/trophy. Seasons before the current ceremony cycle remain visible as legacy hardware.
+
+### V4.22 — Hall of Glory
+- Championship ceremony presets are now generated **unassigned**. League Office lets the commissioner choose any Game Day and timing for each reveal, even when the champion is not that day's opponent.
+- The Hall of Glory replaces the basic Trophy Room presentation with museum-style season displays, inspection, championship journeys, franchise prestige and a replayable ceremony archive.
+- Championship rings, banners and the World Series trophy are custom visual hardware rather than emoji/placeholders. Team-color hardware uses darker secondary treatments for white-heavy identities.
+- Ceremony presentations now include a Road to the Rafters stage, full banner/trophy/ring reveal sequence, confetti/spotlights, completion persistence and safe replay mode.
+- Completing a ceremony creates a permanent Legacy World Moment and permanently unveils the matching hardware.
+
+### V4.22.1 — Hall Cover Containment Fix
+- Covered Hall of Glory hardware is now fully hidden until its ceremony reveal; ring glow, trophy edges, and banner silhouettes can no longer bleed through the `AWAITING CEREMONY` cover.
+
+
+### V4.22.2 — World Series Banner Hierarchy
+World Series champions now receive a dedicated WORLD SERIES CHAMPIONS banner with premium gold trim and a more formal presentation. League champions retain the simpler AL/NL pennant treatment.
+
+
+### V4.23 — Milestones & Momentum
+Player legacy, opt-in season awards, improved win probability, warmup/delay reactions, editable history/records, GameCast cleanup, and a postseason bracket makeover.
+
+
+### V4.24 — Season Chronicle
+Season Chronicle turns the growing living universe into an organized historical system. Weekly calendar closures create reviewable Chronicle drafts, locked snapshots become standings-movement baselines, League Center gains cleaner internal navigation and global search, Quick Results gains safe record-change undo, and League Office gains a Commissioner Inbox. Player legacy management now supports milestone ladders, retroactive/date-unknown backfill, career record watches, regular/postseason award races, History filters, and compact team-legacy summaries.
+
+### V4.25 — Legacy & Culture
+V4.25 turns accumulated history into visible culture. League Center gains a Baseball Museum with automatic championship, milestone, retired-number and classic-game artifacts plus commissioner-curated objects. Season-based anniversaries surface old championships and milestones as the universe ages. Existing drought calculations are promoted into living franchise stories, while consecutive success/failure is recognized as Golden Eras, Dynasty Eras, Contender Eras, Lean Years and Dark Ages. Fan accounts now keep stable voice archetypes and use recent-game / historical context as memory, producing more differentiated reactions in both Fandom and Game Day Social.
