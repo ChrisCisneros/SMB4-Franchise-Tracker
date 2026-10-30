@@ -176,3 +176,15 @@ Season Chronicle turns the growing living universe into an organized historical 
 
 ### V4.25 — Legacy & Culture
 V4.25 turns accumulated history into visible culture. League Center gains a Baseball Museum with automatic championship, milestone, retired-number and classic-game artifacts plus commissioner-curated objects. Season-based anniversaries surface old championships and milestones as the universe ages. Existing drought calculations are promoted into living franchise stories, while consecutive success/failure is recognized as Golden Eras, Dynasty Eras, Contender Eras, Lean Years and Dark Ages. Fan accounts now keep stable voice archetypes and use recent-game / historical context as memory, producing more differentiated reactions in both Fandom and Game Day Social.
+
+## Version 5 — The Living Broadcast
+Version 5 turns the tracker from a living database into a more resilient, theatrical baseball universe.
+
+- **Protected universe persistence:** League extras now keep a timestamped local safety copy plus a protected Firebase JSON snapshot so calendars, ceremonies, museum objects and commissioner-created world data cannot silently disappear when Firebase omits empty/missing tree fields. Older safety snapshots are prevented from rolling newer local data backward.
+- **Broadcast theme engine:** Dashboard presentation now resolves by explicit priority: Ceremony → Special Night → Postseason/Championship → Interleague → Rivalry → Regular Season. Interleague games split the visual field by league, while special nights can own the presentation with event-specific effects such as fireworks.
+- **Ballpark bunting:** traditional semicircle patriotic bunting is anchored at the top of the Dashboard for Opening Day, Game 20 and postseason games.
+- **Win probability 2.0:** early leads and baserunners have much less authority, while leverage grows naturally toward the late innings. Early/midgame uncertainty bands prevent ordinary third-inning leads from looking decided.
+- **Museum + Hall of Glory:** one permanent destination now combines championship hardware, ceremonies and journeys with Museum artifacts. Major player honors can appear as statue exhibits; records and memorable moments use plaque-style exhibits; championship hardware keeps its banner/ring/trophy presentation and unveiling history.
+- **Social Variety 5.0:** automatic personality quips are removed. Every existing general chatter bank receives a large expansion while preserving commissioner-written phrases. Official team accounts and media personalities receive deeper independent pregame, live, event and postgame banks.
+- **Storyline aging:** historic monster games remain in the archive but cool in newsroom prominence after newer games are played. New magnitude criteria include strikeout festivals, homer barrages, hit parades, defensive chaos, walk-heavy games and pitching duels.
+- **Newsroom V5:** League News adds a Deep Dive, Top Story Board, Assignment Desk and interactive Story Dossiers while retaining the existing world pulse, media network, podcasts, memory, facts, fan pulse and full archive.

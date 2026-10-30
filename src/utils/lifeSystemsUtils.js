@@ -154,7 +154,16 @@ export function buildOffDayWorld(data={},teams=[],playoffPicture=[]){
 
 export function buildDefiningMoments(data={},teams=[]){
   const scrapbook=buildSeasonScrapbook(data,teams);
-  return scrapbook.map(x=>({...x,importance:clamp(Math.round(n(x.score)+((x.detail||'').includes('WALK-OFF')?25:0)+((x.detail||'').includes('POSTSEASON')?30:0)))})).sort((a,b)=>b.importance-a.importance).slice(0,10).map((x,i)=>({...x,tier:x.importance>=90?'LEGENDARY':x.importance>=70?'CLASSIC':x.importance>=50?'MEMORABLE':'NOTEWORTHY',rank:i+1}));
+  const recentGames=(data.games||[]).filter(g=>g?.status==='Final');
+  const ageById=new Map(recentGames.map((g,i)=>[`game-${g.id}`,i]));
+  return scrapbook.map(x=>{
+    const age=ageById.has(x.id)?ageById.get(x.id):0;
+    const base=n(x.score)+((x.detail||'').includes('WALK-OFF')?25:0)+((x.detail||'').includes('POSTSEASON')?30:0);
+    // The archive keeps the true magnitude, while the newsroom ranking cools after a few games.
+    const freshnessPenalty=x.kind==='GAME'?Math.max(0,age-2)*11:0;
+    const importance=clamp(Math.round(base-freshnessPenalty));
+    return {...x,importance,archiveImportance:clamp(Math.round(base)),ageGames:age};
+  }).sort((a,b)=>b.importance-a.importance||b.archiveImportance-a.archiveImportance).slice(0,12).map((x,i)=>({...x,tier:x.archiveImportance>=90?'LEGENDARY':x.archiveImportance>=70?'CLASSIC':x.archiveImportance>=50?'MEMORABLE':'NOTEWORTHY',rank:i+1}));
 }
 
 export function buildLeagueMainCharacter(data={},teams=[],playoffPicture=[]){

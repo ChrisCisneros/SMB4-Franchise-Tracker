@@ -22,6 +22,7 @@ import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile, buildGameConditions } from "../utils/ballparkLifeUtils";
+import { broadcastThemeClasses, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -84,7 +85,7 @@ export default function DashboardPage({ ctx }) {
     const ceremonies=(extras.ceremonies||[]).map(c=>c.id===ceremony.id?{...c,status:'completed',completedAt:new Date().toISOString()}:c);
     const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,completedAt:new Date().toISOString()};
     const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
-    const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
+    const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Museum & Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
     const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
     const next={...extras,ceremonies,ceremonyCompletions,worldMoments};
     syncLeagueExtrasToFirebase?.(next); setData?.(p=>({...p,leagueExtras:next})); setActiveCeremony(null);
@@ -130,11 +131,13 @@ export default function DashboardPage({ ctx }) {
   const v4Midseason = avgGamesPerTeam >= 19 && avgGamesPerTeam <= 21;
   const v4Opening = avgGamesPerTeam <= 1;
   const v4Championship = isPlayoffLiveGame && ["finals","worldSeries"].includes(currentGame.playoffSeriesId);
-  const v4Theme = v4Championship ? "championship" : isPlayoffLiveGame ? "playoff" : (v4Rivalry?.games||0)>=2 ? "rivalry" : v4Midseason ? "allstar" : v4Opening ? "opening" : "regular";
   const v4BuntingGameNumber = Number(gameDaySocial?.gameNumber || todaySlot?.gameNumber || currentGame?.seasonGameNumber || 0);
+  const activePromo = gameDaySocial?.promo || todaySlot?.promo || null;
+  const broadcastTheme = resolveBroadcastTheme({data,teams,currentGame,rivalry:v4Rivalry,promo:activePromo,ceremonies:todayCeremonies,gameNumber:v4BuntingGameNumber});
+  const v4Theme = broadcastTheme.kind==='postseason'?(v4Championship?'championship':'playoff'):broadcastTheme.kind==='rivalry'?'rivalry':broadcastTheme.id==='night-all-star'?'allstar':broadcastTheme.id==='night-opening-day'?'opening':'regular';
   const v4ShowBunting = v4BuntingGameNumber === 1 || v4BuntingGameNumber === 20 || isPlayoffLiveGame;
   const v4BuntingTheme = isPlayoffLiveGame ? "postseason" : v4BuntingGameNumber === 20 ? "allstar" : "opening";
-  const atmosphereLabel = isPlayoffLiveGame ? 'POSTSEASON ATMOSPHERE' : (v4Rivalry?.heat||0)>=55 ? 'RIVALRY NIGHT' : v4BuntingGameNumber===20 ? 'MIDSEASON CELEBRATION' : v4BuntingGameNumber===1 ? 'OPENING DAY' : v4Importance?.label==='MUST WATCH' ? 'MARQUEE NIGHT' : attendanceForecast?.park?.atmosphere||'BASEBALL NIGHT';
+  const atmosphereLabel = broadcastTheme.priority>=55 ? broadcastTheme.label : v4Importance?.label==='MUST WATCH' ? 'MARQUEE NIGHT' : attendanceForecast?.park?.atmosphere||'BASEBALL NIGHT';
   const tickerItems = useMemo(()=>{
     const items=[
       ...news.slice(0,4).map(x=>`${x.category}: ${x.headline}`),
@@ -175,11 +178,13 @@ export default function DashboardPage({ ctx }) {
     return [...rows.values()].sort((a,b) => b.games-a.games || b.wins-a.wins || a.opponent.abbr.localeCompare(b.opponent.abbr));
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
-  return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme}`}>
+  return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444'}}>
     {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
+    <div className="dashboard-theme-canvas" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
+    {v4ShowBunting && <div className={`dashboard-v4-bunting dashboard-v4-bunting-top ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
 
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 4.25</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 5</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -192,7 +197,7 @@ export default function DashboardPage({ ctx }) {
       <div className="v3-dashboard-primary">
         {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div><button type="button" onClick={()=>setActiveCeremony(readyCeremony)}>Begin Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
-          <div><span>Broadcast Theme</span><strong>{v4Theme === "allstar" ? "ALL-STAR BREAK" : v4Theme.toUpperCase()}</strong></div>
+          <div><span>Broadcast Theme</span><strong>{broadcastTheme.icon} {broadcastTheme.label}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
           <div><span>Leverage</span><strong>{v4Prob.leverage}</strong></div>
           <div><span>Crowd</span><strong>{v4Prob.crowd}/100</strong></div>
@@ -289,12 +294,6 @@ export default function DashboardPage({ ctx }) {
         <div className="card v3-rail-card"><div className="v3-rail-head"><div><span>RECORD WATCH</span><h3>V3 Game Book</h3></div><button onClick={()=>setPage?.('league')}>Archive</button></div>{alerts.length?alerts.map((a,i)=><div className="v3-alert-row" key={i}><span>{a.label}</span><strong>{a.value}</strong><small>{a.detail}</small></div>):<div className="v3-empty-compact">Finalize games to unlock live game records.</div>}</div>
       </aside>
     </section>
-
-
-    {v4ShowBunting && <div className={`dashboard-v4-bunting ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
-
-
-
 
 
     <section className="dashboard-next-strip card">

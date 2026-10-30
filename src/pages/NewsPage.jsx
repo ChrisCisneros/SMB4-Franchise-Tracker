@@ -73,6 +73,7 @@ export default function NewsPage({ ctx }) {
   const [featureOffset, setFeatureOffset] = useState(0);
   const [factOffset, setFactOffset] = useState(0);
   const [tickerOffset, setTickerOffset] = useState(0);
+  const [selectedStory, setSelectedStory] = useState(null);
   const stories = useMemo(() => buildNewsFeed(data, teams), [data, teams]);
   const fanPoll = useMemo(() => buildFanPoll(data, teams, ctx.playoffPicture || [], Date.now()), [data, teams, ctx.playoffPicture, featureOffset]);
   const social = useMemo(() => buildSocialChatter(data, teams, ctx.playoffPicture || [], Date.now()).slice(0,4), [data, teams, ctx.playoffPicture, tickerOffset]);
@@ -149,6 +150,30 @@ export default function NewsPage({ ctx }) {
         <div className="news-network-chips"><span>{currentCount} current</span><span>{factCount} facts & nuggets</span><span>{stories.length} total stories</span></div>
       </section>
 
+      <section className="news-v5-desk-grid">
+        <article className="card news-v5-deep-dive">
+          <div className="news-kicker">V5 · THE DEEP DIVE</div>
+          <small>{lead?.category||historicAlerts[0]?.kicker||'LEAGUE DESK'}</small>
+          <h2>{lead?.headline||historicAlerts[0]?.headline||"The league is still writing tonight's headline."}</h2>
+          <p>{lead?.dek||historicAlerts[0]?.detail||'Every game, streak and milestone feeds the next edition of the league story.'}</p>
+          {lead&&<button type="button" onClick={()=>setSelectedStory(lead)}>OPEN STORY DOSSIER →</button>}
+        </article>
+        <article className="card news-v5-storyboard">
+          <div className="news-kicker">TOP STORY BOARD</div>
+          <h3>What owns the newsroom right now</h3>
+          {[...editorialStories].slice(0,6).map((story,i)=><button key={`board-${story.id}`} type="button" onClick={()=>setSelectedStory(story)}><b>{String(i+1).padStart(2,'0')}</b><span><small>{story.category} · {story.dateLabel}</small><strong>{story.headline}</strong></span></button>)}
+        </article>
+        <article className="card news-v5-assignment-desk">
+          <div className="news-kicker">ASSIGNMENT DESK</div>
+          <h3>What reporters are chasing</h3>
+          <p><b>⚡ Live pulse</b><span>{worldState.leagueMood}</span></p>
+          <p><b>📈 Trend</b><span>{topicLifecycles[0]?.topic||'Waiting for the next league-wide obsession'}</span></p>
+          <p><b>📚 Memory</b><span>{definingMoments[0]?.title||'The season archive is still forming'}</span></p>
+          <p><b>🎙️ Booth note</b><span>{broadcastBooth[0]?.trait||'Pregame notes are being filed'}</span></p>
+          <p><b>👀 Next watch</b><span>{aroundTonight[0]?.title||'The next game on the calendar'}</span></p>
+        </article>
+      </section>
+
       {historicAlerts[0]&&<section className={`news-extreme-alert card ${historicAlerts[0].live?'is-live':''}`}><div><small>{historicAlerts[0].kicker}</small><strong>{historicAlerts[0].tier} · {historicAlerts[0].score}/100</strong></div><h2>{historicAlerts[0].headline}</h2><p>{historicAlerts[0].detail}</p><div>{(historicAlerts[0].tags||[]).map(t=><span key={t}>{t}</span>)}</div></section>}
 
       {preservedAchievements[0]&&<section className="news-player-milestone card"><div><small>🏅 MILESTONE DESK</small><strong>{preservedAchievements[0].season||data.activeSeasonName}</strong></div><h2>{preservedAchievements[0].playerName||preservedAchievements[0].teamAbbr||'Player Milestone'} · {preservedAchievements[0].title}</h2><p>{preservedAchievements[0].note||'A player milestone has been preserved in league history.'}</p><span>{preservedAchievements[0].teamAbbr||'LEAGUE'} · PERMANENT ACHIEVEMENT</span></section>}
@@ -197,8 +222,10 @@ export default function NewsPage({ ctx }) {
 
         {!!latestStories.length && <section className="news-latest-section"><div className="news-section-heading"><div><div className="news-kicker">Around the League</div><h3>News Wire</h3></div><span>{latestStories.length} more stor{latestStories.length===1?"y":"ies"}</span></div><div className="news-headline-list">{latestStories.map((story)=><HeadlineStory key={story.id} story={story}/>)}</div></section>}
 
-        {!!stories.length && <section className="news-all-stories card"><div className="news-section-heading"><div><div className="news-kicker">Full Archive</div><h3>All Stories & Nuggets</h3></div><span>{stories.length} total</span></div><div className="news-all-story-grid">{stories.map((story)=><button type="button" key={`all-${story.id}`} className="news-all-story" onClick={()=>{ const idx=editorialStories.findIndex((s)=>s.id===story.id); if(idx>=0)setFeatureOffset(idx); }}><span>{story.category}</span><strong>{story.headline}</strong><small>{story.dateLabel}</small></button>)}</div></section>}
+        {!!stories.length && <section className="news-all-stories card"><div className="news-section-heading"><div><div className="news-kicker">Full Archive</div><h3>All Stories & Nuggets</h3></div><span>{stories.length} total</span></div><div className="news-all-story-grid">{stories.map((story)=><button type="button" key={`all-${story.id}`} className="news-all-story" onClick={()=>{ const idx=editorialStories.findIndex((s)=>s.id===story.id); if(idx>=0)setFeatureOffset(idx); setSelectedStory(story); }}><span>{story.category}</span><strong>{story.headline}</strong><small>{story.dateLabel}</small></button>)}</div></section>}
       </>}
+
+      {selectedStory&&<div className="news-story-dossier-backdrop" role="presentation" onClick={()=>setSelectedStory(null)}><section className={`news-story-dossier news-tone-${selectedStory.tone||'archive'}`} role="dialog" aria-modal="true" aria-label="Story dossier" onClick={e=>e.stopPropagation()}><button className="news-story-dossier-close" type="button" onClick={()=>setSelectedStory(null)}>×</button><div className="news-kicker">SMB NETWORK · STORY DOSSIER</div><StoryMeta story={selectedStory}/><h2>{selectedStory.headline}</h2><p>{selectedStory.dek}</p><TeamTags story={selectedStory}/><div className="news-dossier-grid"><div><small>DESK</small><strong>{storyBucket(selectedStory)}</strong></div><div><small>EDITION</small><strong>{selectedStory.dateLabel||data.activeSeasonName}</strong></div><div><small>STATUS</small><strong>{selectedStory.kind==='fact'?'REFERENCE':'ACTIVE FILE'}</strong></div></div><h4>WHY IT MATTERS</h4><p>{selectedStory.kind==='fact'?'This nugget is part of the permanent context that makes current games mean more.':'This story is part of the live season narrative. Its prominence will cool as newer games create stronger, fresher storylines.'}</p></section></div>}
     </div>
   );
 }

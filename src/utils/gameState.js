@@ -76,6 +76,21 @@ bigMomentId: 0,
 history: [],
 });
 
+export const defaultLeagueExtras = {
+  awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [],
+  rebrands: [], retiredNumbers: [], prospects: [], milestones: [],
+  openingDay: "", seasonTagline: "", powerRankSnapshots: [],
+  standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
+  hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
+  leagueCalendar: [], storylines: [], bracketPredictions: [],
+  officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
+  seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
+  worldMoments: [], ballparkEvents: [], rivalryNames: {}, gameNightSchedule: {},
+  gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
+  chronicleSnapshots: [], recordChangeHistory: [], awardRace: [],
+  careerRecordWatches: [], museumArtifacts: [], ceremonyCompletions: [],
+};
+
 export const defaultData = {
   leagues: ["AL", "NL"],
   divisions: ["East", "Central", "West"],
@@ -92,19 +107,7 @@ export const defaultData = {
   playoffBracket: defaultPlayoffBracket(),
   seasonHistory: [],
   activeSeasonName: "Season 4",
-  leagueExtras: {
-    awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [],
-    rebrands: [], retiredNumbers: [], prospects: [], milestones: [],
-    openingDay: "", seasonTagline: "", powerRankSnapshots: [],
-    standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
-    hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
-    leagueCalendar: [], storylines: [], bracketPredictions: [],
-    officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
-    seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
-    worldMoments: [], ballparkEvents: [],
-      rivalryNames: {}, gameNightSchedule: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
-      chronicleSnapshots: [], recordChangeHistory: [], awardRace: [], careerRecordWatches: [], museumArtifacts: []
-  },
+  leagueExtras: defaultLeagueExtras,
 };
 
 

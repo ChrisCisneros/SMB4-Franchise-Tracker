@@ -87,13 +87,27 @@ export function analyzeGameMagnitude(game={},teams=[]){
   const extras=n(game.inning||game.innings)>9;
   const shutout=(a===0||h===0)&&(a+h>0);
   const oneRun=margin===1;
+  const playText=(game.playLog||[]).map(x=>String(x||'').toLowerCase());
+  const strikeouts=playText.filter(x=>x.includes('struck out')).length;
+  const homers=playText.filter(x=>x.includes('home run')).length;
+  const walks=playText.filter(x=>x.includes(' walked.')).length;
+  const errors=Math.max(n(game.awayErrors)+n(game.homeErrors),playText.filter(x=>x.includes('reached on an error')).length);
+  const hits=n(game.awayHits)+n(game.homeHits);
   let score=8;
   score+=Math.min(36,margin*2.2)+Math.max(0,total-10)*1.35+Math.max(0,maxInning-4)*6;
   if(extras)score+=15;if(game.walkoff)score+=24;if(shutout&&margin>=8)score+=10;if(oneRun)score+=7;
+  if(strikeouts>=18)score+=12; else if(strikeouts>=14)score+=7;
+  if(homers>=6)score+=10; else if(homers>=4)score+=5;
+  if(hits>=28)score+=8; if(errors>=5)score+=7; if(walks>=10)score+=6;
+  if(total<=3&&margin<=2)score+=8;
   const tags=[];
   if(maxInning>=14)tags.push('14-RUN INNING'); else if(maxInning>=10)tags.push('10+ RUN INNING'); else if(maxInning>=7)tags.push('MONSTER INNING');
   if(margin>=15)tags.push('EXTREME BLOWOUT'); else if(margin>=10)tags.push('BLOWOUT');
   if(total>=20)tags.push('20+ RUN GAME'); if(game.walkoff)tags.push('WALK-OFF'); if(extras)tags.push('EXTRAS'); if(shutout)tags.push('SHUTOUT'); if(oneRun)tags.push('ONE-RUN');
+  if(strikeouts>=18)tags.push('WHIFF CITY'); else if(strikeouts>=14)tags.push('STRIKEOUT FEST');
+  if(homers>=6)tags.push('HOMER BARRAGE'); else if(homers>=4)tags.push('POWER SHOW');
+  if(hits>=28)tags.push('HIT PARADE'); if(errors>=5)tags.push('CHAOS DEFENSE'); if(walks>=10)tags.push('TRAFFIC JAM');
+  if(total<=3&&margin<=2)tags.push('PITCHING DUEL');
   score=clamp(Math.round(score));
   const tier=score>=90?'LEGENDARY':score>=74?'HISTORIC':score>=56?'CLASSIC':score>=36?'MEMORABLE':'ROUTINE';
   const winner=a>h?away:h>a?home:null,loser=a>h?home:h>a?away:null;
@@ -101,11 +115,15 @@ export function analyzeGameMagnitude(game={},teams=[]){
   if(maxInning>=10)headline=`${maxSide} erupts for ${maxInning} runs in the ${ordinal(maxInningNo)} inning`;
   else if(margin>=15)headline=`${winner?.abbr||'One club'} turns the night into a ${margin}-run demolition`;
   else if(total>=20)headline=`${away?.abbr||'AWY'} and ${home?.abbr||'HME'} combine for ${total} runs`;
+  else if(strikeouts>=18)headline=`${away?.abbr||'AWY'}-${home?.abbr||'HME'} turns into a ${strikeouts}-strikeout survival test`;
+  else if(homers>=6)headline=`Power takes over as ${away?.abbr||'AWY'} and ${home?.abbr||'HME'} combine for ${homers} homers`;
+  else if(hits>=28)headline=`The bats refuse to cool in a ${hits}-hit night`;
+  else if(total<=3&&margin<=2)headline=`Every run feels enormous in a low-scoring duel`;
   else if(game.walkoff)headline=`${home?.abbr||'Home'} ends it in walk-off fashion`;
   else if(extras)headline=`${away?.abbr||'AWY'}-${home?.abbr||'HME'} refuses to end after nine`;
   else if(tier!=='ROUTINE')headline=`${winner?.abbr||'The winner'} leaves a mark on the night`;
   const nickname=maxInning>=12?`The ${maxInning}-Run ${ordinal(maxInningNo)}`:margin>=15?'The Demolition':game.walkoff?'The Walk-Off Night':extras&&n(game.inning||game.innings)>=12?'The Marathon':total>=20?'The Track Meet':'';
-  return {score,tier,tags,headline,nickname,maxInning,maxInningNo,maxSide,margin,total,winner,loser,away,home};
+  return {score,tier,tags,headline,nickname,maxInning,maxInningNo,maxSide,margin,total,strikeouts,homers,walks,errors,hits,winner,loser,away,home};
 }
 
 function ordinal(v){const n=Number(v)||0;const s=n%100;return `${n}${s>=11&&s<=13?'th':n%10===1?'st':n%10===2?'nd':n%10===3?'rd':'th'}`;}
@@ -115,11 +133,18 @@ export function buildHistoricGameAlerts(data={},teams=[]){
   const live=data.currentGame;
   if(live?.awayTeamId&&live?.homeTeamId&&(live.status==='Live'||live.status==='Delay')){
     const m=analyzeGameMagnitude(live,teams);
-    if(m.score>=50||m.maxInning>=8||m.margin>=12)rows.push({id:'live-extreme',live:true,...m,kicker:m.score>=74?'🚨 SMBL ALERT':'👀 DEVELOPING',detail:`${m.away?.abbr||'AWY'} ${n(live.awayScore)} – ${m.home?.abbr||'HME'} ${n(live.homeScore)} · ${live.half==='Bottom'?'Bottom':'Top'} ${n(live.inning)||1}`});
+    if(m.score>=50||m.maxInning>=8||m.margin>=12)rows.push({id:'live-extreme',live:true,...m,displayScore:m.score+30,ageGames:0,kicker:m.score>=74?'🚨 SMBL ALERT':'👀 DEVELOPING',detail:`${m.away?.abbr||'AWY'} ${n(live.awayScore)} – ${m.home?.abbr||'HME'} ${n(live.homeScore)} · ${live.half==='Bottom'?'Bottom':'Top'} ${n(live.inning)||1}`});
   }
-  const finals=(data.games||[]).filter(g=>g?.status==='Final').slice(0,12);
-  finals.forEach(g=>{const m=analyzeGameMagnitude(g,teams);if(m.score>=56)rows.push({id:`final-${g.id}`,live:false,game:g,...m,kicker:m.tier==='LEGENDARY'?'🏛️ LEAGUE HISTORY':'📰 GAME AFTERLIFE',detail:`${m.away?.abbr||'AWY'} ${n(g.awayScore)} – ${m.home?.abbr||'HME'} ${n(g.homeScore)}${m.nickname?` · ${m.nickname}`:''}`});});
-  return rows.sort((a,b)=>(b.live-a.live)||b.score-a.score).slice(0,8);
+  const finals=(data.games||[]).filter(g=>g?.status==='Final').slice(0,28);
+  finals.forEach((g,index)=>{
+    const m=analyzeGameMagnitude(g,teams); if(m.score<48)return;
+    // V5 story cooldown: huge games stay in history, but the news cycle moves on after a few newer finals.
+    const freshness=index<=1?18-index*5:-Math.max(0,index-1)*10;
+    const displayScore=clamp(m.score+freshness,0,130);
+    const kicker=index<=2?(m.tier==='LEGENDARY'?'🏛️ LEAGUE HISTORY':'📰 GAME AFTERLIFE'):'📚 FROM THE ARCHIVE';
+    rows.push({id:`final-${g.id}`,live:false,game:g,...m,displayScore,ageGames:index,kicker,detail:`${m.away?.abbr||'AWY'} ${n(g.awayScore)} – ${m.home?.abbr||'HME'} ${n(g.homeScore)}${m.nickname?` · ${m.nickname}`:''}`});
+  });
+  return rows.sort((a,b)=>(b.live-a.live)||b.displayScore-a.displayScore||b.score-a.score).slice(0,10);
 }
 
 export function buildBallparkLife(data={},teams=[],playoffPicture=[],now=Date.now()){
