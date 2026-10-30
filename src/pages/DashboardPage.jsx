@@ -22,7 +22,7 @@ import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile, buildGameConditions } from "../utils/ballparkLifeUtils";
-import { broadcastThemeClasses, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
+import { broadcastThemeClasses, broadcastThemeStyle, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -178,9 +178,9 @@ export default function DashboardPage({ ctx }) {
     return [...rows.values()].sort((a,b) => b.games-a.games || b.wins-a.wins || a.opponent.abbr.localeCompare(b.opponent.abbr));
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
-  return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444'}}>
+  return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444',...broadcastThemeStyle(broadcastTheme)}}>
     {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
-    <div className="dashboard-theme-canvas" aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
+    <div className="dashboard-theme-canvas" data-icon={broadcastTheme.icon||"⚾"} data-label={broadcastTheme.label||"BASEBALL NIGHT"} aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
     {v4ShowBunting && <div className={`dashboard-v4-bunting dashboard-v4-bunting-top ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
 
     <section className="dashboard-universe-plaza dashboard-network-top">

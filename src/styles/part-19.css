@@ -297,3 +297,128 @@
 .dashboard-v4-bunting.dashboard-v4-bunting-top i{height:44px;max-width:92px}
 @media(max-width:800px){.dashboard-v4-bunting.dashboard-v4-bunting-top{height:43px;margin:0 3px 8px}.dashboard-v4-bunting.dashboard-v4-bunting-top i{height:38px}}
 .dashboard-theme-season-event .dashboard-theme-canvas:before{background:radial-gradient(circle at 50% 0,rgba(239,68,68,.13),transparent 30%),linear-gradient(90deg,rgba(37,99,235,.09),transparent 28% 72%,rgba(220,38,38,.09))}.dashboard-theme-opening .v3-broadcast-hero,.dashboard-theme-allstar .v3-broadcast-hero{border-color:rgba(248,250,252,.24);box-shadow:0 18px 55px rgba(15,23,42,.28),inset 0 0 42px rgba(255,255,255,.025)}
+
+/* VERSION 5.1 — FULL GAME-NIGHT WALLPAPERS + DASHBOARD GLASS FACELIFT */
+.dashboard-v3-home{
+  --theme-night-a:#1d4ed8;--theme-night-b:#7c3aed;--theme-night-c:#ec4899;
+  isolation:isolate;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 11% 5%,color-mix(in srgb,var(--theme-night-a) 34%,transparent),transparent 29%),
+    radial-gradient(circle at 88% 9%,color-mix(in srgb,var(--theme-night-b) 28%,transparent),transparent 31%),
+    radial-gradient(circle at 52% 62%,color-mix(in srgb,var(--theme-night-c) 12%,transparent),transparent 42%),
+    linear-gradient(180deg,#07101e 0,#090f1c 38%,#060b14 100%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--theme-night-a) 20%,rgba(148,163,184,.1)),0 24px 60px rgba(0,0,0,.22);
+}
+.dashboard-v3-home>.dashboard-theme-canvas{z-index:0;opacity:1}
+.dashboard-v3-home>.dashboard-theme-canvas:before{
+  background:
+    radial-gradient(circle at 14% 8%,color-mix(in srgb,var(--theme-night-a) 36%,transparent),transparent 29%),
+    radial-gradient(circle at 86% 10%,color-mix(in srgb,var(--theme-night-b) 32%,transparent),transparent 28%),
+    radial-gradient(ellipse at 50% 78%,color-mix(in srgb,var(--theme-night-c) 16%,transparent),transparent 48%);
+  opacity:.95;
+}
+.dashboard-v3-home>.dashboard-theme-canvas:after{
+  content:attr(data-icon) "   " attr(data-label);
+  inset:46px 26px auto auto;
+  width:auto;height:auto;
+  font-size:clamp(20px,2vw,34px);
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:.12em;
+  color:rgba(255,255,255,.065);
+  text-align:right;
+  white-space:nowrap;
+  transform:rotate(-2deg);
+  text-shadow:0 1px 0 rgba(255,255,255,.03);
+}
+/* Every scheduled special night inherits a real wallpaper from its generated palette/icon. */
+.dashboard-theme-special-night{
+  background:
+    radial-gradient(circle at 8% 6%,color-mix(in srgb,var(--theme-night-a) 44%,transparent),transparent 31%),
+    radial-gradient(circle at 92% 8%,color-mix(in srgb,var(--theme-night-b) 38%,transparent),transparent 30%),
+    radial-gradient(circle at 50% 72%,color-mix(in srgb,var(--theme-night-c) 18%,transparent),transparent 46%),
+    linear-gradient(155deg,color-mix(in srgb,var(--theme-night-a) 9%,#07101e),#080e19 45%,color-mix(in srgb,var(--theme-night-b) 8%,#050a12));
+}
+.dashboard-theme-special-night .dashboard-theme-canvas:before{opacity:1}
+.dashboard-theme-special-night .dashboard-theme-canvas:after{color:color-mix(in srgb,var(--theme-night-c) 22%,rgba(255,255,255,.055))}
+
+/* Six wallpaper textures keep nights in the same category from feeling cloned. */
+.dashboard-theme-pattern-0 .dashboard-theme-canvas{background-image:repeating-linear-gradient(120deg,rgba(255,255,255,.018) 0 1px,transparent 1px 48px)}
+.dashboard-theme-pattern-1 .dashboard-theme-canvas{background-image:radial-gradient(circle,rgba(255,255,255,.045) 0 1px,transparent 1.6px);background-size:34px 34px}
+.dashboard-theme-pattern-2 .dashboard-theme-canvas{background-image:linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.014) 1px,transparent 1px);background-size:52px 52px}
+.dashboard-theme-pattern-3 .dashboard-theme-canvas{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 2px,transparent 2px 8px)}
+.dashboard-theme-pattern-4 .dashboard-theme-canvas{background-image:repeating-radial-gradient(circle at 50% 0,rgba(255,255,255,.025) 0 2px,transparent 3px 34px)}
+.dashboard-theme-pattern-5 .dashboard-theme-canvas{background-image:linear-gradient(135deg,rgba(255,255,255,.022) 25%,transparent 25% 50%,rgba(255,255,255,.022) 50% 75%,transparent 75%);background-size:62px 62px}
+
+/* Signature-night art direction. */
+.dashboard-theme-night-bobblehead .dashboard-theme-canvas:after{content:"🗿   BOBBLEHEAD NIGHT   🗿"}
+.dashboard-theme-night-cap .dashboard-theme-canvas:after{content:"🧢   CAP GIVEAWAY   🧢"}
+.dashboard-theme-night-jersey .dashboard-theme-canvas:after{content:"👕   REPLICA JERSEY NIGHT   👕"}
+.dashboard-theme-night-ring-night .dashboard-theme-canvas:after,.dashboard-theme-night-mini-trophy .dashboard-theme-canvas:after,.dashboard-theme-night-champ-anniversary .dashboard-theme-canvas:after{font-size:clamp(24px,2.4vw,42px);color:rgba(253,230,138,.11);text-shadow:0 0 24px rgba(245,158,11,.12)}
+.dashboard-theme-night-hawaiian .dashboard-theme-canvas:after{content:"🌺     🌴     🌺     🌴";font-size:36px;letter-spacing:1.2rem;color:rgba(255,255,255,.11)}
+.dashboard-theme-night-neon .dashboard-theme-canvas{filter:saturate(1.18)}.dashboard-theme-night-neon .dashboard-theme-canvas:after{text-shadow:0 0 12px #22d3ee,0 0 24px #ec4899;color:rgba(255,255,255,.12)}
+.dashboard-theme-night-video-game .dashboard-theme-canvas:after{content:"◆  ▲  ●  ■    VIDEO GAME NIGHT    ■  ●  ▲  ◆";font-family:monospace;color:rgba(134,239,172,.11)}
+.dashboard-theme-night-food-festival .dashboard-theme-canvas:after,.dashboard-theme-night-food-special .dashboard-theme-canvas:after,.dashboard-theme-night-food .dashboard-theme-canvas:after{color:rgba(254,215,170,.11)}
+.dashboard-theme-night-photo-night .dashboard-theme-canvas:after{content:"▣     📸 BALLPARK PHOTO NIGHT     ▣"}
+.dashboard-theme-night-mascot-birthday .dashboard-theme-canvas:after{content:"🎈   🎂   MASCOT BIRTHDAY   🎂   🎈"}
+.dashboard-theme-night-mascot-race .dashboard-theme-canvas:after{content:"🏁     MASCOT RACE NIGHT     🏁"}
+.dashboard-theme-night-retro-scoreboard .dashboard-theme-canvas:after{font-family:monospace;letter-spacing:.22em;color:rgba(134,239,172,.09)}
+.dashboard-theme-night-season-finale .dashboard-theme-canvas:after{content:"🏁   REGULAR SEASON FINALE   🏁";color:rgba(253,230,138,.12)}
+.dashboard-theme-night-division-showdown .dashboard-theme-canvas:after,.dashboard-theme-night-first-place .dashboard-theme-canvas:after,.dashboard-theme-night-pennant-race .dashboard-theme-canvas:after{font-size:clamp(24px,2.2vw,40px);color:rgba(254,202,202,.1)}
+
+/* The Dashboard cards now let the event wallpaper breathe instead of reading as gray slabs. */
+.dashboard-v3-home .card,
+.dashboard-v3-home .v3-story-card,
+.dashboard-v3-home .v3-rail-card,
+.dashboard-v3-home .v3-race-card,
+.dashboard-v3-home .v3-league-pulse,
+.dashboard-v3-home .v3-recent-results,
+.dashboard-v3-home .v3-opponent-book,
+.dashboard-v3-home .dashboard-media-memory-grid>article,
+.dashboard-v3-home .dashboard-culture-strip>.card{
+  background:
+    linear-gradient(145deg,rgba(10,18,32,.80),rgba(6,12,23,.66));
+  border-color:color-mix(in srgb,var(--theme-night-a) 24%,rgba(148,163,184,.18));
+  box-shadow:0 16px 38px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.035);
+  -webkit-backdrop-filter:blur(16px) saturate(1.12);
+  backdrop-filter:blur(16px) saturate(1.12);
+}
+.dashboard-v3-home .card:hover{border-color:color-mix(in srgb,var(--theme-night-b) 34%,rgba(148,163,184,.24))}
+.dashboard-v3-home .v3-broadcast-hero{
+  background:
+    radial-gradient(circle at 12% 5%,color-mix(in srgb,var(--theme-night-a) 18%,transparent),transparent 34%),
+    radial-gradient(circle at 88% 8%,color-mix(in srgb,var(--theme-night-b) 16%,transparent),transparent 34%),
+    linear-gradient(145deg,rgba(8,15,28,.84),rgba(4,9,18,.70));
+  border-color:color-mix(in srgb,var(--theme-night-c) 30%,rgba(148,163,184,.2));
+  -webkit-backdrop-filter:blur(18px) saturate(1.16);
+  backdrop-filter:blur(18px) saturate(1.16);
+}
+.dashboard-v3-home .dashboard-today-package,.dashboard-v3-home .dashboard-v4-intel{
+  background:linear-gradient(110deg,color-mix(in srgb,var(--theme-night-a) 8%,rgba(7,13,25,.82)),rgba(7,13,25,.68),color-mix(in srgb,var(--theme-night-b) 7%,rgba(7,13,25,.78)));
+}
+.dashboard-v3-home .dashboard-universe-plaza,.dashboard-v3-home .dashboard-world-pulse{
+  background:rgba(3,8,17,.72);
+  border-color:color-mix(in srgb,var(--theme-night-a) 26%,#334155);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+}
+.dashboard-v3-home .dashboard-network-brand{background:linear-gradient(135deg,color-mix(in srgb,var(--theme-night-a) 68%,#7f1d1d),color-mix(in srgb,var(--theme-night-b) 58%,#4c1d95))}
+.dashboard-v3-home .dashboard-network-status{background:linear-gradient(145deg,color-mix(in srgb,var(--theme-night-b) 14%,rgba(7,13,25,.88)),rgba(7,13,25,.78))}
+.dashboard-v3-home .dashboard-live-stage{padding:10px;border-radius:20px;background:linear-gradient(145deg,rgba(3,8,17,.48),rgba(7,13,25,.27));border:1px solid color-mix(in srgb,var(--theme-night-a) 18%,rgba(148,163,184,.1));backdrop-filter:blur(10px)}
+.dashboard-v3-home .game-day-social.is-dashboard-compact{background:linear-gradient(150deg,rgba(7,13,25,.78),rgba(4,9,18,.62));border-color:color-mix(in srgb,var(--theme-night-b) 25%,#273449);backdrop-filter:blur(14px)}
+
+/* Opening / All-Star / postseason / interleague / rivalry now also own the full page, not only a hero-card accent. */
+.dashboard-theme-season-event{--theme-night-a:#1d4ed8;--theme-night-b:#dc2626;--theme-night-c:#f8fafc}
+.dashboard-theme-postseason{--theme-night-a:#92400e;--theme-night-b:#d97706;--theme-night-c:#fde68a}
+.dashboard-theme-championship{--theme-night-a:#713f12;--theme-night-b:#f59e0b;--theme-night-c:#fef3c7}
+.dashboard-theme-interleague{--theme-night-a:#b91c1c;--theme-night-b:#1d4ed8;--theme-night-c:#f8fafc}
+.dashboard-theme-rivalry{--theme-night-a:var(--theme-away);--theme-night-b:var(--theme-home);--theme-night-c:#f97316}
+.dashboard-theme-ceremony{--theme-night-a:#854d0e;--theme-night-b:#d97706;--theme-night-c:#fde68a}
+.dashboard-theme-regular{--theme-night-a:var(--theme-away);--theme-night-b:var(--theme-home);--theme-night-c:#64748b}
+
+@media(max-width:800px){
+  .dashboard-v3-home>.dashboard-theme-canvas:after{right:12px;top:40px;font-size:17px;max-width:70%;overflow:hidden;text-overflow:ellipsis}
+  .dashboard-v3-home .card{backdrop-filter:blur(10px)}
+}
+@media(prefers-reduced-motion:reduce){.dashboard-theme-night-fireworks .dashboard-theme-canvas i{animation:none}.dashboard-theme-ceremony .dashboard-theme-canvas:after{animation:none}}
