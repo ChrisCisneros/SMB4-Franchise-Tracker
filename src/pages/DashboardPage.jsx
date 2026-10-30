@@ -102,7 +102,7 @@ export default function DashboardPage({ ctx }) {
   const forecastHome = currentGame?.homeTeamId ? teams.find(t=>t.id===currentGame.homeTeamId) : (todaySlot?.schedule?.location==='away'?todayOpponent:calendarAnchorTeam);
   const forecastAway = currentGame?.awayTeamId ? teams.find(t=>t.id===currentGame.awayTeamId) : (todaySlot?.schedule?.location==='away'?calendarAnchorTeam:todayOpponent);
   const v4Rivalry = currentGame?.awayTeamId&&currentGame?.homeTeamId ? v4Rivalries.find(r=>(r.teamAId===currentGame.awayTeamId&&r.teamBId===currentGame.homeTeamId)||(r.teamBId===currentGame.awayTeamId&&r.teamAId===currentGame.homeTeamId)) : null;
-  const attendanceForecast = useMemo(()=>buildAttendanceForecast(data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry),[data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry]);
+  const attendanceForecast = useMemo(()=>buildAttendanceForecast(data,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry),[data.leagueExtras?.ballparks,data.activeSeasonName,currentGame?.id,currentGame?.date,currentGame?.status,teams,forecastHome?.id,forecastAway?.id,todaySlot?.promo,v4Rivalry]);
   const gameConditions = useMemo(()=>buildGameConditions(data,currentGame,forecastHome,forecastAway),[data.activeSeasonName,currentGame,forecastHome,forecastAway]);
   const attendanceCount = attendanceForecast?.actual||attendanceForecast?.projected||0;
   const attendanceCapacity = attendanceForecast?.park?.capacity||0;
@@ -243,6 +243,7 @@ export default function DashboardPage({ ctx }) {
                   <LiveField
                     game={currentGame}
                     battingColors={battingBaseColors}
+                    park={attendanceForecast?.park}
                     compact
                   />
                 </div>

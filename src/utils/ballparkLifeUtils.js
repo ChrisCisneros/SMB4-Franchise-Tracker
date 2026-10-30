@@ -1,5 +1,6 @@
 import { currentSeasonDay, scheduleEntryLabel } from './seasonCalendarUtils';
 import { buildFanbaseGrudges } from './mediaMemoryUtils';
+import { getBallparkGeometry } from './ballparkGeometryUtils';
 
 const n=v=>Number(v||0);
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
@@ -251,6 +252,7 @@ export function buildBallparkProfile(data={},team){
     tradition:override.tradition||crowd?.ritual||'gets louder late',
     atmosphere:override.atmosphere||crowd?.type||'BASEBALL CROWD',
     opened:override.opened||`Season ${1+(seed%3)}`,
+    geometry:getBallparkGeometry(team,override.geometryId),
   };
 }
 

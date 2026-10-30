@@ -148,6 +148,7 @@ function runnerPhaseDelay(type) {
 export default function LiveField({
   game,
   battingColors,
+  park = null,
   interactive = false,
   onRunnerMove = undefined,
   onRunnerRemove = undefined,
@@ -170,6 +171,9 @@ export default function LiveField({
   const playEvent = fieldState.playEvent || null;
   const cueEvent = fieldState.cueEvent || null;
   const [cueVisibleId, setCueVisibleId] = useState(null);
+  const parkGeometry = park?.geometry || null;
+  const parkPoints = parkGeometry?.points || '';
+  const hasParkGeometry = Boolean(parkPoints);
 
   useEffect(() => {
     if (!runnerEvent?.id) return undefined;
@@ -326,11 +330,12 @@ export default function LiveField({
   const cueKind = cueEvent?.kind || "pitch";
 
   return (
-    <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"} ${playEvent?.type?`play-${playEvent.type}`:''}`} style={fieldVars}>
+    <div className={`live-field-shell ${compact ? "is-compact" : ""} ${interactive ? "is-interactive" : "is-broadcast"} ${hasParkGeometry ? "has-park-geometry" : ""} ${playEvent?.type?`play-${playEvent.type}`:''}`} style={fieldVars}>
       <div className="live-field-header">
         <div>
           <span className="live-field-kicker">LIVE FIELD</span>
           <strong>{interactive ? "GameCast operator field" : "GameCast view"}</strong>
+          {park?.name && <small className="live-field-venue">{park.name}</small>}
         </div>
         <div className="live-field-status">
           <span>{game?.half || "Top"} {game?.inning || 1}</span>
@@ -385,6 +390,13 @@ export default function LiveField({
         onPointerUp={finishDrag}
         onPointerCancel={() => setDrag(null)}
       >
+        {hasParkGeometry && (
+          <svg className="field-park-geometry" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polygon className="field-park-turf" points={parkPoints} />
+            <polygon className="field-park-warning" points={parkPoints} />
+            <polygon className="field-park-wall" points={parkPoints} />
+          </svg>
+        )}
         <div className="field-warning-track" />
         <div className="field-outfield-arc" />
         <div className="field-infield-dirt" />

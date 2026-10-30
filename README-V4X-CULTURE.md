@@ -188,3 +188,10 @@ Version 5 turns the tracker from a living database into a more resilient, theatr
 - **Social Variety 5.0:** automatic personality quips are removed. Every existing general chatter bank receives a large expansion while preserving commissioner-written phrases. Official team accounts and media personalities receive deeper independent pregame, live, event and postgame banks.
 - **Storyline aging:** historic monster games remain in the archive but cool in newsroom prominence after newer games are played. New magnitude criteria include strikeout festivals, homer barrages, hit parades, defensive chaos, walk-heavy games and pitching duels.
 - **Newsroom V5:** League News adds a Deep Dive, Top Story Board, Assignment Desk and interactive Story Dossiers while retaining the existing world pulse, media network, podcasts, memory, facts, fan pulse and full archive.
+
+
+## V5.2 — Ballpark Geometry & Live-Game Resilience
+- Dashboard and Live GameCast now render team-specific outfield geometry traced from the commissioner-provided SMB4 park reference images. Eighteen reusable field profiles are mapped across the league while each club keeps its own custom ballpark name, capacity, traditions, weather flavor and history.
+- Park geometry is centralized in `ballparkGeometryUtils.js`, supports shared stadium shapes, aliases, commissioner overrides (`geometryId`) and stable fallbacks for future/custom clubs. Geometry is presentation-only and never changes SMB4 gameplay outcomes.
+- The Live operator memoizes the active park profile so balls/strikes/score taps do not rebuild static stadium metadata, and Dashboard attendance dependencies are narrowed to avoid unnecessary recomputation during pitch-by-pitch updates.
+- Live games now receive a dedicated timestamped local emergency snapshot. Firebase writes carry sync metadata, reconnects compare local/cloud versions for the same matchup, newer local in-progress state can recover stale cloud state, and finalized/new matchups are protected from accidental rollback.

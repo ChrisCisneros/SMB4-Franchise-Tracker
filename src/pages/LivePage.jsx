@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { teamOptionLabel } from "../utils/standingsUtils";
 import { renderInningCell } from "../utils/gameDisplay";
 import LiveField from "../components/LiveField";
+import { buildBallparkProfile } from "../utils/ballparkLifeUtils";
 
 export default function LivePage({ ctx }) {
   const [showSetup, setShowSetup] = useState(true);
@@ -10,6 +11,7 @@ export default function LivePage({ ctx }) {
   const [fieldPlayCategory, setFieldPlayCategory] = useState("hit");
   const [fieldPlayType, setFieldPlayType] = useState("single");
   const { adjustLiveInning, setData, syncLeagueExtrasToFirebase, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
+  const activePark = useMemo(()=>buildBallparkProfile(ctx.data||{}, homeTeam),[homeTeam,ctx.data?.leagueExtras?.ballparks]);
 
   const fieldPlayGroups = {
     hit: [
@@ -366,6 +368,7 @@ export default function LivePage({ ctx }) {
               <LiveField
               game={currentGame}
               battingColors={battingBaseColors}
+              park={activePark}
               interactive
               onRunnerMove={moveFieldRunner}
               onRunnerRemove={removeFieldRunner}
