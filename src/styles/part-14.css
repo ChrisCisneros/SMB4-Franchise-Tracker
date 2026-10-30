@@ -1161,3 +1161,45 @@
   .field-park-warning{stroke-width:6.2}
   .field-park-wall{stroke-width:1.1}
 }
+
+
+/* V5.4 FIELD PROPORTION PASS
+   Keep the basepaths visually subordinate to each park's outfield geometry. */
+.live-field-shell.has-park-geometry .field-infield-dirt{
+  top:70%;
+  width:26%;
+  border-radius:18%;
+}
+.live-field-shell.has-park-geometry .field-infield-dirt::after{inset:25%}
+.live-field-shell.has-park-geometry .field-grass-diamond{
+  top:70%;
+  width:17%;
+}
+.live-field-shell.has-park-geometry .field-mound{
+  top:70%;
+  width:26px;
+  height:26px;
+}
+.live-field-shell.has-park-geometry .field-base{
+  width:38px;
+  height:38px;
+  min-height:38px;
+}
+.live-field-shell.has-park-geometry .field-base-home{
+  width:42px;
+  height:33px;
+}
+.live-field-shell.has-park-geometry .field-runner,
+.live-field-shell.has-park-geometry .field-runner-ghost{
+  width:30px;
+  height:30px;
+}
+.live-field-shell.has-park-geometry .field-foul-line{
+  bottom:11.5%;
+}
+@media(max-width:700px){
+  .live-field-shell.has-park-geometry .field-base{width:34px;height:34px;min-height:34px}
+  .live-field-shell.has-park-geometry .field-base-home{width:38px;height:30px}
+  .live-field-shell.has-park-geometry .field-runner,
+  .live-field-shell.has-park-geometry .field-runner-ghost{width:27px;height:27px}
+}

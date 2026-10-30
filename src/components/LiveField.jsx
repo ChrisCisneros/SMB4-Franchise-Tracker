@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const POSITIONS = {
-  home: { x: 50, y: 86, label: "HOME" },
-  first: { x: 73, y: 63, label: "1B" },
-  second: { x: 50, y: 40, label: "2B" },
-  third: { x: 27, y: 63, label: "3B" },
-  pitcher: { x: 50, y: 62, label: "P" },
+  // V5.4: tighter basepath footprint so the distinctive outfield geometry has room to breathe.
+  home: { x: 50, y: 88, label: "HOME" },
+  first: { x: 67, y: 70, label: "1B" },
+  second: { x: 50, y: 52, label: "2B" },
+  third: { x: 33, y: 70, label: "3B" },
+  pitcher: { x: 50, y: 70, label: "P" },
 };
 
 const BASEPATH_ORDER = ["home", "first", "second", "third"];
@@ -47,9 +48,9 @@ const FIELD_POSITION_LABELS = [
   { label: "LF", x: 22, y: 25 },
   { label: "CF", x: 50, y: 15 },
   { label: "RF", x: 78, y: 25 },
-  { label: "SS", x: 38, y: 47 },
-  { label: "2B", x: 62, y: 47 },
-  { label: "C", x: 50, y: 92 },
+  { label: "SS", x: 41, y: 57 },
+  { label: "2B", x: 59, y: 57 },
+  { label: "C", x: 50, y: 94 },
 ];
 
 function playCue(type) {
