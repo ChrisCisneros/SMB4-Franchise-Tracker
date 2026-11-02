@@ -13,6 +13,7 @@ import PlayerLegacyDesk from '../components/PlayerLegacyDesk';
 import NMLBAwardsShow from '../components/NMLBAwardsShow';
 import { buildNMLBCulture } from '../utils/nmlbCultureUtils';
 import { buildNMLBPowerIndex, buildNMLBSeasonNarrative } from '../utils/nmlbUniverseUtils';
+import { buildSeasonCalendar } from '../utils/seasonCalendarUtils';
 import { ChampionshipBanner,ChampionshipRing,ChampionshipTrophy } from '../components/ChampionshipHardware';
 import {
   buildAnchorPicks, buildBestGames, buildCinderellaRuns, buildFakeFanPolls,
@@ -32,7 +33,7 @@ function TeamChip({team}){const c=getTeamColorsByAbbr(team?.abbr);return <span c
 function SectionTitle({kicker,title,detail,action}){return <div className="v4-section-title"><div><small>{kicker}</small><h3>{title}</h3>{detail&&<p>{detail}</p>}</div>{action}</div>}
 
 export default function V4CenterPage({ctx}){
-  const {data,teams,playoffPicture,currentGame,controlsUnlocked,setData,syncLeagueExtrasToFirebase,syncGamesToFirebase}=ctx;
+  const {data,teams,playoffPicture,currentGame,controlsUnlocked,setData,syncLeagueExtrasToFirebase,syncGamesToFirebase,syncTeamsToFirebase,syncLastFinalGameToFirebase}=ctx;
   const [tab,setTab]=useState('intelligence');
   const [selectedTeamId,setSelectedTeamId]=useState(teams[0]?.id||'');
   const [ceremonyId,setCeremonyId]=useState('');
@@ -40,7 +41,12 @@ export default function V4CenterPage({ctx}){
   const [replayCeremony,setReplayCeremony]=useState(null);
   const [globalSearch,setGlobalSearch]=useState('');
   const [awardsShowOpen,setAwardsShowOpen]=useState(false);
+  const [correctionGameId,setCorrectionGameId]=useState('');
+  const [correctionTargetGame,setCorrectionTargetGame]=useState('');
   const extras=data.leagueExtras||{};
+  const correctionGames=useMemo(()=>[...(data.games||[])].filter(g=>g?.status==='Final'||g?.awayScore!==undefined||g?.homeScore!==undefined).sort((a,b)=>(Number(b.gameNumber||b.seasonGameNumber||b.anchorGameNumber||0)-Number(a.gameNumber||a.seasonGameNumber||a.anchorGameNumber||0)) || ((Date.parse(b.finalizedAt||b.date||'')||0)-(Date.parse(a.finalizedAt||a.date||'')||0))),[data.games]);
+  const correctionGame=correctionGames.find(g=>g.id===correctionGameId)||correctionGames[0]||null;
+  const correctionCalendar=useMemo(()=>buildSeasonCalendar(data,teams),[data,teams]);
   const culture=useMemo(()=>buildNMLBCulture(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const nmlbPower=useMemo(()=>buildNMLBPowerIndex(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const nmlbNarrative=useMemo(()=>buildNMLBSeasonNarrative(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
@@ -109,6 +115,60 @@ export default function V4CenterPage({ctx}){
   const addItem=(key,item)=>saveExtras({[key]:[{id:crypto.randomUUID(),createdAt:new Date().toISOString(),...item},...(extras[key]||[])]});
   const removeItem=(key,id)=>saveExtras({[key]:(extras[key]||[]).filter(x=>x.id!==id)});
   const ask=(label,def='')=>window.prompt(label,def);
+  const gameNumberOf=(game)=>Number(game?.gameNumber||game?.seasonGameNumber||game?.anchorGameNumber||game?.regularSeasonGameNumber||game?.scheduleGameNumber||0)||0;
+  const gameTeamLabel=(game)=>{const away=teams.find(t=>t.id===game?.awayTeamId)?.abbr||'AWY';const home=teams.find(t=>t.id===game?.homeTeamId)?.abbr||'HME';return `${away} ${game?.awayScore??'—'} – ${home} ${game?.homeScore??'—'}`;};
+  const latestRemainingFinal=(games)=>[...games].filter(g=>g?.status==='Final'||g?.awayScore!==undefined||g?.homeScore!==undefined).sort((a,b)=>(Date.parse(b.finalizedAt||b.date||'')||0)-(Date.parse(a.finalizedAt||a.date||'')||0))[0]||null;
+  const syncCorrectedLastFinal=(games)=>{const latest=latestRemainingFinal(games);syncLastFinalGameToFirebase?.(latest);return latest;};
+  const reverseGameFromStandings=(game)=>{
+    if(!game||game.gameType==='playoff')return teams;
+    const awayScore=Number(game.awayScore||0),homeScore=Number(game.homeScore||0);
+    if(awayScore===homeScore)return teams;
+    const awayWon=awayScore>homeScore;
+    return teams.map(team=>{
+      if(team.id!==game.awayTeamId&&team.id!==game.homeTeamId)return team;
+      const isAway=team.id===game.awayTeamId;
+      const won=isAway?awayWon:!awayWon;
+      const rf=isAway?awayScore:homeScore,ra=isAway?homeScore:awayScore;
+      const next={...team,wins:Math.max(0,Number(team.wins||0)-(won?1:0)),losses:Math.max(0,Number(team.losses||0)-(won?0:1)),runDiff:Number(team.runDiff||0)-(rf-ra)};
+      if(Object.prototype.hasOwnProperty.call(team,'runsFor'))next.runsFor=Math.max(0,Number(team.runsFor||0)-rf);
+      if(Object.prototype.hasOwnProperty.call(team,'runsAgainst'))next.runsAgainst=Math.max(0,Number(team.runsAgainst||0)-ra);
+      return next;
+    });
+  };
+  const deleteCorrectionGame=()=>{
+    const game=correctionGame;if(!game)return;
+    const label=gameTeamLabel(game),gno=gameNumberOf(game);
+    const ok=window.confirm(`Delete ${gno?`Game ${gno} · `:''}${label}?\n\nThis removes the finalized game and reverses its regular-season W/L + run differential. Player stats are NOT changed.`);
+    if(!ok)return;
+    const nextGames=(data.games||[]).filter(g=>g.id!==game.id);
+    const nextTeams=reverseGameFromStandings(game);
+    const latest=syncCorrectedLastFinal(nextGames);
+    syncGamesToFirebase(nextGames);syncTeamsToFirebase?.(nextTeams);
+    setData(p=>({...p,games:nextGames,teams:nextTeams,lastFinalGame:latest}));
+    setCorrectionGameId('');
+    window.alert('Final deleted and standings reversed. If that game contained manually tracked player stats, review those separately.');
+  };
+  const moveCorrectionGame=()=>{
+    const game=correctionGame;if(!game)return;
+    const rawTarget=Number(correctionTargetGame);if(!Number.isFinite(rawTarget)||rawTarget<1){window.alert('Enter the game number you want this final attached to.');return;}const target=Math.round(rawTarget);
+    const ok=window.confirm(`Move ${gameTeamLabel(game)} from ${gameNumberOf(game)?`Game ${gameNumberOf(game)}`:'its current slot'} to Game ${target}?`);if(!ok)return;
+    const fields=['gameNumber','seasonGameNumber','anchorGameNumber','regularSeasonGameNumber','scheduleGameNumber','calendarGameNumber'];
+    const moved={...game,gameNumber:target,correctedAt:new Date().toISOString(),commissionerCorrection:true};
+    fields.forEach(k=>{if(Object.prototype.hasOwnProperty.call(game,k))moved[k]=target;});
+    const nextGames=(data.games||[]).map(g=>g.id===game.id?moved:g);
+    const latest=latestRemainingFinal(nextGames);
+    syncGamesToFirebase(nextGames);syncLastFinalGameToFirebase?.(latest);
+    setData(p=>({...p,games:nextGames,lastFinalGame:latest}));
+    window.alert(`${gameTeamLabel(game)} is now attached to Game ${target}.`);
+  };
+  const setCurrentDayToGame=()=>{
+    const rawTarget=Number(correctionTargetGame);if(!Number.isFinite(rawTarget)||rawTarget<1){window.alert('Enter the game number you want to return to.');return;}const target=Math.round(rawTarget);
+    const slot=correctionCalendar.find(x=>Number(x.gameNumber)===target);
+    if(!slot){window.alert(`Game ${target} was not found in the 56-day NMLB calendar.`);return;}
+    const next={...extras,seasonDayIndex:Number(slot.slotIndex??correctionCalendar.indexOf(slot))};
+    syncLeagueExtrasToFirebase(next);setData(p=>({...p,leagueExtras:next}));
+    window.alert(`Calendar returned to Game ${target} · ${slot.weekday||''} ${slot.dateLabel||''}.`);
+  };
 
   const saveStandingsSnapshot=()=>{
     const ordered=[...metrics].sort((a,b)=>a.currentRank-b.currentRank).map(m=>({teamId:m.team.id,rank:m.currentRank,wins:Number(m.team.wins||0),losses:Number(m.team.losses||0),runDiff:Number(m.team.runDiff||0)}));
@@ -150,7 +210,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className={`v4-page nmlb64-center-page tab-${tab}`}>
     <section className="nmlb64-center-hero">
-      <div><div className="v4-kicker">NMLB · VERSION 6.4.1 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>WEEK {culture.week}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div></div>
+      <div><div className="v4-kicker">NMLB · VERSION 6.4.2 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>WEEK {culture.week}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div></div>
       <div className="nmlb64-center-pulse"><div><span>POWER #1</span><strong>{nmlbPower[0]?.team?.abbr||'—'}</strong></div><div><span>POWER INDEX</span><strong>{nmlbPower[0]?.score||0}</strong></div><div><span>STORED GAMES</span><strong>{(data.games||[]).length}</strong></div><div><span>ARCHIVED SEASONS</span><strong>{(data.seasonHistory||[]).length}</strong></div></div>
     </section>
     <section className="card v424-global-search"><div><small>GLOBAL LEAGUE SEARCH</small><input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="Search Cain, Season 3, SF vs LAD, 50th homer..."/></div>{searchResults.length>0&&<div className="v424-search-results">{searchResults.map(r=><button type="button" key={r.id} onClick={()=>{if(r.teamId)setSelectedTeamId(r.teamId);setTab(r.tab||'intelligence');setGlobalSearch('')}}><span>{r.type}</span><strong>{r.title}</strong><small>{r.detail}</small></button>)}</div>}</section>
@@ -182,6 +242,8 @@ export default function V4CenterPage({ctx}){
     </div>}
 
     {tab==='snapshots'&&<div className="v4-stack">
+      {controlsUnlocked&&<section className="card nmlb642-correction"><SectionTitle kicker="COMMISSIONER TOOLS" title="Game Corrections" detail="Repair a wrong final without touching Firebase. Delete the bad result, move the correct final to its real game number, then return the calendar to the skipped game."/><div className="nmlb642-correction-grid"><label><span>Finalized Game</span><select value={correctionGame?.id||''} onChange={e=>setCorrectionGameId(e.target.value)}>{correctionGames.map(g=><option key={g.id} value={g.id}>{gameNumberOf(g)?`G${gameNumberOf(g)} · `:''}{gameTeamLabel(g)}</option>)}</select></label><label><span>Target Game #</span><input type="number" min="1" max="40" value={correctionTargetGame} onChange={e=>setCorrectionTargetGame(e.target.value)} placeholder="26"/></label></div>{correctionGame?<div className="nmlb642-selected-final"><small>SELECTED FINAL</small><strong>{gameTeamLabel(correctionGame)}</strong><span>{gameNumberOf(correctionGame)?`Currently attached to Game ${gameNumberOf(correctionGame)}`:'No stored game number detected'}</span></div>:<Empty>No finalized games are available to correct.</Empty>}<div className="nmlb642-correction-actions"><button type="button" className="danger" disabled={!correctionGame} onClick={deleteCorrectionGame}>Delete & Reverse Final</button><button type="button" disabled={!correctionGame||!correctionTargetGame} onClick={moveCorrectionGame}>Move Final to Game #</button><button type="button" disabled={!correctionTargetGame} onClick={setCurrentDayToGame}>Return Calendar to Game #</button></div><p className="v4-footnote"><b>Safe repair order for your MIN/STL mix-up:</b> delete the false STL final → select the real MIN final and move it to G25 → enter 26 and return the calendar to G26 vs CLE. This tool reverses team W/L and run differential when deleting a regular-season final; it intentionally does not guess at player-stat rollbacks.</p></section>}
+
       <section className="card v424-snapshot-hero"><SectionTitle kicker="SEASON CHRONICLE" title="Weekly Snapshots & Checkpoints" detail="Every closed week creates a draft automatically. Review it after Quick Results is current, then lock it forever." action={controlsUnlocked?<button onClick={createChronicleSnapshot}>Create Snapshot Now</button>:null}/><div className="v424-checkpoint-strip">{['Opening Day','Week 1','Week 2','Week 3','Midseason','Week 5','Week 6','Pennant Race','Regular Season Final','Playoffs Begin','League Championships','World Series','Season Complete'].map((x,i)=>{const reached=i===0||(i>=1&&i<=3&&snapshotStatus.completedWeek>=i)||(i===4&&snapshotStatus.completedWeek>=4)||(i===5&&snapshotStatus.completedWeek>=5)||(i===6&&snapshotStatus.completedWeek>=6)||(i===7&&snapshotStatus.completedWeek>=7)||(i===8&&snapshotStatus.completedWeek>=8)||(i>=9&&(data.games||[]).some(g=>g.gameType==='playoff'));return <span key={x} className={reached?'reached':''}>{x}</span>})}</div><div className="v4-grid-3"><div><span>Current Week</span><strong>{snapshotStatus.currentWeek}</strong></div><div><span>Completed</span><strong>{snapshotStatus.completedWeek}/8</strong></div><div><span>Drafts Waiting</span><strong>{snapshotStatus.drafts.length}</strong></div></div></section>
       {snapshotStatus.completedWeek>=4&&<section className="card v424-midseason"><div className="v4-kicker">MIDSEASON REVIEW</div><h2>First Half in the Books</h2><div className="v4-grid-3"><div><span>League Leader</span><strong>{metrics[0]?.team?.abbr||'—'}</strong><small>{metrics[0]?`${metrics[0].team.wins}-${metrics[0].team.losses}`:''}</small></div><div><span>Hottest</span><strong>{snapshots.find(s=>s.week===4)?.hotTeam?.abbr||teamWeek?.team?.abbr||'—'}</strong><small>{snapshots.find(s=>s.week===4)?.hotTeam?.streak||'first-half form'}</small></div><div><span>Top Story</span><strong>{extras.storylines?.[0]?.title||'Race taking shape'}</strong><small>Media predictions saved now can become receipts later.</small></div></div><div className="v424-midseason-picks"><div><strong>Second-Half Predictions</strong><span>{(extras.bracketPredictions||[]).length?`${(extras.bracketPredictions||[]).length} prediction${(extras.bracketPredictions||[]).length===1?'':'s'} preserved for future receipts.`:'No predictions locked in yet.'}</span></div>{controlsUnlocked&&<button onClick={addBracketPrediction}>Add Prediction</button>}</div></section>}
       <section className="v424-snapshot-grid">{snapshots.map(s=><article className={`card v424-snapshot-card ${s.status}`} key={s.id}><div><small>{s.type==='weekly'?`WEEK ${s.week}`:'MANUAL'} · {s.checkpoint||'CHECKPOINT'}</small><strong>{s.label}</strong><span>{s.status==='locked'?'🔒 LOCKED':'📝 DRAFT'}</span></div><div className="v424-snapshot-facts"><span>Leader <b>{s.teams?.[0]?.abbr||'—'}</b></span><span>Hot <b>{s.hotTeam?.abbr||'—'} {s.hotTeam?.streak||''}</b></span><span>Cold <b>{s.coldTeam?.abbr||'—'} {s.coldTeam?.streak||''}</b></span><span>Milestones <b>{s.milestones?.length||0}</b></span></div>{s.storyline&&<p><b>Story:</b> {s.storyline.title}</p>}{s.bestGame&&<p><b>Game memory:</b> {teams.find(t=>t.id===s.bestGame.awayTeamId)?.abbr||'AWY'} {s.bestGame.awayScore}–{s.bestGame.homeScore} {teams.find(t=>t.id===s.bestGame.homeTeamId)?.abbr||'HME'}</p>}{controlsUnlocked&&<div className="inline-buttons">{s.status!=='locked'&&<button onClick={()=>lockChronicleSnapshot(s.id)}>Review & Lock</button>}{s.type!=='weekly'&&<button className="ghost" onClick={()=>deleteChronicleSnapshot(s.id)}>Delete</button>}</div>}</article>)}{!snapshots.length&&<Empty>The first weekly Chronicle draft will appear when Week 1 closes.</Empty>}</section>
@@ -204,7 +266,7 @@ export default function V4CenterPage({ctx}){
       <div className="v4-grid-3"><div className="card"><SectionTitle kicker="CINDERELLA RUNS" title="Underdogs Who Wouldn't Leave"/>{cinderellas.length?cinderellas.map((x,i)=><div className="v4-list-row" key={i}><strong>#{x.seed} {x.team?.abbr||'TBD'}</strong><span>{x.season} · {x.type}</span></div>):<Empty>No 5–8 seed has reached the World Series in archived data yet.</Empty>}</div><div className="card"><SectionTitle kicker="DYNASTY SCORE" title="League Royalty"/>{dynasties.slice(0,8).map((d,i)=><div className="v4-ranking" key={d.teamId}><b>#{i+1}</b><strong>{d.abbr}</strong><span>{d.dynastyScore} pts · {d.championships} titles</span></div>)}</div><div className="card"><SectionTitle kicker="TEAM ERAS" title="Windows & Droughts"/>{eras.slice(0,8).map((e,i)=><div className="v4-list-row" key={i}><strong>{e.team?.abbr||'TBD'}</strong><span>{e.label} · {e.detail}</span></div>)}</div></div>
     </div>}
     {tab==='museum'&&<div className="v4-stack v425-museum">
-      <section className="card v425-museum-hero"><SectionTitle kicker="NMLB 6.4.1 · BASEBALL MUSEUM" title="The League Remembers" detail="The Museum and Hall of Glory are now one permanent home for championship hardware, statues, plaques, classic-game keepsakes, ceremonies and commissioner-curated artifacts." action={controlsUnlocked?<button onClick={addMuseumArtifact}>Add Museum Artifact</button>:null}/><div className="v425-museum-stats"><div><strong>{museumArtifacts.length}</strong><span>Artifacts</span></div><div><strong>{museumSections.length}</strong><span>Wings</span></div><div><strong>{anniversaries.length}</strong><span>Anniversaries Active</span></div><div><strong>{franchiseEras.length}</strong><span>Historical Eras</span></div></div></section>
+      <section className="card v425-museum-hero"><SectionTitle kicker="NMLB 6.4.2 · BASEBALL MUSEUM" title="The League Remembers" detail="The Museum and Hall of Glory are now one permanent home for championship hardware, statues, plaques, classic-game keepsakes, ceremonies and commissioner-curated artifacts." action={controlsUnlocked?<button onClick={addMuseumArtifact}>Add Museum Artifact</button>:null}/><div className="v425-museum-stats"><div><strong>{museumArtifacts.length}</strong><span>Artifacts</span></div><div><strong>{museumSections.length}</strong><span>Wings</span></div><div><strong>{anniversaries.length}</strong><span>Anniversaries Active</span></div><div><strong>{franchiseEras.length}</strong><span>Historical Eras</span></div></div></section>
       <section className="card"><SectionTitle kicker="ANNIVERSARY DESK" title="History Coming Back Around" detail="Season-based anniversaries surface automatically as the universe gets older."/><div className="v425-anniversary-grid">{anniversaries.slice(0,12).map(a=><article key={a.id}><span>{a.icon}</span><div><small>{a.kind} · {a.season}</small><strong>{a.title}</strong><p>{a.detail}</p></div><b>{a.age}</b></article>)}{!anniversaries.length&&<Empty>Anniversaries will begin appearing as archived seasons gain age.</Empty>}</div></section>
       <div className="v4-grid-2"><section className="card"><SectionTitle kicker="FRANCHISE MEMORY" title="Drought Watch" detail="The universe remembers how long October and championships have been missing."/><div className="v425-drought-list">{droughtStories.slice(0,14).map(d=><div key={d.id} className={`severity-${d.severity}`}><TeamChip team={d.team}/><div><strong>{d.label}</strong><small>{d.type} drought · {d.seasons} season{d.seasons===1?'':'s'}</small></div><span>{d.severity}</span></div>)}{!droughtStories.length&&<Empty>No active droughts in the archive.</Empty>}</div></section><section className="card"><SectionTitle kicker="ERA DETECTOR" title="Golden Eras & Dark Ages" detail="Consecutive seasons now become named historical chapters instead of disappearing into a table."/><div className="v425-era-list">{franchiseEras.slice(0,14).map(e=><div key={e.id} className={e.type}><TeamChip team={e.team}/><div><strong>{e.label}</strong><small>{e.start} → {e.end} · {e.seasons} seasons</small></div><span>{e.type==='golden'?`${e.titles} titles · ${e.playoffs} PO`:`${pct(e.avgPct)} avg`}</span></div>)}{!franchiseEras.length&&<Empty>Two-season patterns will become eras once the archive supports them.</Empty>}</div></section></div>
       {museumSections.map(wing=><section className="card" key={wing.name}><SectionTitle kicker="MUSEUM WING" title={wing.name} detail={`${wing.items.length} preserved artifact${wing.items.length===1?'':'s'}`}/><div className="v425-artifact-grid">{wing.items.slice(0,18).map(a=><article key={a.id} className={`${a.automatic?'automatic':'curated'} display-${a.display||'plaque'}`}><span>{a.icon||'🏛️'}</span><small>{a.subtitle||a.season||wing.name}</small><strong>{a.title}</strong><p>{a.detail}</p><footer><em>{a.season||'League archive'}</em><b>{a.automatic?'ARCHIVED':'CURATOR PICK'}</b></footer></article>)}</div></section>)}

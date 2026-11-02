@@ -142,3 +142,13 @@ V6.4 gives the NMLB a recognizable culture and prepares the entire product for t
 - Dashboard gains Postseason Central presentation during the stretch run and October.
 - News gains Road to October prediction coverage and Culture Desk programming.
 - Existing postseason aftermath, spoiler, receipts, history and social systems remain connected to the new presentation.
+
+
+## V6.4.2 — Commissioner Game Corrections
+
+- Added a Commissioner Game Corrections desk under NMLB Center → Snapshots.
+- Finalized regular-season games can be deleted while reversing the associated W/L and run differential.
+- Existing finals can be reassigned to the correct franchise game number without re-entering the score.
+- The league calendar can be returned directly to a chosen game slot after an accidental skip.
+- Last-final state is refreshed after corrections so Dashboard context follows the repaired game book.
+- Player stats are intentionally left untouched by game deletion; the tool will not guess at stat rollbacks.
