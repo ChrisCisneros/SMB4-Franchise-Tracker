@@ -76,12 +76,26 @@ export const GAME_NIGHT_BANK=[
   {id:'season-finale',name:'Regular Season Finale',icon:'🏁',type:'spectacle',hype:15,attendance:15,merch:'Finale Collection',giveaway:'Final regular-season celebration and fan thank-you'},
 ];
 
+
+export function gameEventDisplayName(promo,timeType='NIGHT'){
+  if(!promo)return '';
+  const name=String(promo.displayName||promo.name||'Game Day Event');
+  const t=String(timeType||'NIGHT').toUpperCase();
+  if(['DAY','AFTERNOON'].includes(t)){
+    return name.replace(/ Night$/,' Day').replace(/ night$/,' day');
+  }
+  if(t==='TWILIGHT')return name.replace(/ Night$/,' Twilight').replace(/ night$/,' twilight');
+  return name;
+}
+
 export function getScheduledGameNight(data={},gameNumber){
   const schedule=data.leagueExtras?.gameNightSchedule||{};
   const entry=schedule[String(gameNumber)]||null;
   if(!entry)return null;
   const base=GAME_NIGHT_BANK.find(x=>x.id===entry.promoId)||GAME_NIGHT_BANK.find(x=>x.name===entry.name)||null;
-  return {...base,...entry,gameNumber:Number(gameNumber)};
+  const timeType=data.leagueExtras?.gameDayMeta?.[String(gameNumber)]?.timeType||'NIGHT';
+  const merged={...base,...entry,gameNumber:Number(gameNumber)};
+  return {...merged,displayName:gameEventDisplayName(merged,timeType),timeType};
 }
 
 export function getCurrentGameNight(data={},teams=[]){

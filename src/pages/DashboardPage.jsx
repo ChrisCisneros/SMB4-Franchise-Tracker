@@ -16,7 +16,7 @@ import { buildGameDaySocial } from "../utils/gameDaySocialUtils";
 import GameDaySocial from "../components/GameDaySocial";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildWorldState } from "../utils/cultureUtils";
-import { buildSeasonCalendar, currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
+import { buildSeasonCalendar, currentLeagueDay, currentSeasonDay, canAdvanceLeagueDay, nextLeagueDayIndex, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
@@ -38,7 +38,7 @@ export default function DashboardPage({ ctx }) {
     favoriteMarker, favoriteTeam, gameTeamRecordLabel, homeColors, homeTeam, isPlayoffLiveGame,
     isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveLeaderClass,
     liveTeamRecordLabel, playoffBroadcastVars, playoffGameTitle, playoffPicture, playoffSeedForTeam,
-    scoreFlashSide, teams, tightestDivisionRace, worstRecordTeam, data, setPage, setData, syncLeagueExtrasToFirebase
+    scoreFlashSide, teams, tightestDivisionRace, worstRecordTeam, data, setPage, setData, syncLeagueExtrasToFirebase, controlsUnlocked
   } = ctx;
 
   const [dashboardClock,setDashboardClock]=useState(Date.now());
@@ -72,7 +72,8 @@ export default function DashboardPage({ ctx }) {
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
   const worldState = useMemo(()=>buildWorldState(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonCalendar = useMemo(()=>buildSeasonCalendar(data,teams),[data,teams]);
-  const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
+  const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
+  const nextGameSlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
   const upcomingSlots = useMemo(()=>{
     if(!todaySlot)return seasonCalendar.filter(x=>x.gameNumber&&!x.result).slice(0,3);
     return seasonCalendar.filter(x=>x.gameNumber && x.slotIndex>=todaySlot.slotIndex && !x.result).slice(0,3);
@@ -89,6 +90,13 @@ export default function DashboardPage({ ctx }) {
     const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
     const next={...extras,ceremonies,ceremonyCompletions,worldMoments};
     syncLeagueExtrasToFirebase?.(next); setData?.(p=>({...p,leagueExtras:next})); setActiveCeremony(null);
+  };
+  const advanceLeagueDay=()=>{
+    if(!controlsUnlocked||!canAdvanceLeagueDay(data,teams))return;
+    const extras=data.leagueExtras||{};
+    const next={...extras,seasonDayIndex:nextLeagueDayIndex(data,teams)};
+    syncLeagueExtrasToFirebase?.(next);
+    setData?.(p=>({...p,leagueExtras:next}));
   };
   const merchPool = useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const featuredMerch = merchPool.length ? merchPool[merchSlide%merchPool.length] : null;
@@ -190,8 +198,8 @@ export default function DashboardPage({ ctx }) {
     </section>
     <section className="dashboard-world-pulse"><div className="dashboard-world-live"><i/> WORLD PULSE</div><div className="dashboard-world-moments">{worldState.moments.map((m,i)=><span key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</span>)}</div><div className="dashboard-world-tags">{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
     <section className="card dashboard-today-package">
-      <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'Schedule Day TBD'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Game Day'}`}</p></div><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button></div>
-      <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.name}`:'Regular Game Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||'The baseball world is getting ready.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated live viewers`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>GAME IMPORTANCE</small><strong>{v4Importance?.label||'Regular Season'}</strong><span>{v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'}</span></div><div><small>BALLPARK</small><strong>{attendanceForecast?.park?.name||'League Ballpark'}</strong><span>{attendanceForecast?`${(attendanceForecast.actual||attendanceForecast.projected).toLocaleString()} ${attendanceForecast.actual?'in park':'projected'} · ${attendanceForecast.pctFull}% full`:'Attendance forecast building'}</span></div></div>
+      <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE · MONTH {todaySlot?.month||1} DAY {todaySlot?.dayOfMonth||1}</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:todaySlot?.dayEvent?`${todaySlot.dayEvent.icon||'✨'} ${todaySlot.dayEvent.name}`:'League Off Day'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Off Day'}`}</p></div><div className="dashboard-today-actions"><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button>{controlsUnlocked&&!todaySlot?.gameNumber&&canAdvanceLeagueDay(data,teams)&&<button type="button" className="dashboard-advance-day" onClick={advanceLeagueDay}>Advance Day →</button>}</div></div>
+      <div className="dashboard-today-grid"><div><small>EVENT</small><strong>{todayCeremonies[0]?`${todayCeremonies[0].type==='championship-opening'?'💍🏆🎏':'✨'} ${todayCeremonies[0].title}`:todaySlot?.gameNumber&&todaySlot?.promo?`${todaySlot.promo.icon||'🎟️'} ${todaySlot.promo.displayName||todaySlot.promo.name}`:todaySlot?.dayEvent?`${todaySlot.dayEvent.icon||'✨'} ${todaySlot.dayEvent.name}`:'Open Off Day'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||todaySlot?.dayEvent?.detail||'Fans, media and the league world still have plenty to talk about between games.'}</span></div><div><small>FAN PULSE</small><strong>{fanUniverse.leagueMood}</strong><span>{gameDaySocial.phase!=='idle'?`${gameDaySocial.watching.toLocaleString()} simulated people following the day`:`Week ${seasonPulse.week} conversation is building`}</span></div><div><small>{todaySlot?.gameNumber?'GAME IMPORTANCE':'NEXT BASEBALL'}</small><strong>{todaySlot?.gameNumber?(v4Importance?.label||'Regular Season'):(nextGameSlot?`Game ${nextGameSlot.gameNumber} · ${scheduleEntryLabel(nextGameSlot.schedule)}`:'Season complete')}</strong><span>{todaySlot?.gameNumber?(v4Rivalry?`${Math.round(v4Rivalry.heat||0)} rivalry heat`:'Every game adds to the story'):(todaySlot?.dayEvent?.location||'The league takes a breath before the next game')}</span></div><div><small>{todaySlot?.gameNumber?'BALLPARK':'OFF-DAY LOCATION'}</small><strong>{todaySlot?.gameNumber?(attendanceForecast?.park?.name||'League Ballpark'):(todaySlot?.dayEvent?.location||'Around the league')}</strong><span>{todaySlot?.gameNumber&&attendanceForecast?`${(attendanceForecast.actual||attendanceForecast.projected).toLocaleString()} ${attendanceForecast.actual?'in park':'projected'} · ${attendanceForecast.pctFull}% full`:(todaySlot?.dayEvent?.timeType||'No first pitch today')}</span></div></div>
     </section>
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">

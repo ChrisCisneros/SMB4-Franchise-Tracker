@@ -86,7 +86,7 @@ export const defaultLeagueExtras = {
   officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
   seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
   worldMoments: [], ballparkEvents: [], rivalryNames: {}, gameNightSchedule: {},
-  gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
+  dayEventSchedule: {}, seasonDayIndex: null, gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
   chronicleSnapshots: [], recordChangeHistory: [], awardRace: [],
   careerRecordWatches: [], museumArtifacts: [], ceremonyCompletions: [],
 };

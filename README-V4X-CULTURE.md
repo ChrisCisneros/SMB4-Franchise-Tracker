@@ -195,3 +195,14 @@ Version 5 turns the tracker from a living database into a more resilient, theatr
 - Park geometry is centralized in `ballparkGeometryUtils.js`, supports shared stadium shapes, aliases, commissioner overrides (`geometryId`) and stable fallbacks for future/custom clubs. Geometry is presentation-only and never changes SMB4 gameplay outcomes.
 - The Live operator memoizes the active park profile so balls/strikes/score taps do not rebuild static stadium metadata, and Dashboard attendance dependencies are narrowed to avoid unnecessary recomputation during pitch-by-pitch updates.
 - Live games now receive a dedicated timestamped local emergency snapshot. Firebase writes carry sync metadata, reconnects compare local/cloud versions for the same matchup, newer local in-progress state can recover stale cloud state, and finalized/new matchups are protected from accidental rollback.
+
+## V5.5 — Living Calendar & Off-Day World
+- The eight-week season is now a 56-day league calendar split into two fictional league months: Month 1 (Days 1–28) and Month 2 (Days 29–56). Every calendar cell carries a permanent month/day number in addition to weekday/date information.
+- Franchise calendar progression is now day-by-day. Finalizing the anchor club's scheduled game advances to the following calendar day; off days remain active until an authenticated League Office/Dashboard control advances the day. Other streamed games do not move the franchise calendar.
+- League Office Season & Calendar now switches between **Game Placement** and **Off-Day / Around Park Events**. Off-day experiences attach to the numbered calendar day rather than a game number, so concerts, movie nights, street fairs, fan festivals, clinics, markets, radio events and custom experiences remain fixed even if game dates are rearranged.
+- Added a dedicated off-day event bank with time-of-day and location context (`IN PARK`, `AROUND PARK`, or both), plus custom off-day event creation.
+- Game promotion UI is now framed as Game Day Events rather than night-only events. Day/afternoon/twilight games automatically adapt trailing “Night” labels for display, and League Office event cards expose full names/details instead of truncating operator context.
+- Season Calendar displays scheduled off-day events directly on their day cells and highlights the true current league day, whether it is a game or an off day.
+- Dashboard, News, World Pulse and Ballpark Life now understand the current numbered league day and surface scheduled off-day events as real daily content. Signed-in users can advance an off day from the Dashboard or League Office.
+- Game Day Social gains an off-day wire so scheduled events generate fan/team/media conversation even with no game active.
+- Social threads gain more direct interaction: fans can reply to opposing fan accounts, tag one another with banter/questions, and reply directly to official team accounts instead of existing as isolated posts.

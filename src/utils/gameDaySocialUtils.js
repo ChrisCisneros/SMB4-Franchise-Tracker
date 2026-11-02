@@ -2,10 +2,11 @@ import { buildFanClubs, buildMediaUniverse, buildPlayerFanPages } from './living
 import { buildFanUniverse } from './fandomUtils';
 import { buildHeadToHead } from './historyUtils';
 import { getCurrentGameNight, getScheduledGameNight } from './gameNightUtils';
-import { currentSeasonDay, isCalendarAnchorGame } from './seasonCalendarUtils';
+import { currentLeagueDay, currentSeasonDay, getCalendarAnchorTeam, isCalendarAnchorGame } from './seasonCalendarUtils';
 import { ceremonyForGame, ceremonySocialLines } from './ceremonyUtils';
 import { pickSocialPhrase } from './socialPhraseBank';
 import { analyzeGameMagnitude,buildFanbaseRelationshipNetwork } from './ballparkLifeUtils';
+import { getScheduledDayEvent } from './dayEventUtils';
 
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 const seeded=(s='')=>{const x=Math.sin(hash(s))*10000;return x-Math.floor(x)};
@@ -72,6 +73,38 @@ function isBigPlay(game){
   return ['homerun','triple','doubleplay'].includes(type)||scored||Boolean(game?.walkoffCandidate)||(['strikeout','calledstrikeout'].includes(type)&&eventEndedHalf(game))||(late(game)&&close(game)&&['double','strikeout','calledstrikeout','caughtstealing'].includes(type))||(late(game)&&close(game)&&safe(game?.outs)>=2)||(safe(game?.inning)>=10)||Boolean(runnerEvent(game)?.scored);
 }
 function teamOfficial(team){return {name:`${team.city||''} ${team.name||team.abbr}`.trim(),handle:`@${team.abbr}Baseball`,badge:'✓ OFFICIAL TEAM',team,kind:'team-official',tone:'team-official'};}
+
+function fanReplyText(target,team,foe,key){
+  const handle=target?.handle||`@${foe?.abbr||'Other'}Fans`;
+  return pick([
+    `${handle} you say that now. Save this post for the ninth.`,
+    `${handle} genuine question: are you actually confident or just committed to the bit?`,
+    `${handle} I respect the confidence. I am also bookmarking it.`,
+    `${handle} we are watching the same game and somehow seeing two different sports.`,
+    `${handle} fair point. I still hope your team loses by several runs.`,
+    `${handle} this is exactly why these fanbases cannot have a normal conversation.`,
+    `${handle} okay, that was funny. Still rooting against you.`,
+    `${handle} I need you to come back to this post after the next inning.`,
+    `${handle} absolutely not. The receipts department has been notified.`,
+    `${handle} if this ages well I will admit it. If it ages badly I will be extremely annoying.`,
+  ],`${key}-${team?.id||'fan'}-${handle}`);
+}
+function officialReplyText(team,official,key){
+  const handle=official?.handle||`@${team?.abbr||'TEAM'}Baseball`;
+  return pick([
+    `${handle} please give us one normal inning. I am begging politely.`,
+    `${handle} whoever runs this account, tell the dugout we need insurance runs.`,
+    `${handle} keep the updates coming. Some of us are pretending to work.`,
+    `${handle} I need the postgame graphic to be the happy version tonight.`,
+    `${handle} can we get a little less stress with the next update?`,
+    `${handle} the fanbase has submitted a formal request for more runs.`,
+    `${handle} respectfully, I would like a reason to use the celebration GIFs.`,
+    `${handle} tell the team the timeline is holding up its end of the bargain.`,
+    `${handle} I am choosing to interpret this post as a promise of good things.`,
+    `${handle} thank you for the update. My blood pressure remains unconvinced.`,
+  ],`${key}-${team?.id||'team'}-official-reply`);
+}
+
 
 function warmupLines(team,foe,rivalry,key){
   const lines=[
@@ -440,9 +473,44 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   let phase='idle', activeGame=null, away=null, home=null;
   if(matchup.away&&matchup.home){activeGame=game;away=matchup.away;home=matchup.home;phase=game.status==='Delay'?'delay':game.status==='Live'?'live':'warmup';}
   else if(recent?.away&&recent?.home){activeGame=recent.game;away=recent.away;home=recent.home;phase='postgame';}
-  if(!activeGame||!away||!home)return {phase:'idle',posts:[],awayPosts:[],homePosts:[],leaguePosts:[],away:null,home:null,brand:getLeagueBrand(data),watching:0};
+  const brand=getLeagueBrand(data);
+  if(!activeGame||!away||!home){
+    const day=currentLeagueDay(data,teams);
+    if(day&&!day.gameNumber){
+      const event=getScheduledDayEvent(data,day.slotIndex);
+      const anchor=getCalendarAnchorTeam(data,teams)||teams[0]||null;
+      const bucket=Math.floor(now/18000);
+      const clubs=buildFanClubs(data,teams,playoffPicture).filter(c=>!anchor||c.team?.id===anchor.id);
+      const media=buildMediaUniverse();
+      const eventName=event?.name||'the off day';
+      const eventDetail=event?.detail||'The ballpark district has a quiet day between games.';
+      const keyBase=`offday-${day.slotIndex}-${bucket}-${event?.id||'open'}`;
+      const official=anchor?teamOfficial(anchor):null;
+      const fanLines=[
+        `${event?.icon||'🏟️'} ${eventName} on an off day? Yeah, I am absolutely going.`,
+        `No game today and somehow ${eventName.toLowerCase()} still has the group chat making plans.`,
+        `I love that the park does stuff like this when there is no game. The season feels bigger than forty nights.`,
+        `${eventName} is exactly the kind of nonsense that gets me back to the stadium on an off day.`,
+        `Apparently we are spending the off day at the ballpark anyway. Nobody is surprised.`,
+        `The team is off. The fans very clearly are not.`,
+        `Off-day plan: ${eventName.toLowerCase()}, food, and arguing about the next series.`,
+        `There is something nice about seeing the park alive when nobody has to worry about the score.`,
+        `I said I was taking a baseball break today. Then I saw ${eventName.toLowerCase()} on the calendar.`,
+        `This is how you turn an off day into part of the season instead of a blank square.`,
+      ];
+      let fanPosts=shuffle(clubs,keyBase).slice(0,4).map((club,i)=>({id:`${keyBase}-fan-${club.id||i}`,kind:'fan',name:club.name||`${anchor?.abbr||'League'} Fans`,handle:club.handle||`@${anchor?.abbr||'League'}Fans`,badge:club.voice||club.archetype?.label||'Fan Page',team:anchor,text:pick(fanLines,`${keyBase}-${i}`),tone:'neutral',time:'today'}));
+      const leaguePosts=[{id:`${keyBase}-league`,kind:'league',name:brand.name,handle:brand.handle,badge:'📅 LEAGUE DAY',team:null,text:`Month ${day.month}, Day ${day.dayOfMonth}: ${event?.icon||'🏟️'} ${eventName}. ${eventDetail}`,tone:'official',time:'today'}];
+      if(official)leaguePosts.unshift({...official,id:`${keyBase}-official`,text:event?`${event.icon||'✨'} ${eventName} today at ${event.location||'the ballpark'}. ${eventDetail}`:`No game today. The park gets a breather before the next one.`,time:'today'});
+      shuffle(media,`${keyBase}-media`).slice(0,2).forEach((m,i)=>leaguePosts.push({id:`${keyBase}-media-${m.id}`,kind:'media',name:m.name,handle:m.handle,badge:`${m.role} · ${m.show}`,team:null,text:pick([`The off-day calendar is part of the culture now. ${eventName} gives fans something to own between games.`,`No box score today, but ${eventName} is keeping the baseball conversation moving.`,`A good league calendar has texture. Today belongs to ${eventName}.`,`The park is still a gathering place even when the lineup card is blank.`],`${keyBase}-media-line-${i}`),tone:'media',time:'today'}));
+      if(fanPosts.length&&official&&bucket%2===0)fanPosts[0]={...fanPosts[0],replyTo:official.handle,quotedText:leaguePosts[0]?.text||'',text:officialReplyText(anchor,official,keyBase)};
+      if(fanPosts.length>1&&bucket%3===0)fanPosts[1]={...fanPosts[1],replyTo:fanPosts[0].handle,quotedText:fanPosts[0].text,text:`${fanPosts[0].handle} are we meeting there or are we all pretending this was a spontaneous decision?`};
+      const posts=shuffle([...fanPosts,...leaguePosts],`${keyBase}-all`);
+      return {phase:'offday',game:null,away:null,home:anchor,rivalry:null,brand,promo:null,ceremonies:[],gameNumber:0,postgameStage:'',postgameAgeMs:0,posts,streamPosts:posts,awayPosts:[],homePosts:fanPosts,leaguePosts,score:'',inning:'',play:'',isBigMoment:false,watching:Math.max(3200,Math.round((fanPosts.length+leaguePosts.length)*1450)),chatterScore:event?52:34,chatterHeat:event?'BUZZING':'QUIET',eventToken:`offday-${day.slotIndex}`,streamKey:keyBase,shouldAmbientPost:true,day,event};
+    }
+    return {phase:'idle',posts:[],awayPosts:[],homePosts:[],leaguePosts:[],away:null,home:null,brand,watching:0};
+  }
 
-  const brand=getLeagueBrand(data); const bucket=Math.floor(now/(phase==='live'?7000:phase==='delay'?11000:14000));
+  const bucket=Math.floor(now/(phase==='live'?7000:phase==='delay'?11000:14000));
   const postgameAgeMs=phase==='postgame'?safe(recent?.ageMs):0;
   const postgameStage=phase!=='postgame'?'':postgameAgeMs<5*60*1000?'REACTION CHAOS':postgameAgeMs<15*60*1000?'CELEBRATION + BLAME':postgameAgeMs<30*60*1000?'POSTGAME ANALYSIS':'MEMES + RECEIPTS';
   const seasonSlot=currentSeasonDay(data,teams);
@@ -492,15 +560,23 @@ export function buildGameDaySocial(data={},teams=[],playoffPicture=[],now=Date.n
   }
 
   let awayPosts=teamPosts(away,home); let homePosts=teamPosts(home,away); const leaguePosts=[];
-  // Conversation texture: a small number of posts visibly reply/quote the other side.
-  // This is deterministic per feed bucket so threads feel stable instead of flickering every render.
+  // Conversation texture: fans talk to one another and to official team accounts.
+  // Deterministic per feed bucket so threads stay readable instead of flickering every render.
   const awayAnchor=awayPosts.find(p=>p.kind==='fan'||p.kind==='rivalry');
   const homeAnchor=homePosts.find(p=>p.kind==='fan'||p.kind==='rivalry');
-  if(awayAnchor&&homeAnchor&&(safe(rivalry?.heat)>=28||phase==='live')){
-    if(bucket%3===0){
-      homePosts=homePosts.map((p,i)=>i===0?{...p,replyTo:awayAnchor.handle,quotedText:awayAnchor.text}:p);
-    }else if(bucket%3===1){
-      awayPosts=awayPosts.map((p,i)=>i===0?{...p,replyTo:homeAnchor.handle,quotedText:homeAnchor.text}:p);
+  const awayOfficial=awayPosts.find(p=>p.kind==='team-official');
+  const homeOfficial=homePosts.find(p=>p.kind==='team-official');
+  if(awayAnchor&&homeAnchor&&(safe(rivalry?.heat)>=18||phase==='live')){
+    if(bucket%4===0){
+      homePosts=homePosts.map((p,i)=>i===0?{...p,replyTo:awayAnchor.handle,quotedText:awayAnchor.text,text:fanReplyText(awayAnchor,home,away,`${keyBase}-h2a`)}:p);
+    }else if(bucket%4===1){
+      awayPosts=awayPosts.map((p,i)=>i===0?{...p,replyTo:homeAnchor.handle,quotedText:homeAnchor.text,text:fanReplyText(homeAnchor,away,home,`${keyBase}-a2h`)}:p);
+    }else if(bucket%4===2&&homeOfficial){
+      const idx=homePosts.findIndex(p=>p.kind==='fan');
+      if(idx>=0)homePosts=homePosts.map((p,i)=>i===idx?{...p,replyTo:homeOfficial.handle,quotedText:homeOfficial.text,text:officialReplyText(home,homeOfficial,`${keyBase}-home-official`)}:p);
+    }else if(awayOfficial){
+      const idx=awayPosts.findIndex(p=>p.kind==='fan');
+      if(idx>=0)awayPosts=awayPosts.map((p,i)=>i===idx?{...p,replyTo:awayOfficial.handle,quotedText:awayOfficial.text,text:officialReplyText(away,awayOfficial,`${keyBase}-away-official`)}:p);
     }
   }
   const official=officialMoment({...activeGame,status:phase==='postgame'?'Final':activeGame.status},away,home,brand);

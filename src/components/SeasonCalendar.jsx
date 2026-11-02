@@ -1,7 +1,8 @@
 import React from 'react';
-import { WEEKDAYS, buildSeasonCalendar, calendarSummary, currentSeasonDay, getCalendarAnchorTeam, scheduleEntryLabel } from '../utils/seasonCalendarUtils';
+import { WEEKDAYS, buildSeasonCalendar, calendarSummary, currentLeagueDay, getCalendarAnchorTeam, scheduleEntryLabel } from '../utils/seasonCalendarUtils';
 import { ceremonyForGame } from '../utils/ceremonyUtils';
 import { getTeamColorsByAbbr } from '../config/teamColors';
+import { gameEventDisplayName } from '../utils/gameNightUtils';
 
 const WEEK_LABELS=['OPENING WEEK','FIRST IMPRESSIONS','THE GRIND','ALL-STAR PUSH','SECOND HALF','PRESSURE BUILDS','PENNANT RACE','FINAL WEEK'];
 const MILESTONES={1:'OPENING DAY',10:'QUARTER MARK',20:'MIDSEASON',30:'STRETCH RUN',40:'SEASON FINALE'};
@@ -41,12 +42,12 @@ function segmentKind(slots,index){
   return 'segment-solo';
 }
 
-export default function SeasonCalendar({data,teams=[],editable=false,onToggle,onSelectGame,selectedGameNumber,compact=false,paintTimeType='',onPaintTimeType}){
-  const slots=buildSeasonCalendar(data,teams);const summary=calendarSummary(data);const current=currentSeasonDay(data,teams);const anchor=getCalendarAnchorTeam(data,teams);
+export default function SeasonCalendar({data,teams=[],editable=false,onToggle,onSelectGame,onSelectSlot,selectedGameNumber,selectedSlotIndex=null,calendarMode='games',compact=false,paintTimeType='',onPaintTimeType}){
+  const slots=buildSeasonCalendar(data,teams);const summary=calendarSummary(data);const current=currentLeagueDay(data,teams);const anchor=getCalendarAnchorTeam(data,teams);
   const anchorColors=getTeamColorsByAbbr(anchor?.abbr||'SF');
   return <div className={`season-calendar-shell ${editable?'is-editable':'is-public'} ${compact?'is-compact':''}`} style={{'--calendar-home':anchorColors.main,'--calendar-home-alt':anchorColors.alt,'--calendar-home-border':anchorColors.border||anchorColors.alt,'--calendar-home-text':anchorColors.text||'#fff'}}>
     <div className="season-calendar-legend"><span className="home"><i/>HOME</span><span className="away"><i/>AWAY</span><span className="off"><i/>OFF DAY</span><span className="current"><i/>CURRENT</span><span className="special">★ SPECIAL EVENT</span></div>
-    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}</span></div>{current&&<div className="season-calendar-current-label"><span>CURRENT {anchor?.abbr||'SF'} GAME DAY</span><b>W{current.week} · {current.weekday} · GAME {current.gameNumber}</b></div>}<div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
+    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}</span></div>{current&&<div className="season-calendar-current-label"><span>CURRENT LEAGUE DAY</span><b>M{current.month} D{current.dayOfMonth} · {current.weekday} · {current.gameNumber?`GAME ${current.gameNumber}`:'OFF DAY'}</b></div>}<div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
     <div className="season-calendar-scroll">
       <div className="season-calendar-grid">
         <div className="season-calendar-corner">WEEK</div>{WEEKDAYS.map(d=><div key={d} className="season-calendar-dayhead">{d}</div>)}
@@ -57,7 +58,7 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
             <div className={`season-calendar-weeklabel phase-${weekPhase.toLowerCase().replace(' ','-')}`}><strong>W{w+1}</strong><span>{WEEK_LABELS[w]}</span>{record&&<em>{record}</em>}</div>
             {week.map((slot,di)=>{
               const ceremonies=slot.gameNumber?ceremonyForGame(data,teams,slot.gameNumber):[];
-              const selected=slot.gameNumber&&slot.gameNumber===selectedGameNumber;
+              const selected=(calendarMode==='events'&&Number(selectedSlotIndex)===slot.slotIndex)||(calendarMode!=='events'&&slot.gameNumber&&slot.gameNumber===selectedGameNumber);
               const isCurrent=current&&slot.slotIndex===current.slotIndex;
               const isHome=slot.schedule?.location==='home',isAway=slot.schedule?.location==='away';
               const milestone=MILESTONES[slot.gameNumber];
@@ -67,16 +68,16 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
               const seriesWithPrev=opponent&&prevGame?.schedule?.opponentAbbr===opponent;
               const seriesWithNext=opponent&&nextGame?.schedule?.opponentAbbr===opponent;
               const seg=segmentKind(slots,slot.slotIndex);
-              return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${isHome?'is-home':''} ${isAway?'is-away':''} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''} ${paintTimeType&&slot.gameNumber?'is-time-paintable':''} ${seg}`} onClick={()=>{if(editable){if(slot.gameNumber&&paintTimeType&&onPaintTimeType){onPaintTimeType(slot.gameNumber,paintTimeType);onSelectGame?.(slot.gameNumber)}else onToggle?.(slot.slotIndex)}else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={editable?(slot.gameNumber?(paintTimeType?`Set Game ${slot.gameNumber} to ${paintTimeType}`:'Click to remove this Game Day'):'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
-                <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span>{slot.gameNumber?<b>G{slot.gameNumber} · {timeType}</b>:<b>OFF</b>}</div>
+              return <button type="button" key={slot.slotIndex} className={`season-calendar-cell ${slot.gameNumber?'is-game':'is-off'} ${isHome?'is-home':''} ${isAway?'is-away':''} ${slot.result?'is-final':''} ${slot.promo?'has-promo':''} ${slot.dayEvent?'has-day-event':''} ${ceremonies.length?'has-ceremony':''} ${selected?'is-selected':''} ${isCurrent?'is-current':''} ${paintTimeType&&slot.gameNumber?'is-time-paintable':''} ${seg}`} onClick={()=>{if(editable){if(calendarMode==='events'){onSelectSlot?.(slot.slotIndex);if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}else if(slot.gameNumber&&paintTimeType&&onPaintTimeType){onPaintTimeType(slot.gameNumber,paintTimeType);onSelectGame?.(slot.gameNumber)}else onToggle?.(slot.slotIndex)}else if(slot.gameNumber)onSelectGame?.(slot.gameNumber)}} title={calendarMode==='events'?`${slot.label} · ${slot.weekday}${slot.dayEvent?` · ${slot.dayEvent.name}`:''}`:editable?(slot.gameNumber?(paintTimeType?`Set Game ${slot.gameNumber} to ${paintTimeType}`:'Click to remove this Game Day'):'Click to assign the next unscheduled game'):(slot.gameNumber?`Game ${slot.gameNumber}`:'Off Day')}>
+                <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span><em className="season-cal-daynum">M{slot.month} D{slot.dayOfMonth}</em>{slot.gameNumber?<b>G{slot.gameNumber} · {timeType}</b>:<b>OFF</b>}</div>
                 {slot.gameNumber?<>
                   <div className="season-cal-flags">{milestone&&<span className="season-cal-milestone">★ {milestone}</span>}{(seriesWithPrev||seriesWithNext)&&<span className="season-cal-series">SERIES</span>}</div>
                   <strong className="season-cal-matchup">{scheduleEntryLabel(slot.schedule)}</strong>
                   <span className={`season-cal-location ${isHome?'home':'away'}`}>{isHome?'HOME':'ROAD'}</span>
                   {ceremonies.slice(0,1).map(c=><span className="season-cal-ceremony" key={c.id}>{c.type==='championship-opening'?'💍🏆🎏':'🎏'} {c.title}</span>)}
-                  {slot.promo&&<span className="season-cal-promo">{slot.promo.icon||'🎟️'} {slot.promo.name}</span>}
+                  {slot.promo&&<span className="season-cal-promo" title={`${slot.promo.name} — ${slot.promo.giveaway||''}`}>{slot.promo.icon||'🎟️'} {gameEventDisplayName(slot.promo,timeType)}</span>}
                   <ResultLine game={slot.result} teams={teams} anchor={anchor}/>
-                </>:<span className="season-cal-offtext">{editable?'Click to add Game Day':'OFF DAY'}</span>}
+                </>:<>{slot.dayEvent&&<span className="season-cal-day-event" title={`${slot.dayEvent.name} — ${slot.dayEvent.detail||''}`}>{slot.dayEvent.icon||'✨'} {slot.dayEvent.name}</span>}<span className="season-cal-offtext">{editable?(calendarMode==='events'?'Click to schedule / inspect event':'Click to add Game Day'):'OFF DAY'}</span></>}
               </button>})}
             {w===3&&<div className="season-calendar-break"><span>⭐ ALL-STAR BREAK</span><strong>MIDSEASON FESTIVITIES</strong><em>First-half awards · fan voting · media day · second-half predictions</em></div>}
           </React.Fragment>

@@ -1,7 +1,8 @@
 import { buildFanUniverse, getSeasonPulse } from './fandomUtils';
 import { buildFanClubs, buildFanTraditions } from './livingWorldUtils';
 import { buildSeasonScrapbook, buildFanbaseGrudges, buildHotColdBoard } from './mediaMemoryUtils';
-import { currentSeasonDay } from './seasonCalendarUtils';
+import { currentLeagueDay } from './seasonCalendarUtils';
+import { getScheduledDayEvent } from './dayEventUtils';
 
 const n=v=>Number(v||0);
 const gp=t=>n(t?.wins)+n(t?.losses);
@@ -51,7 +52,7 @@ export function buildBroadcastBooth(data={},teams=[]){
 export function buildTopicLifecycles(data={},teams=[],playoffPicture=[]){
   const universe=buildFanUniverse(data,teams,playoffPicture);
   const {hot,cold}=buildHotColdBoard(teams);
-  const slot=currentSeasonDay(data,teams);
+  const slot=currentLeagueDay(data,teams);
   const raw=[];
   if(hot[0])raw.push({topic:`${hot[0].abbr} ${hot[0].streak}`,weight:78+n(String(hot[0].streak).slice(1))*3,source:'streak'});
   if(cold[0])raw.push({topic:`${cold[0].abbr} skid`,weight:65+n(String(cold[0].streak).slice(1))*4,source:'streak'});
@@ -137,19 +138,21 @@ export function buildTeamTraditionFiles(data={},teams=[],playoffPicture=[]){
 }
 
 export function buildOffDayWorld(data={},teams=[],playoffPicture=[]){
-  const slot=currentSeasonDay(data,teams);
+  const slot=currentLeagueDay(data,teams);
   const pulse=getSeasonPulse(data,teams);
   const reps=buildFranchiseReputations(data,teams);
   const {hot,cold}=buildHotColdBoard(teams);
   const isOff=!slot?.gameNumber;
+  const scheduledEvent=isOff&&slot?getScheduledDayEvent(data,slot.slotIndex):null;
   const items=[
+    ...(scheduledEvent?[{icon:scheduledEvent.icon||'✨',title:scheduledEvent.name,detail:`${scheduledEvent.timeType||'TODAY'} · ${scheduledEvent.location||'BALLPARK DISTRICT'} · ${scheduledEvent.detail||'A scheduled league-world event.'}`}]:[]),
     {icon:'🎙️',title:'Radio arguments continue',detail:hot[0]?`${hot[0].abbr} ${hot[0].streak} is carrying the morning shows.`:'The morning shows are ranking contenders again.'},
     {icon:'🧢',title:'Merch and collector watch',detail:'Fans are comparing drops, giveaways and resale prices while the field is quiet.'},
     {icon:'📚',title:'Archive hour',detail:`${reps[0]?.team?.abbr||'League'} history is getting pulled back into the conversation.`},
-    {icon:'⚔️',title:'Rivalry discourse never sleeps',detail:'Old clips, receipts and grudges are doing the work tonight.'},
-    {icon:'📈',title:'Tomorrow starts now',detail:cold[0]?`${cold[0].abbr} gets the “response game” treatment next time out.`:`Week ${pulse.week} storylines are already shifting.`},
+    {icon:'⚔️',title:'Rivalry discourse never sleeps',detail:'Old clips, receipts and grudges are doing the work even without first pitch.'},
+    {icon:'📈',title:'Next game starts now',detail:cold[0]?`${cold[0].abbr} gets the “response game” treatment next time out.`:`Week ${pulse.week} storylines are already shifting.`},
   ];
-  return {isOff,label:isOff?'OFF-DAY MODE':'BETWEEN PITCHES',items};
+  return {isOff,label:isOff?(scheduledEvent?scheduledEvent.name:'OFF-DAY MODE'):'BETWEEN PITCHES',items,scheduledEvent,slot};
 }
 
 export function buildDefiningMoments(data={},teams=[]){

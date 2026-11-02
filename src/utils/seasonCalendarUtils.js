@@ -2,11 +2,21 @@ export const WEEKDAYS=['MON','TUE','WED','THU','FRI','SAT','SUN'];
 export const SEASON_WEEKS=8;
 export const SEASON_SLOTS=SEASON_WEEKS*7;
 export const SEASON_GAMES=40;
+export const LEAGUE_MONTH_DAYS=28;
+export const LEAGUE_MONTHS=2;
 
 const safe=n=>Number(n||0);
 const dateOnly=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))?String(s):'';
 const addDays=(iso,days)=>{if(!dateOnly(iso))return '';const [y,m,d]=iso.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d+days));return dt.toISOString().slice(0,10)};
 const fmtDate=iso=>{if(!dateOnly(iso))return '';const [y,m,d]=iso.split('-').map(Number);return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)))};
+
+export function leagueDayMeta(slotIndex=0){
+  const index=Math.max(0,Math.min(SEASON_SLOTS-1,Number(slotIndex)||0));
+  const dayNumber=index+1;
+  const month=Math.floor(index/LEAGUE_MONTH_DAYS)+1;
+  const dayOfMonth=(index%LEAGUE_MONTH_DAYS)+1;
+  return {slotIndex:index,dayNumber,month,dayOfMonth,label:`MONTH ${month} · DAY ${dayOfMonth}`};
+}
 
 
 export function getCalendarAnchorTeam(data={},teams=[]){
@@ -69,6 +79,7 @@ export function scheduleEntryLabel(entry){if(!entry)return 'Matchup TBD';return 
 export function buildSeasonCalendar(data={},teams=[]){
   const calendar=normalizeSeasonCalendar(data); const start=data.leagueExtras?.seasonStartMonday||'';
   const promoMap=data.leagueExtras?.gameNightSchedule||{};
+  const dayEventMap=data.leagueExtras?.dayEventSchedule||{};
   const regularFinals=anchorRegularFinals(data,teams);
   const resultByNumber=new Map();
   // The franchise calendar follows the anchor club's own season sequence, not the
@@ -82,9 +93,37 @@ export function buildSeasonCalendar(data={},teams=[]){
     const week=Math.floor(slotIndex/7)+1,dayIndex=slotIndex%7,gameNumber=calendar[slotIndex];
     const schedule=gameNumber?getScheduleEntry(data,gameNumber):null; const promo=gameNumber?promoMap[String(gameNumber)]||null:null; const result=gameNumber?resultByNumber.get(gameNumber)||null:null;
     const date=start?addDays(start,slotIndex):'';
-    return {slotIndex,week,dayIndex,weekday:WEEKDAYS[dayIndex],date,dateLabel:fmtDate(date),gameNumber,schedule,promo,result};
+    const leagueDay=leagueDayMeta(slotIndex);
+    const dayEvent=dayEventMap[String(slotIndex)]||null;
+    return {slotIndex,week,dayIndex,weekday:WEEKDAYS[dayIndex],date,dateLabel:fmtDate(date),gameNumber,schedule,promo,result,dayEvent,...leagueDay};
   });
 }
+export function inferredLeagueDayIndex(data={},teams=[]){
+  const slots=buildSeasonCalendar(data,teams);
+  const rawValue=data.leagueExtras?.seasonDayIndex;
+  const raw=Number(rawValue);
+  if(rawValue!==null&&rawValue!==undefined&&rawValue!==''&&Number.isInteger(raw)&&raw>=0&&raw<SEASON_SLOTS)return raw;
+  const nextGame=slots.find(s=>s.gameNumber&&!s.result);
+  if(nextGame)return nextGame.slotIndex;
+  const latestFinal=[...slots].reverse().find(s=>s.result);
+  return latestFinal?Math.min(SEASON_SLOTS-1,latestFinal.slotIndex+1):0;
+}
+export function currentLeagueDay(data={},teams=[]){
+  const slots=buildSeasonCalendar(data,teams);
+  return slots[inferredLeagueDayIndex(data,teams)]||slots[0]||null;
+}
+export function canAdvanceLeagueDay(data={},teams=[]){
+  const day=currentLeagueDay(data,teams);
+  if(!day||day.slotIndex>=SEASON_SLOTS-1)return false;
+  if(day.gameNumber&&!day.result)return false;
+  return true;
+}
+export function nextLeagueDayIndex(data={},teams=[]){
+  const day=currentLeagueDay(data,teams);
+  if(!day)return 0;
+  return Math.min(SEASON_SLOTS-1,day.slotIndex+1);
+}
+
 export function currentSeasonDay(data={},teams=[]){
   const slots=buildSeasonCalendar(data,teams);
   const finals=anchorRegularFinals(data,teams);
@@ -95,5 +134,8 @@ export function currentSeasonDay(data={},teams=[]){
 }
 export function currentSeasonSlotIndex(data={},teams=[]){
   return currentSeasonDay(data,teams)?.slotIndex ?? null;
+}
+export function currentLeagueSlotIndex(data={},teams=[]){
+  return currentLeagueDay(data,teams)?.slotIndex ?? null;
 }
 export function calendarSummary(data={}){const cal=normalizeSeasonCalendar(data);return {scheduled:cal.filter(Boolean).length,remaining:SEASON_GAMES-cal.filter(Boolean).length,openDays:SEASON_SLOTS-cal.filter(Boolean).length}}

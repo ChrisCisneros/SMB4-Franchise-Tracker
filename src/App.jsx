@@ -1736,7 +1736,7 @@ if (pitchCountTypes.has(type)) {
     data, setData, currentGame, winningPitcherId, losingPitcherId,
     setWinningPitcherId, setLosingPitcherId, setPage, nextStreak, clearBanner,
     syncPlayersToFirebase, syncLastFinalGameToFirebase, syncPlayoffBracketToFirebase,
-    syncCurrentGameToFirebase, syncTeamsToFirebase, syncGamesToFirebase,
+    syncCurrentGameToFirebase, syncTeamsToFirebase, syncGamesToFirebase, syncLeagueExtrasToFirebase,
   });
 
   const {

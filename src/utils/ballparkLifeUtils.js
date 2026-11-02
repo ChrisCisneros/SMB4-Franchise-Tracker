@@ -1,6 +1,7 @@
-import { currentSeasonDay, scheduleEntryLabel } from './seasonCalendarUtils';
+import { currentLeagueDay, currentSeasonDay, scheduleEntryLabel } from './seasonCalendarUtils';
 import { buildFanbaseGrudges } from './mediaMemoryUtils';
 import { getBallparkGeometry } from './ballparkGeometryUtils';
+import { getScheduledDayEvent } from './dayEventUtils';
 
 const n=v=>Number(v||0);
 const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
@@ -149,25 +150,33 @@ export function buildHistoricGameAlerts(data={},teams=[]){
 }
 
 export function buildBallparkLife(data={},teams=[],playoffPicture=[],now=Date.now()){
-  const slot=currentSeasonDay(data,teams);
+  const slot=currentLeagueDay(data,teams);
   const game=data.currentGame||{};
   const live=game.status==='Live'||game.status==='Delay';
-  const home=teamById(teams,live?game.homeTeamId:null)||teams.find(t=>t.abbr===(data.leagueExtras?.calendarAnchorTeamAbbr||'SF'))||teams[0];
-  const away=teamById(teams,live?game.awayTeamId:null);
+  const anchor=teams.find(t=>t.abbr===(data.leagueExtras?.calendarAnchorTeamAbbr||'SF'))||teams[0];
+  const scheduledOpponent=teams.find(t=>t.abbr===slot?.schedule?.opponentAbbr);
+  const scheduledHome=slot?.schedule?.location==='away'?scheduledOpponent:anchor;
+  const home=teamById(teams,live?game.homeTeamId:null)||scheduledHome||anchor;
+  const away=teamById(teams,live?game.awayTeamId:null)||(slot?.gameNumber?(slot.schedule?.location==='away'?anchor:scheduledOpponent):null);
   const gameNo=n(game.seasonGameNumber)||n(slot?.gameNumber);
-  const key=`${home?.id}-${gameNo}-${slot?.week}-${slot?.weekday}-${Math.floor(now/3600000)}`;
-  const manual=(data.leagueExtras?.ballparkEvents||[]).filter(e=>!e.gameNumber||n(e.gameNumber)===gameNo).slice(0,5);
+  const key=`${home?.id}-${gameNo}-${slot?.slotIndex}-${slot?.week}-${slot?.weekday}-${Math.floor(now/3600000)}`;
+  const scheduledDayEvent=slot?getScheduledDayEvent(data,slot.slotIndex):null;
+  const manual=(data.leagueExtras?.ballparkEvents||[]).filter(e=>{
+    if(live||slot?.gameNumber)return n(e.gameNumber)===gameNo&&!e.slotIndex;
+    if(Number.isInteger(e.slotIndex))return n(e.slotIndex)===n(slot?.slotIndex);
+    return !e.gameNumber&&!Number.isInteger(e.slotIndex);
+  }).slice(0,5);
   const pre=BALLPARK_EVENT_BANK.pregame[(hash(`${key}-pre`)%BALLPARK_EVENT_BANK.pregame.length)];
   const ingame=BALLPARK_EVENT_BANK.ingame[(hash(`${key}-mid`)%BALLPARK_EVENT_BANK.ingame.length)];
   const post=BALLPARK_EVENT_BANK.postgame[(hash(`${key}-post`)%BALLPARK_EVENT_BANK.postgame.length)];
   const off=BALLPARK_EVENT_BANK.offday[(hash(`${key}-off`)%BALLPARK_EVENT_BANK.offday.length)];
-  const make=(x,phase,source='generated')=>({id:`${phase}-${x[1]}-${gameNo}`,phase,icon:x[0],title:x[1],detail:x[2],source});
+  const make=(x,phase,source='generated')=>({id:`${phase}-${x[1]}-${gameNo||slot?.slotIndex||0}`,phase,icon:x[0],title:x[1],detail:x[2],source});
   const isOff=!slot?.gameNumber&&!live;
-  let events=isOff?[make(off,'OFF-DAY')]:[make(pre,'PREGAME'),make(ingame,'IN-GAME'),make(post,'POSTGAME')];
-  if(slot?.promo)events.unshift({id:`promo-${gameNo}`,phase:'PREGAME',icon:slot.promo.icon||'🎟️',title:slot.promo.name,detail:slot.promo.giveaway||'Special game-day event',source:'promotion'});
+  let events=isOff?[scheduledDayEvent?{id:`day-${slot.slotIndex}`,phase:'OFF-DAY',icon:scheduledDayEvent.icon||'✨',title:scheduledDayEvent.name,detail:scheduledDayEvent.detail||'',source:'scheduled',timeType:scheduledDayEvent.timeType,location:scheduledDayEvent.location}:make(off,'OFF-DAY')]:[make(pre,'PREGAME'),make(ingame,'IN-GAME'),make(post,'POSTGAME')];
+  if(slot?.promo)events.unshift({id:`promo-${gameNo}`,phase:'PREGAME',icon:slot.promo.icon||'🎟️',title:slot.promo.displayName||slot.promo.name,detail:slot.promo.giveaway||'Special game-day event',source:'promotion'});
   manual.forEach(e=>events.unshift({id:e.id,phase:e.phase||'PREGAME',icon:e.icon||'✨',title:e.title||'Ballpark Event',detail:e.detail||'',source:'manual'}));
   const phase=live?'IN-GAME':isOff?'OFF-DAY':'PREGAME';
-  return {home,away,gameNumber:gameNo,slot,isOff,phase,label:isOff?'OFF-DAY BASEBALL WORLD':`${home?.abbr||'HOME'} BALLPARK LIFE`,events,timeline:events.filter(e=>isOff||['PREGAME','IN-GAME','POSTGAME'].includes(e.phase))};
+  return {home,away,gameNumber:gameNo,slot,isOff,phase,label:isOff?(scheduledDayEvent?scheduledDayEvent.name:'OFF-DAY BASEBALL WORLD'):`${home?.abbr||'HOME'} BALLPARK LIFE`,events,timeline:events.filter(e=>isOff||['PREGAME','IN-GAME','POSTGAME'].includes(e.phase)),dayEvent:scheduledDayEvent};
 }
 
 export function buildCrowdPersonality(data={},teams=[],teamId){

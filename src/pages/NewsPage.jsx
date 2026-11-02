@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { buildNewsFeed } from "../utils/newsUtils";
 import { buildFanPoll, buildSocialChatter, getSeasonPulse } from "../utils/fandomUtils";
 import { buildWorldState } from "../utils/cultureUtils";
-import { currentSeasonDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
+import { currentLeagueDay, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
 import { ceremonyForGame } from "../utils/ceremonyUtils";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHonorInterviews, buildHotColdBoard, buildOnThisDateMoments, buildFakePodcasts, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildBroadcastBooth, buildDefiningMoments, buildMediaOutlets, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
@@ -98,7 +98,7 @@ export default function NewsPage({ ctx }) {
   const broadcastBooth=useMemo(()=>buildBroadcastBooth(data,teams),[data,teams]);
   const definingMoments=useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
   const preservedAchievements=useMemo(()=>buildSpecialAchievements(data,teams),[data,teams]);
-  const todaySlot = useMemo(()=>currentSeasonDay(data,teams),[data,teams]);
+  const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
   const factStories = filtered.filter((story) => story.kind === "fact");
@@ -141,7 +141,7 @@ export default function NewsPage({ ctx }) {
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 
-      <section className="news-today-edition card"><div><small>TODAY'S BASEBALL WORLD</small><strong>{todaySlot?.gameNumber?`G${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:'League off-day / schedule forming'}</strong><span>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${pulse.week} · ${pulse.phase}`}</span></div><div><small>TONIGHT</small><strong>{todayCeremonies[0]?.title||todaySlot?.promo?.name||worldState.moments?.[0]?.title||'Around the league'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||worldState.leagueMood}</span></div><div className="news-edition-stamp"><b>DAILY DIAMOND</b><em>{pulse.phase}</em></div></section>
+      <section className="news-today-edition card"><div><small>TODAY'S BASEBALL WORLD · M{todaySlot?.month||1} D{todaySlot?.dayOfMonth||1}</small><strong>{todaySlot?.gameNumber?`G${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:todaySlot?.dayEvent?`${todaySlot.dayEvent.icon||'✨'} ${todaySlot.dayEvent.name}`:'League off day'}</strong><span>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||pulse.week} · ${pulse.phase}`}</span></div><div><small>{todaySlot?.gameNumber?'TODAY AT THE PARK':'OFF-DAY FEATURE'}</small><strong>{todayCeremonies[0]?.title||todaySlot?.promo?.displayName||todaySlot?.promo?.name||todaySlot?.dayEvent?.name||worldState.moments?.[0]?.title||'Around the league'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||todaySlot?.dayEvent?.detail||worldState.leagueMood}</span></div><div className="news-edition-stamp"><b>DAILY DIAMOND</b><em>{pulse.phase}</em></div></section>
 
       {!!ticker && <div className="news-ticker news-ticker-live" aria-label="SMB Network live ticker"><span className="news-ticker-label"><i/>LIVE</span><strong key={ticker.id}>{ticker.headline}</strong><span className="news-ticker-date">{ticker.dateLabel}</span></div>}
 

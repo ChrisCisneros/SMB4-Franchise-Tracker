@@ -1,6 +1,6 @@
 import { defaultCurrentGame } from "../utils/gameState";
 import { getScheduledGameNight } from "../utils/gameNightUtils";
-import { anchorRegularFinals, currentSeasonDay, isCalendarAnchorGame } from "../utils/seasonCalendarUtils";
+import { anchorRegularFinals, buildSeasonCalendar, currentSeasonDay, inferredLeagueDayIndex, isCalendarAnchorGame } from "../utils/seasonCalendarUtils";
 import {
   advancePlayoffWinner, getPlayoffSeries, getWinsNeededForSeries,
   makeSafePlayoffBracket, setPlayoffSeries
@@ -10,7 +10,7 @@ export default function createGameFinalizationController({
   data, setData, currentGame, winningPitcherId, losingPitcherId,
   setWinningPitcherId, setLosingPitcherId, setPage, nextStreak, clearBanner,
   syncPlayersToFirebase, syncLastFinalGameToFirebase,
-  syncPlayoffBracketToFirebase, syncCurrentGameToFirebase, syncTeamsToFirebase, syncGamesToFirebase,
+  syncPlayoffBracketToFirebase, syncCurrentGameToFirebase, syncTeamsToFirebase, syncGamesToFirebase, syncLeagueExtrasToFirebase,
 }) {
   function applyPlayoffGameResult({
   seriesId,
@@ -251,12 +251,23 @@ const resetPlayers = resetPlayersAndApplyDecision(prev.players);
 syncPlayersToFirebase(resetPlayers);
 const nextGames = [finishedGame, ...(prev.games || [])];
 syncGamesToFirebase(nextGames);
+let nextExtras=prev.leagueExtras||{};
+if(anchorGame&&seasonGameNumber){
+  const finishedSlot=buildSeasonCalendar(prev,prev.teams||[]).find(s=>Number(s.gameNumber)===Number(seasonGameNumber));
+  if(finishedSlot){
+    const currentIndex=inferredLeagueDayIndex(prev,prev.teams||[]);
+    const nextIndex=Math.min(55,Math.max(currentIndex,finishedSlot.slotIndex+1));
+    nextExtras={...nextExtras,seasonDayIndex:nextIndex};
+    syncLeagueExtrasToFirebase?.(nextExtras);
+  }
+}
 
 return {
   ...prev,
   games: nextGames,
   teams: nextTeams,
   players: resetPlayers,
+  leagueExtras: nextExtras,
   lastFinalGame: finishedGame,
   currentGame: { ...defaultCurrentGame(), date: new Date().toISOString().slice(0, 10) },
 };
