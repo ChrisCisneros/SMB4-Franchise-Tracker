@@ -26,6 +26,8 @@ import { broadcastThemeClasses, broadcastThemeStyle, resolveBroadcastTheme } fro
 import LivingLeagueHome from "../components/LivingLeagueHome";
 import MerchProductArt from "../components/MerchProductArt";
 import NMLBUniverseHub from "../components/NMLBUniverseHub";
+import { buildNMLBCulture } from "../utils/nmlbCultureUtils";
+import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -53,6 +55,8 @@ export default function DashboardPage({ ctx }) {
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
+  const nmlbCulture = useMemo(()=>buildNMLBCulture(data,teams,playoffPicture||[]),[data,teams,playoffPicture,tickerSlide]);
+  const postseasonTakeover = useMemo(()=>buildNMLBPostseasonTakeover(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const ticketForecast = useMemo(()=>buildTicketForecast(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const hotCold = useMemo(()=>buildHotColdBoard(teams),[teams]);
   const tonightBoard = useMemo(()=>buildAroundLeagueTonight(data,teams,playoffPicture),[data,teams,playoffPicture]);
@@ -198,10 +202,11 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.3</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
+    {nmlbCulture.predictions.phase.id!=='preview'&&<section className="nmlb64-dashboard-race"><div><small>NMLB POSTSEASON CENTRAL</small><h2>{postseasonTakeover.headline}</h2><p>{postseasonTakeover.detail}</p><div className="nmlb64-dashboard-race-tags"><span>{nmlbCulture.predictions.phase.label}</span><span>{postseasonTakeover.qualified.length} QUALIFIED</span><span>{postseasonTakeover.eliminated.length} ELIMINATED</span>{nmlbCulture.predictions.consensus&&<span>NETWORK PICK · {nmlbCulture.predictions.consensus.abbr}</span>}</div></div><div><small>TONIGHT ON NMLB NETWORK</small><h2>{nmlbCulture.segments[0]?.[0]}</h2><p>{nmlbCulture.segments[0]?.[1]}</p><div className="nmlb64-dashboard-race-tags">{nmlbCulture.activeTraditions.slice(0,3).map(t=><span key={t.id}>{t.name}</span>)}</div></div></section>}
     <section className="dashboard-world-pulse"><div className="dashboard-world-live"><i/> WORLD PULSE</div><div className="dashboard-world-moments">{worldState.moments.map((m,i)=><span key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</span>)}</div><div className="dashboard-world-tags">{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
     <section className="card dashboard-today-package">
       <div className="dashboard-today-title"><div><span>TODAY IN THE LEAGUE · MONTH {todaySlot?.month||1} DAY {todaySlot?.dayOfMonth||1}</span><h2>{todaySlot?.gameNumber?`Game ${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:todaySlot?.dayEvent?`${todaySlot.dayEvent.icon||'✨'} ${todaySlot.dayEvent.name}`:'League Off Day'}</h2><p>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||seasonPulse.week} · ${todaySlot?.weekday||'Off Day'}`}</p></div><div className="dashboard-today-actions"><button type="button" onClick={()=>setPage?.('fandom')}>Full Calendar →</button>{controlsUnlocked&&!todaySlot?.gameNumber&&canAdvanceLeagueDay(data,teams)&&<button type="button" className="dashboard-advance-day" onClick={advanceLeagueDay}>Advance Day →</button>}</div></div>

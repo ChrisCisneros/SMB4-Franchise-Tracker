@@ -10,6 +10,7 @@ import { buildBallparkLife, buildCityBuzz, buildConsequenceChains, buildHistoric
 import { buildSpecialAchievements } from "../utils/playerLegacyUtils";
 import { buildV6LivingLeague } from "../utils/v6LivingLeagueUtils";
 import NMLBUniverseHub from '../components/NMLBUniverseHub';
+import { buildNMLBCulture, predictionSnapshot } from '../utils/nmlbCultureUtils';
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -70,7 +71,7 @@ function FactCard({ story }) {
 }
 
 export default function NewsPage({ ctx }) {
-  const { data, teams } = ctx;
+  const { data, teams, setData, syncLeagueExtrasToFirebase, controlsUnlocked } = ctx;
   const [filter, setFilter] = useState("All");
   const [featureOffset, setFeatureOffset] = useState(0);
   const [factOffset, setFactOffset] = useState(0);
@@ -101,6 +102,8 @@ export default function NewsPage({ ctx }) {
   const definingMoments=useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
   const preservedAchievements=useMemo(()=>buildSpecialAchievements(data,teams),[data,teams]);
   const v6=useMemo(()=>buildV6LivingLeague(data,teams,ctx.playoffPicture||[],Date.now()),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const culture=useMemo(()=>buildNMLBCulture(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
+  const postseasonPredictions=culture.predictions;
   const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -116,6 +119,14 @@ export default function NewsPage({ ctx }) {
   const currentCount = stories.filter((story) => storyBucket(story) === "Current").length;
   const factCount = stories.filter((story) => storyBucket(story) === "Facts").length;
   const historyCount = stories.filter((story) => ["Archive","Postseason","Record Book"].includes(storyBucket(story))).length;
+
+  useEffect(() => {
+    if (!controlsUnlocked || !postseasonPredictions?.phase?.locked || data.leagueExtras?.nmlbLockedPredictions || !postseasonPredictions?.analysts?.length) return;
+    const locked = predictionSnapshot(postseasonPredictions);
+    const nextExtras = {...(data.leagueExtras||{}), nmlbLockedPredictions: locked};
+    setData?.(prev=>({...prev,leagueExtras:nextExtras}));
+    syncLeagueExtrasToFirebase?.(nextExtras);
+  }, [controlsUnlocked, postseasonPredictions?.phase?.locked, data.leagueExtras?.nmlbLockedPredictions, postseasonPredictions?.analysts?.length]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setFeatureOffset((n) => n + 1), FEATURE_ROTATE_MS);
@@ -140,9 +151,16 @@ export default function NewsPage({ ctx }) {
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block"><div className="news-network-mark">SMB</div><div><div className="news-kicker">SMB4 League Network</div><h2>League News</h2><p>Version 6 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
+        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
+
+
+      {postseasonPredictions.phase.id!=='preview'&&<section className="nmlb64-news-ramp">
+        <article><small>NMLB NETWORK · ROAD TO OCTOBER</small><h2>{postseasonPredictions.phase.label}</h2><p>{postseasonPredictions.phase.detail}</p><div className="nmlb64-culture-tags"><span>WEEK {postseasonPredictions.phase.week||culture.week}</span><span>{postseasonPredictions.phase.locked?'🔒 PICKS LOCKED':'PICKS CAN STILL MOVE'}</span>{postseasonPredictions.consensus&&<span>CONSENSUS · {postseasonPredictions.consensus.abbr}</span>}</div></article>
+        <article className="nmlb64-calls"><small>THE CALLS</small>{postseasonPredictions.analysts.slice(0,4).map(a=><span key={a.name}><b>{a.name}</b><strong>{a.al} / {a.nl} → {a.champion}</strong></span>)}</article>
+      </section>}
+      <section className="nmlb64-culture-strip"><small>NMLB CULTURE DESK · WEEK {culture.week}</small><h2>{culture.activeTraditions[0]?.name||'The league has rituals now.'}</h2><p>{culture.activeTraditions[0]?.detail||'Traditions, recurring voices, rivalry mythology, Network segments and league-wide language now give every part of the season its own personality.'}</p><div className="nmlb64-culture-tags">{culture.segments.slice(0,5).map(([name])=><span key={name}>{name}</span>)}</div></section>
 
       <section className="news-v6-edition card"><div><small>V6 DAILY EDITION · {v6.phase.label}</small><h2>{v6.headline}</h2><p>{v6.phase.tone}</p></div><div className="news-v6-meters"><span><b>{v6.chaos.chaos}</b> CHAOS</span><span><b>{v6.chaos.drama}</b> DRAMA</span><span><b>{v6.meaningful.length}</b> PRESSURE TEAMS</span></div></section>
       <section className="news-v6-grid"><article className="card"><div className="news-kicker">PREVIOUSLY ON…</div><h3>The NMLB</h3>{v6.previous.slice(0,4).map((x,i)=><p key={i}><b>{x.label}</b><span>{x.title} · {x.detail}</span></p>)}</article><article className="card"><div className="news-kicker">CITY DESK</div><h3>Hope vs. Anxiety</h3>{v6.moods.slice(0,5).map(x=><p key={x.team.id}><b>{x.team.abbr} · {x.mood}</b><span>Hope {x.hope} · Anxiety {x.anxiety} · {x.climate}</span></p>)}</article><article className="card"><div className="news-kicker">PROGRAMMING GRID</div><h3>Today's recurring shows</h3>{v6.media.shows.slice(0,5).map(x=><p key={x.show}><b>{x.slot} · {x.show}</b><span>{x.hook}</span></p>)}</article></section>

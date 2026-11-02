@@ -476,6 +476,24 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
     homeTeamId: homeTeam?.id || series.homeTeamId,
   };
 
+  const winsNeeded = getWinsNeededForSeries(seriesId);
+  const gamesWon = Number(series.awayWins || 0) + Number(series.homeWins || 0);
+  const awayLead = Number(series.awayWins || 0) - Number(series.homeWins || 0);
+  let awayShare = 50;
+  if (series.winnerTeamId === awayTeam?.id) awayShare = 100;
+  else if (series.winnerTeamId === homeTeam?.id) awayShare = 0;
+  else if (gamesWon > 0) awayShare = Math.max(24, Math.min(76, 50 + awayLead * (winsNeeded >= 4 ? 8 : 11)));
+  const homeShare = 100 - awayShare;
+  const sponsors = [
+    ["Crownline Motors", "NMLB Network"],
+    ["Northstar Wireless", "NMLB Network · Primetime"],
+    ["Grandstand Grill", "NMLB+ · National Stream"],
+    ["Summit Air", "NMLB Network"],
+    ["Diamond State Bank", "NMLB Network · Late Window"],
+  ];
+  const sponsorIndex = [...String(seriesId)].reduce((a,c)=>a+c.charCodeAt(0),0) % sponsors.length;
+  const [sponsorName, watchLabel] = sponsors[sponsorIndex];
+
   const bracketColorVars = {
     "--series-away-main": awayColors.main,
     "--series-away-alt": awayColors.alt,
@@ -489,6 +507,8 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
     "--series-winner-alt": winnerColors.alt,
     "--series-winner-border": winnerColors.border,
     "--series-winner-text": winnerColors.text,
+    "--away-share": `${awayShare}%`,
+    "--home-share": `${homeShare}%`,
   };
 
   return (
@@ -503,6 +523,7 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
       <div className="bracket-series-label">{label}</div>
 
       <div
+        style={{minHeight:`${28 + awayShare * 0.38}px`}}
         className={`bracket-team-row bracket-away-row ${
   series.winnerTeamId === awayTeam?.id ? "series-team-winner" : ""
 } ${
@@ -521,6 +542,7 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
       </div>
 
       <div
+        style={{minHeight:`${28 + homeShare * 0.38}px`}}
         className={`bracket-team-row bracket-home-row ${
   series.winnerTeamId === homeTeam?.id ? "series-team-winner" : ""
 } ${
@@ -538,8 +560,14 @@ const winnerColors = getPostseasonColorsByAbbr(winnerTeam?.abbr);
         <small>{series.homeWins || 0}</small>
       </div>
 
+      <div className="bracket-series-control" aria-hidden="true"><i/><i/></div>
       <div className="bracket-series-status">
         {seriesStatusText(displaySeries, seriesId)}
+      </div>
+      <div className="bracket-series-media">
+        <span><b>WATCH</b> · {watchLabel}</span>
+        <span><b>RADIO</b> · NMLB Radio Network</span>
+        <em>Presented by {sponsorName}</em>
       </div>
     </div>
   );

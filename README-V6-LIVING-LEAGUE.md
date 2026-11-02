@@ -112,3 +112,33 @@ V6.3 makes Nicky's Major League Baseball the identity of the entire app rather t
 - Official colors: royal purple #1f0554, white #ffffff and black #000000, with gold reserved for major historical/championship spectacle.
 - Navigation now uses NMLB Center, NMLB Network, League Almanac, Hall of Records, Pennant Race and NMLB Office language.
 - Existing V6 Living League, social, calendar, Museum/Hall, merch and gameplay systems remain intact.
+
+## V6.4 — NMLB Culture & Postseason Spectacle
+V6.4 gives the NMLB a recognizable culture and prepares the entire product for the league's biggest postseason yet.
+
+### League culture
+- Adds formal NMLB traditions: Opening Day, Rivalry Week, Midseason Celebration, Pennant Race, Awards Night, Hall Weekend, Fan Appreciation Finale and the World Series.
+- Establishes recurring NMLB Network personalities, signature voices and recurring segments such as The Power Board, Pressure Meter, Receipts, History Lesson and The Panic Button.
+- Culture & Lore now surfaces league-wide traditions and Network personalities alongside existing fanbase, ballpark and rivalry culture.
+
+### NMLB Center facelift
+- Rebuilds the NMLB Center header as a league-headquarters command surface with current Power Index leader, season identity, prediction state and archive counts.
+- Restyles League Intelligence, Storylines, Players & Awards, Records & Milestones, Snapshots and Museum surfaces under one coherent NMLB headquarters visual language.
+
+### Postseason prediction culture
+- NMLB Network begins formal postseason forecasts in Week 7.
+- Week 8 becomes Final Calls.
+- Once postseason play begins, official NMLB Network picks lock into league history and become future receipts instead of changing retroactively.
+- Dashboard, News and Bracket all surface the same postseason prediction state.
+
+### Bracket spectacle
+- Rebuilds the postseason bracket around Nicky's Commissioner's Trophy.
+- World Series receives a dedicated grand central stage.
+- Series cards visually shift toward the team controlling the series and fully surrender to the winner once a series is clinched.
+- Adds fake postseason sponsors plus NMLB Network, NMLB+ and NMLB Radio watch information to bracket series.
+- Champion state lights the central trophy presentation with the winning club's identity.
+
+### Dashboard & News postseason ramp
+- Dashboard gains Postseason Central presentation during the stretch run and October.
+- News gains Road to October prediction coverage and Culture Desk programming.
+- Existing postseason aftermath, spoiler, receipts, history and social systems remain connected to the new presentation.

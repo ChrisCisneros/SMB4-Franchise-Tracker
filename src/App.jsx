@@ -1932,9 +1932,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
-    <span className="version-pill version-pill-v3">v6.3</span>
+    <span className="version-pill version-pill-v3">v6.4</span>
   </div>
-  <p>NMLB · Nicky's Major League Baseball · Version 6.3 · NMLB Rebrand</p>
+  <p>NMLB · Nicky's Major League Baseball · Version 6.4 · Culture & Postseason Spectacle</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
