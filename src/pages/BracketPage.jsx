@@ -1,9 +1,10 @@
 import React from "react";
+import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
 export default function BracketPage({ ctx }) {
-  const { renderBracketSeries, data, teamById } = ctx;
+  const { renderBracketSeries, data, teamById, playoffPicture } = ctx;
   const history = data.seasonHistory || [];
   const latest = [...history].sort((a,b)=>(Date.parse(b.archivedAt)||0)-(Date.parse(a.archivedAt)||0))[0];
   const defendingChampion = latest?.championTeamId ? (latest.teams || []).find((t)=>t.id===latest.championTeamId) : null;
@@ -13,10 +14,11 @@ export default function BracketPage({ ctx }) {
   const phase=progress>=90?'POSTSEASON DOORSTEP':progress>=70?'PENNANT RACE':progress>=45?'MIDSEASON PICTURE':'EARLY RACE';
   const wsAway = teamById?.(currentFinals.awayTeamId);
   const wsHome = teamById?.(currentFinals.homeTeamId);
+  const nmlbPostseason=buildNMLBPostseasonTakeover(data,data.teams||[],playoffPicture||[]);
 
   return (
-    <div className="bracket-page">
-        <div className="card season-format-card bracket-hero-v423"><div><span>ROAD TO THE WORLD SERIES</span><h2>Playoff Bracket</h2><p className="muted">40-game regular season · Top 8 per league · Every series best-of-5.</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
+    <div className={`bracket-page nmlb-postseason-page ${nmlbPostseason.stage.toLowerCase().replace(/\s+/g,'-')}`}>
+        <div className="card season-format-card bracket-hero-v423"><div><span>NMLB · ROAD TO THE WORLD SERIES</span><h2>{nmlbPostseason.headline}</h2><p className="muted">{nmlbPostseason.detail}</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
     
         <div className="playoff-hub-strip">
           <div className="playoff-hub-stat"><span>Defending Champion</span><strong>{defendingChampion?.abbr || "—"}</strong></div>

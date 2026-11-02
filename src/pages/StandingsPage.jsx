@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { WILD_CARD_TEAMS_PER_LEAGUE } from "../config/constants";
 import { getTeamColorsByAbbr } from "../config/teamColors";
+import { buildNMLBPowerIndex } from '../utils/nmlbUniverseUtils';
 import {
   eliminationNumber,
   gamesBack,
@@ -177,11 +178,12 @@ export default function StandingsPage({ ctx }) {
   const toughest=[...v4Metrics].sort((a,b)=>b.sos-a.sos)[0];
   const biggestMover=[...v4Metrics].filter(m=>m.previousRank).sort((a,b)=>Math.abs(b.movement)-Math.abs(a.movement))[0];
 
+  const nmlbPower=buildNMLBPowerIndex(data,allTeams,playoffPicture);
   return (
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V6.2.3 · PENNANT RACE HQ</div>
+          <div className="standings-hero-eyebrow">NMLB · V6.3 · PENNANT RACE HQ</div>
           <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
           <p>The living race board: division control, wild-card pressure, clinches, elimination danger and every game left to matter.</p>
         </div>
@@ -192,6 +194,7 @@ export default function StandingsPage({ ctx }) {
         </div>
       </section>
 
+      <section className="card nmlb63-standings-power"><div><small>NMLB POWER INDEX</small><h2>Who is dangerous right now?</h2><p>Record, run differential, recent form, streak and postseason position rolled into one league pulse.</p></div><div className="nmlb63-power-mini">{nmlbPower.slice(0,5).map(x=><article key={x.team.id}><b>#{x.rank}</b><strong>{x.team.abbr}</strong><span>{x.score}</span><em>{x.label}</em></article>)}</div></section>
       <section className="standings-v61-race-strip">{playoffPicture.map(p=>{const leader=p.divisionLeaders?.[0];const bubble=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE-1];const chase=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE];return <article className="card" key={`pulse-${p.league}`}><small>{p.league} RACE PULSE</small><strong>{leader?.abbr||'—'} sets the pace</strong><span>{bubble?`${bubble.abbr} currently holds the final Wild Card`: 'Race still forming'}</span><em>{chase?`${chase.abbr} is first team out`:'No team below the cut yet'}</em></article>})}</section>
 
       <section className="card standings-v4-intel">

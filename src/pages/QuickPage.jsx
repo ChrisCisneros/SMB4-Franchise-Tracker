@@ -34,7 +34,7 @@ export default function QuickPage({ ctx }) {
     <div className="quick-groups-wrap quick-v3-page">
       <div className="card quick-reset-card quick-ops-header">
         <div>
-          <div className="operator-kicker">FRANCHISE CONTROL CENTER</div>
+          <div className="operator-kicker">NMLB CONTROL CENTER</div>
           <h2>Quick Record Editor</h2>
           <p className="muted">Fast manual corrections without digging through every team.</p>
         </div>

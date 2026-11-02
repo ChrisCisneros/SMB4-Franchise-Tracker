@@ -1927,14 +1927,14 @@ const dashboardStories = [
   const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
 
   return (
-    <div className={`app-shell wide-shell ${seasonAtmosphereClass}`}>
+    <div className={`app-shell wide-shell nmlb-app ${seasonAtmosphereClass}`}>
       <div className="topbar">
        <div>
   <div className="title-row">
-    <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v6.2.3</span>
+    <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
+    <span className="version-pill version-pill-v3">v6.3</span>
   </div>
-  <p>SMB4 Franchise Central · NMLB · Nicky's Major League Baseball · Version 6.2.3</p>
+  <p>NMLB · Nicky's Major League Baseball · Version 6.3 · NMLB Rebrand</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1947,15 +1947,15 @@ const dashboardStories = [
 
 <div className="nav nav-v418">
   <button className={`nav-core nav-dashboard ${page === "dashboard" ? "active" : ""}`} onClick={() => setPage("dashboard")}>Dashboard</button>
-  <button className={`nav-core nav-fandom ${page === "fandom" ? "active" : ""}`} onClick={() => setPage("fandom")}>Fandom</button>
-  <button className={`nav-core nav-league-center ${page === "v4" ? "active" : ""}`} onClick={() => setPage("v4")}>League Center</button>
-  <button className={`nav-core nav-standings ${page === "standings" ? "active" : ""}`} onClick={() => setPage("standings")}>Standings</button>
+  <button className={`nav-core nav-fandom ${page === "fandom" ? "active" : ""}`} onClick={() => setPage("fandom")}>Fan Districts</button>
+  <button className={`nav-core nav-league-center ${page === "v4" ? "active" : ""}`} onClick={() => setPage("v4")}>NMLB Center</button>
+  <button className={`nav-core nav-standings ${page === "standings" ? "active" : ""}`} onClick={() => setPage("standings")}>Pennant Race</button>
   <button className={`nav-core nav-bracket ${page === "bracket" ? "active" : ""}`} onClick={() => setPage("bracket")}>Bracket</button>
-  <button className={`nav-core nav-news ${page === "news" ? "active" : ""}`} onClick={() => setPage("news")}>News</button>
-  <button className={`nav-core nav-league ${page === "league" ? "active" : ""}`} onClick={() => setPage("league")}>League Hub</button>
+  <button className={`nav-core nav-news ${page === "news" ? "active" : ""}`} onClick={() => setPage("news")}>NMLB Network</button>
+  <button className={`nav-core nav-league ${page === "league" ? "active" : ""}`} onClick={() => setPage("league")}>League Almanac</button>
   <button className={`nav-core nav-history ${page === "history" ? "active" : ""}`} onClick={() => setPage("history")}>History</button>
-  <button className={`nav-core nav-records ${page === "records" ? "active" : ""}`} onClick={() => setPage("records")}>Records</button>
-  {controlsUnlocked && <button className={`nav-core nav-office ${page === "office" ? "active" : ""}`} onClick={() => setPage("office")}>League Office</button>}
+  <button className={`nav-core nav-records ${page === "records" ? "active" : ""}`} onClick={() => setPage("records")}>Hall of Records</button>
+  {controlsUnlocked && <button className={`nav-core nav-office ${page === "office" ? "active" : ""}`} onClick={() => setPage("office")}>NMLB Office</button>}
 </div>
 <WorldPulseRibbon data={data} teams={teams} playoffPicture={playoffPicture} page={page} />
 

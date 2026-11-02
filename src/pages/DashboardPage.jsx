@@ -25,6 +25,7 @@ import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAtt
 import { broadcastThemeClasses, broadcastThemeStyle, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
 import LivingLeagueHome from "../components/LivingLeagueHome";
 import MerchProductArt from "../components/MerchProductArt";
+import NMLBUniverseHub from "../components/NMLBUniverseHub";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -197,7 +198,7 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 6.2.3</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.3</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -312,6 +313,7 @@ export default function DashboardPage({ ctx }) {
     </>}
 
     {dashboardTab==='life'&&<>
+    <NMLBUniverseHub data={data} teams={teams} playoffPicture={playoffPicture} />
     <LivingLeagueHome data={data} teams={teams} playoffPicture={playoffPicture} setPage={setPage} />
 
     <section className="dashboard-next-strip card">

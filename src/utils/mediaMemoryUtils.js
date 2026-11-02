@@ -124,7 +124,7 @@ export function buildDynamicAds(data={},teams=[],playoffPicture=[]){
   const ads=[];
   if(anchor)ads.push({id:'tickets',kicker:'TICKETS',title:`${forecast.label}: ${anchor.abbr} game day`,copy:`Demand ${forecast.demand}/100${forecast.opponent?` · ${scheduleEntryLabel(forecast.slot?.schedule)}`:''}`,cta:'SEE GAME DAY'});
   if(world.promo)ads.push({id:'promo',kicker:'TONIGHT',title:`${world.promo.icon||'🎟️'} ${world.promo.name}`,copy:world.promo.giveaway||'Special ballpark event',cta:'EVENT GUIDE'});
-  ads.push({id:'network',kicker:'SMB NETWORK+',title:'Every storyline. Every argument.',copy:'Pregame, postgame, podcasts and the live fan wire.',cta:'WATCH NOW'});
+  ads.push({id:'network',kicker:'NMLB NETWORK+',title:'Every storyline. Every argument.',copy:'Pregame, postgame, podcasts and the live fan wire.',cta:'WATCH NOW'});
   ads.push({id:'local',kicker:'DIAMOND DOG GRILL',title:'Win tonight, fries tomorrow.',copy:'A fictional local sponsor proudly fueling unreasonable baseball opinions.',cta:'GAME DAY SPECIAL'});
   return ads;
 }

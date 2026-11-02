@@ -1,4 +1,4 @@
-# SMB4 Franchise Central — Version 6.0
+# NMLB — Version 6
 ## The Living League
 
 Version 6 is the major daily-life release. The app now treats the league as a world that continues to have culture, conversation, memory and anticipation even when no game is active.
@@ -78,3 +78,37 @@ Version 6 is the major daily-life release. The app now treats the league as a wo
 
 ## V6.2 — Franchise Central Market
 V6.2 turns merch from decorative cards into a full fake-commerce ecosystem. The Fandom shop now has dedicated Team Shop, League Shop, Postseason, Champions Vault, Meme Drops and Legends & Archive departments; richer studio-style illustrated product photography; quick-view product pages; simulated ratings, inventory and collector scarcity; current postseason merchandise driven by actual clinch state; moment/streak meme drops; league-branded gear; and season-specific merchandise for every archived World Series champion. Previous champions remain permanently shoppable through the Champions Vault, including caps, satin jackets, pennants, commemorative baseballs, replica rings and framed archive pieces.
+
+
+## V6.2.1–V6.2.3 — NMLB Market polish
+- NMLB becomes the official league identity for the Market with royal purple, white and black league colors.
+- Product art receives multiple geometry/readability passes for caps, jerseys, pennants, baseballs, championship gear and meme merch.
+- Team, league-champion and World Series merchandise use distinct uniform/pennant templates.
+- Merch demand and simulated sales now react to team quality, streaks, hype, postseason qualification and championship status.
+
+## V6.3 — NMLB Rebrand
+V6.3 makes Nicky's Major League Baseball the identity of the entire app rather than only the merch store. The global shell, navigation and major league surfaces now use the NMLB purple/white/black identity and NMLB naming.
+
+### League-wide life
+- New NMLB Power Index blends record, recent form, run differential, streak and postseason status into a team-level danger ranking without adding player-entry work.
+- Record Chase Drama promotes existing major player-record targets into HISTORY TONIGHT / ON THE DOORSTEP / CLOSING FAST coverage.
+- NMLB Network gains a full daily programming grid, debate lead, breaking desk and connected league-life presentation.
+- NMLB Films generates documentary concepts from archived championships, rivalries and memorable tracked games.
+- NMLB Magazine produces a current issue/cover identity from the live league state.
+- Newspaper Front Pages turn clinches, eliminations, classic games and major daily stories into local/national-style front pages.
+- NMLB Business Report combines simulated attendance, market heat and merch demand so winning streaks, October and fan energy read like one living economy.
+- Instant Classic and Heartbreak boards rank tracked games by drama/context signals.
+- Franchise Trajectory labels clubs as rising, contender, powerhouse, dynasty, declining, rebuilding or steady using current plus archived team results.
+- Schedule Storylines turn homestands and road trips into league narrative rather than simple schedule labels.
+
+### Spectacle
+- NMLB Awards Night is a full-screen category-by-category reveal presentation for finalized season awards. Award-race leaders remain the pre-show/nominee board until winners are actually entered.
+- The Bracket receives NMLB Postseason and World Series takeover presentation.
+- The season now develops an NMLB narrative timeline and an era-style season identity based on the tracked league state.
+- League-wide spectacle headlines can elevate record-breaking moments, clinches and extreme chaos into temporary HISTORY / POSTSEASON / NMLB TODAY presentation.
+
+### Identity
+- Main branding is now NMLB / Nicky's Major League Baseball.
+- Official colors: royal purple #1f0554, white #ffffff and black #000000, with gold reserved for major historical/championship spectacle.
+- Navigation now uses NMLB Center, NMLB Network, League Almanac, Hall of Records, Pennant Race and NMLB Office language.
+- Existing V6 Living League, social, calendar, Museum/Hall, merch and gameplay systems remain intact.
