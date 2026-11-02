@@ -60,3 +60,17 @@ Version 6 is the major daily-life release. The app now treats the league as a wo
 - City Desk compares hope and anxiety around the league.
 - Programming Grid turns media shows into recurring properties instead of isolated flavor cards.
 - Postseason Aftermath, Spoiler Desk and History Echoes keep major results alive beyond a single headline.
+
+
+## V6.1 — Living League Expanded
+- Player Legacy Desk adds player lookup, profile-first milestone entry, duplicate protection, visible milestone ladders and preserved History links.
+- All-Time Player Record Book adds major career records for Hits, Home Runs, RBI and Strikeouts, including retired holders and active chase distance.
+- Dashboard is split into Home and League Life subtabs so the broadcast essentials stay fast while the deep universe remains explorable.
+- Road Trip / Homestand logic now follows the current contiguous home/road stretch instead of a majority of the last six games.
+- Franchise Central Market receives illustrated caps, jerseys, socks, pennants, plushies, jackets, signed baseballs and memorabilia with pricing/edition presentation.
+- Media receives an on-air station grid, richer programming schedule, podcast artwork/playback presentation and live call-in flavor.
+- Fireworks Night presentation is larger and more theatrical.
+- Museum & Hall of Glory now puts Champions Live Here Forever first; the World Series trophy is rebuilt around a golden baseball centerpiece.
+- Records becomes the Record Vault with player immortals integrated into the page.
+- Standings becomes Pennant Race HQ with race-pulse cards and a stronger late-season visual hierarchy.
+- Visible app version updated to v6.1.

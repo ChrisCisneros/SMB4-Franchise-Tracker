@@ -129,15 +129,24 @@ export function buildSeriesAndTravel(data={},teams=[]){
   const games=finalGames(data);
   const map=teamMap(teams);
   return teams.map(team=>{
-    const recent=games.filter(g=>g.awayTeamId===team.id||g.homeTeamId===team.id).slice(-6);
-    const road=recent.filter(g=>g.awayTeamId===team.id).length;
-    const home=recent.length-road;
-    const wins=recent.filter(g=>g.awayTeamId===team.id?n(g.awayScore)>n(g.homeScore):n(g.homeScore)>n(g.awayScore)).length;
-    const last=recent[recent.length-1];
+    const teamGames=games.filter(g=>g.awayTeamId===team.id||g.homeTeamId===team.id);
+    const last=teamGames[teamGames.length-1];
+    const anchorAbbr=String(data.leagueExtras?.calendarAnchorTeamAbbr||'SF').toUpperCase();
+    const nextFranchiseGame=String(team.abbr||'').toUpperCase()===anchorAbbr?currentSeasonDay(data,teams):null;
+    const scheduledSide=nextFranchiseGame?.schedule?.location==='away'?'road':nextFranchiseGame?.schedule?.location==='home'?'home':null;
+    const currentSide=scheduledSide||(last?(last.homeTeamId===team.id?'home':'road'):null);
+    const stretch=[];
+    for(let i=teamGames.length-1;i>=0;i--){
+      const g=teamGames[i]; const side=g.homeTeamId===team.id?'home':'road';
+      if(currentSide&&side!==currentSide)break;
+      stretch.unshift(g);
+    }
+    const wins=stretch.filter(g=>g.awayTeamId===team.id?n(g.awayScore)>n(g.homeScore):n(g.homeScore)>n(g.awayScore)).length;
     const lastOpp=last?map.get(last.awayTeamId===team.id?last.homeTeamId:last.awayTeamId):null;
-    const tripLabel=road>=4?'ROAD TRIP':home>=4?'HOMESTAND':road>home?'ON THE ROAD':'HOME STRETCH';
-    const mood=wins>=5?'ROLLING':wins>=3?'STEADY':wins<=1?'GRINDING':'MIXED';
-    return {team,tripLabel,mood,recentRecord:`${wins}-${recent.length-wins}`,lastOpp,lastSix:recent};
+    const opponents=stretch.map(g=>map.get(g.awayTeamId===team.id?g.homeTeamId:g.awayTeamId)?.abbr||'TBD');
+    const tripLabel=currentSide==='road'?'CURRENT ROAD TRIP':currentSide==='home'?'CURRENT HOMESTAND':'NEXT STRETCH';
+    const mood=wins>=Math.max(2,stretch.length-1)&&stretch.length>=2?'ROLLING':wins>=Math.ceil(stretch.length/2)?'STEADY':wins===0&&stretch.length>=2?'GRINDING':'MIXED';
+    return {team,tripLabel,mood,recentRecord:`${wins}-${stretch.length-wins}`,lastOpp,lastSix:stretch,currentStretch:stretch,stretchGames:stretch.length,opponents,currentSide};
   });
 }
 

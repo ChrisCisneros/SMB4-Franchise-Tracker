@@ -181,9 +181,9 @@ export default function StandingsPage({ ctx }) {
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V4.0</div>
+          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V6.1 · PENNANT RACE HQ</div>
           <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
-          <p>Division races, clinch status and the live road to the postseason.</p>
+          <p>The living race board: division control, wild-card pressure, clinches, elimination danger and every game left to matter.</p>
         </div>
         <div className="standings-hero-stats">
           <div><span>Games Played</span><strong>{Math.round(gamesPlayed)}</strong></div>
@@ -191,6 +191,8 @@ export default function StandingsPage({ ctx }) {
           <div><span>Best Record</span><strong>{best ? `${best.wins}-${best.losses}` : "—"}</strong></div>
         </div>
       </section>
+
+      <section className="standings-v61-race-strip">{playoffPicture.map(p=>{const leader=p.divisionLeaders?.[0];const bubble=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE-1];const chase=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE];return <article className="card" key={`pulse-${p.league}`}><small>{p.league} RACE PULSE</small><strong>{leader?.abbr||'—'} sets the pace</strong><span>{bubble?`${bubble.abbr} currently holds the final Wild Card`: 'Race still forming'}</span><em>{chase?`${chase.abbr} is first team out`:'No team below the cut yet'}</em></article>})}</section>
 
       <section className="card standings-v4-intel">
         <div><span>Closest Magic Number</span><strong>{closestMagic ? `${closestMagic.team.abbr} · ${closestMagic.playoffMagic}` : "—"}</strong></div>

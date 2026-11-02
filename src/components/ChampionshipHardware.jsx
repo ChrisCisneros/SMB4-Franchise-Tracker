@@ -15,7 +15,7 @@ export function ChampionshipBanner({team,leagueLabel='LEAGUE',seasonName='',size
 export function ChampionshipTrophy({team,seasonName='',size='large'}){
   const t=hardwareTheme(team?.abbr);
   return <div className={`hall-trophy hall-trophy-${size}`} style={{'--hall-main':t.main,'--hall-accent':t.accent,'--hall-border':t.border,'--hall-text':t.text}} aria-label={`${team?.abbr||'Team'} World Series trophy`}>
-    <div className="hall-trophy-globe"><i/><i/><i/><i/><i/><span>★</span></div>
+    <div className="hall-trophy-baseball"><span className="seam seam-a"/><span className="seam seam-b"/><b>{team?.abbr||'★'}</b></div>
     <div className="hall-trophy-neck"/>
     <div className="hall-trophy-cup"><span>{team?.abbr||'—'}</span><b>WORLD SERIES</b></div>
     <div className="hall-trophy-stem"/>

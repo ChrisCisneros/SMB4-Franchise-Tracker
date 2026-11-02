@@ -101,13 +101,21 @@ export function buildSocialChatter(data={},teams=[],playoffPicture=[],now=Date.n
 export function buildMerch(data={},teams=[],playoffPicture=[]){
   const {teamStates}=buildFanUniverse(data,teams,playoffPicture);
   const products=[];
+  const price=(seed,min,max)=>Math.round(min+seeded(seed)*(max-min));
   teamStates.forEach(x=>{
-    products.push({id:`${x.team.id}-cap`,team:x.team,type:'CAP',name:`${x.team.abbr} Franchise Cap`,tag:x.marketHeat>=70?'TRENDING':'TEAM STORE'});
-    products.push({id:`${x.team.id}-jersey`,team:x.team,type:'JERSEY',name:`${x.team.abbr} Home Jersey`,tag:x.hype>=75?'BEST SELLER':'AUTHENTIC'});
-    if(x.team.streak?.startsWith('W')&&Number(x.team.streak.slice(1)||0)>=3)products.push({id:`${x.team.id}-streak`,team:x.team,type:'TEE',name:`${x.team.streak} Heat Check Tee`,tag:'JUST DROPPED'});
-    if(x.history.titles)products.push({id:`${x.team.id}-champ`,team:x.team,type:'CHAMPIONS',name:`${x.team.abbr} Championship Legacy Collection`,tag:`${x.history.titles}× CHAMPS`});
+    const t=x.team, hot=x.marketHeat>=70;
+    products.push(
+      {id:`${t.id}-cap`,team:t,type:'CAP',name:`${t.abbr} On-Field Cap`,tag:hot?'TRENDING':'TEAM STORE',price:price(`${t.id}-cap`,28,42),edition:'ON-FIELD'},
+      {id:`${t.id}-jersey`,team:t,type:'JERSEY',name:`${t.abbr} Home Jersey`,tag:x.hype>=75?'BEST SELLER':'AUTHENTIC',price:price(`${t.id}-jersey`,82,128),edition:'AUTHENTIC'},
+      {id:`${t.id}-socks`,team:t,type:'SOCKS',name:`${t.abbr} Stirrups & Socks Set`,tag:'BALLPARK CLASSIC',price:price(`${t.id}-socks`,16,29),edition:'GAME DAY'},
+      {id:`${t.id}-pennant`,team:t,type:'PENNANT',name:`${t.abbr} Felt Pennant`,tag:'WALL FAVORITE',price:price(`${t.id}-pennant`,18,34),edition:'HERITAGE'},
+      {id:`${t.id}-plush`,team:t,type:'PLUSH',name:`${t.abbr} Ballpark Plush`,tag:'FAMILY DROP',price:price(`${t.id}-plush`,22,38),edition:'BALLPARK'},
+      {id:`${t.id}-jacket`,team:t,type:'JACKET',name:`${t.abbr} Dugout Jacket`,tag:hot?'HOT ITEM':'OUTERWEAR',price:price(`${t.id}-jacket`,74,118),edition:'DUGOUT'}
+    );
+    if(x.team.streak?.startsWith('W')&&Number(x.team.streak.slice(1)||0)>=3)products.push({id:`${t.id}-streak`,team:t,type:'TEE',name:`${x.team.streak} Heat Check Tee`,tag:'JUST DROPPED',price:price(`${t.id}-streak`,24,36),edition:'LIMITED'});
+    if(x.history.titles){products.push({id:`${t.id}-champ`,team:t,type:'MEMORABILIA',name:`${t.abbr} Championship Shadowbox`,tag:`${x.history.titles}× CHAMPS`,price:price(`${t.id}-champ`,110,220),edition:'LEGACY'});products.push({id:`${t.id}-ball`,team:t,type:'SIGNED BALL',name:`${t.abbr} Championship Signed Baseball`,tag:'COLLECTOR',price:price(`${t.id}-ball`,95,260),edition:'NUMBERED'});}
   });
-  (data.leagueExtras?.retiredNumbers||[]).forEach(x=>{const team=teams.find(t=>t.abbr===x.teamAbbr);if(team)products.push({id:`ret-${x.id}`,team,type:'LEGACY',name:`${x.name} ${x.title} Retirement Collection`,tag:'LEGACY DROP'});});
+  (data.leagueExtras?.retiredNumbers||[]).forEach(x=>{const team=teams.find(t=>t.abbr===x.teamAbbr);if(team)products.push({id:`ret-${x.id}`,team,type:'FRAME',name:`${x.name} ${x.title} Retirement Shadowbox`,tag:'LEGACY DROP',price:175,edition:'RETIREMENT'});});
   return products;
 }
 

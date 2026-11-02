@@ -24,6 +24,7 @@ import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPre
 import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile, buildGameConditions } from "../utils/ballparkLifeUtils";
 import { broadcastThemeClasses, broadcastThemeStyle, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
 import LivingLeagueHome from "../components/LivingLeagueHome";
+import MerchProductArt from "../components/MerchProductArt";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -46,6 +47,7 @@ export default function DashboardPage({ ctx }) {
   const [merchSlide,setMerchSlide]=useState(0);
   const [tickerSlide,setTickerSlide]=useState(0);
   const [activeCeremony,setActiveCeremony]=useState(null);
+  const [dashboardTab,setDashboardTab]=useState('home');
   useEffect(()=>{const t=setInterval(()=>setDashboardClock(Date.now()),7000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
@@ -192,8 +194,10 @@ export default function DashboardPage({ ctx }) {
     <div className="dashboard-theme-canvas" data-icon={broadcastTheme.icon||"⚾"} data-label={broadcastTheme.label||"BASEBALL NIGHT"} aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
     {v4ShowBunting && <div className={`dashboard-v4-bunting dashboard-v4-bunting-top ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
 
+    <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
+    {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 5</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 6.1</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -270,7 +274,7 @@ export default function DashboardPage({ ctx }) {
 
         {dashboardMerch.length>0 && <section className="dashboard-market-row">
           <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
-          {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text}}><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>SHOP DROP →</small></button>})}
+          {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad v61-dashboard-merch" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text,'--shop-main':c.main,'--shop-alt':c.alt,'--shop-border':c.border,'--shop-text':c.text}}><MerchProductArt item={item} compact/><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>${item.price||35} · SHOP DROP →</small></button>})}
         </section>}
 
         {v4NoHit.length>0 && <section className="dashboard-v4-milestone">{v4NoHit.map((x,i)=><div key={i}><b>👀 NO-HIT WATCH</b><span>{x.pitching.abbr} has held {x.batter.abbr} hitless through the current game state.</span></div>)}</section>}
@@ -305,8 +309,9 @@ export default function DashboardPage({ ctx }) {
       </aside>
     </section>
 
+    </>}
 
-
+    {dashboardTab==='life'&&<>
     <LivingLeagueHome data={data} teams={teams} playoffPicture={playoffPicture} setPage={setPage} />
 
     <section className="dashboard-next-strip card">
@@ -329,5 +334,6 @@ export default function DashboardPage({ ctx }) {
       <div className="v3-section-heading compact"><div><span>{activeSeason.toUpperCase()} SERIES BOOK</span><h3>{favoriteTeam?.abbr || 'Franchise'} vs Opponents</h3></div><MiniPill>{opponentRows.reduce((sum,row)=>sum+row.games,0)} scored games</MiniPill></div>
       {opponentRows.length ? <div className="v3-opponent-scroll"><div className="v3-opponent-head"><span>Opponent</span><span>Record</span><span>Runs</span><span>Diff</span><span>Home</span><span>Away</span><span>Last</span></div>{opponentRows.map((row)=>{const diff=row.runsFor-row.runsAgainst;return <div className="v3-opponent-row" key={row.opponent.id}><div className="v3-opponent-team"><strong>{row.opponent.abbr}</strong><small>{row.opponent.city} {row.opponent.name}</small></div><strong className={row.wins>row.losses?'positive':row.losses>row.wins?'negative':''}>{row.wins}-{row.losses}</strong><span>{row.runsFor}-{row.runsAgainst}</span><span className={diff>0?'positive':diff<0?'negative':''}>{diff>0?'+':''}{diff}</span><span>{row.homeWins}-{row.homeLosses}</span><span>{row.awayWins}-{row.awayLosses}</span><span className={row.last?.won?'positive':'negative'}>{row.last?`${row.last.won?'W':'L'} ${row.last.runsFor}-${row.last.runsAgainst}`:'—'}</span></div>})}</div> : <div className="v3-opponent-empty"><strong>Your {activeSeason} matchup book starts with the first final.</strong><span>Every finalized scored game will automatically add the opponent, series record, runs for/against, home/away split and latest result here.</span></div>}
     </section>
+    </>}
   </div>;
 }

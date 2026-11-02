@@ -31,6 +31,7 @@ export function buildSpecialAchievements(data={},teams=[]){
     season:x.season||data.activeSeasonName||'Season',
     createdAt:x.createdAt||'',
     icon:x.icon||'⭐',
+    playerId:x.playerId||'', stat:x.stat||'', milestoneValue:Number(x.milestoneValue||0)||0, retroactive:Boolean(x.retroactive),
   }));
   const history=(extras.manualEvents||[]).filter(x=>!x.linkedAchievementId&&MILESTONE_RE.test(`${x.title||''} ${x.note||''}`)).map(x=>({
     id:`history-${x.id}`,
@@ -42,6 +43,7 @@ export function buildSpecialAchievements(data={},teams=[]){
     season:x.date||data.activeSeasonName||'Season',
     createdAt:x.createdAt||'',
     icon:'🏅',
+    playerId:x.playerId||'', stat:x.stat||'', milestoneValue:Number(x.milestoneValue||0)||0, retroactive:Boolean(x.retroactive),
   }));
   return [...manual,...history].map(x=>({...x,team:teamByAbbr.get(x.teamAbbr)||null})).sort((a,b)=>(Date.parse(b.createdAt||'')||0)-(Date.parse(a.createdAt||'')||0));
 }

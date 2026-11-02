@@ -93,6 +93,7 @@ function SingleSeasonCard({ label, entry, formatter }) {
 
 export default function LeagueRecordsPage({ ctx }) {
   const { data, teams } = ctx;
+  const majorPlayerRecords = data.leagueExtras?.majorPlayerRecords || [];
   const records = useMemo(
     () => buildLeagueRecords(data.seasonHistory || [], teams || []),
     [data.seasonHistory, teams]
@@ -118,8 +119,8 @@ export default function LeagueRecordsPage({ ctx }) {
     <div className="records-page">
       <section className="records-hero card">
         <div>
-          <div className="records-hero-kicker">SMB4 League Record Book</div>
-          <h2>League Records</h2>
+          <div className="records-hero-kicker">VERSION 6.1 · THE RECORD VAULT</div>
+          <h2>The Record Vault</h2>
           <p>
             Every championship, playoff run, dynasty, drought, and ridiculous season preserved from the archive.
           </p>
@@ -130,6 +131,8 @@ export default function LeagueRecordsPage({ ctx }) {
           <div><strong>{records.summary.teamsTracked}</strong><span>Franchises</span></div>
         </div>
       </section>
+
+      {majorPlayerRecords.length>0&&<section className="card v61-player-record-gallery"><div className="records-section-heading"><div><div className="records-section-kicker">PLAYER IMMORTALS</div><h3>All-Time Career Records</h3></div><span className="records-table-note">Retired legends + active chase targets</span></div><div>{majorPlayerRecords.map(r=><article key={r.id||r.stat}><small>{String(r.label||r.stat).toUpperCase()}</small><strong>{Number(r.value||0).toLocaleString()}</strong><b>{r.holder}</b><span>{r.teamAbbr||'LEAGUE'} · {r.status||'RETIRED'}</span></article>)}</div></section>}
 
       <section className="records-spotlight-grid">
         <RecordCard eyebrow="Championships" title="Most World Series Wins">
