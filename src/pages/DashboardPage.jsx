@@ -197,7 +197,7 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 6.2</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>SMB NETWORK</strong><small>{activeSeason} · VERSION 6.2.1</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -273,7 +273,7 @@ export default function DashboardPage({ ctx }) {
         </div>
 
         {dashboardMerch.length>0 && <section className="dashboard-market-row">
-          <div className="dashboard-market-label"><span>FRANCHISE CENTRAL MARKET</span><strong>Fresh drops from around the league</strong><small>Simulated shop promos rotate while you browse.</small></div>
+          <div className="dashboard-market-label"><span>NMLB MARKET</span><strong>Fresh drops from around NMLB</strong><small>Simulated shop promos rotate while you browse.</small></div>
           {dashboardMerch.map((item,i)=>{const c=getTeamColorsByAbbr(item.team.abbr);return <button type="button" className="dashboard-market-ad v61-dashboard-merch" key={`${item.id}-${i}`} onClick={()=>setPage?.('fandom')} style={{'--ad-main':c.main,'--ad-alt':c.alt,'--ad-border':c.border,'--ad-text':c.text,'--shop-main':c.main,'--shop-alt':c.alt,'--shop-border':c.border,'--shop-text':c.text}}><MerchProductArt item={item} compact/><span>{item.tag}</span><b>{item.team.abbr}</b><strong>{item.name}</strong><small>${item.price||35} · SHOP DROP →</small></button>})}
         </section>}
 

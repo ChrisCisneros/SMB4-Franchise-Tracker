@@ -104,8 +104,8 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
   const products=[];
   const price=(seed,min,max)=>Math.round(min+seeded(seed)*(max-min));
   const stock=(seed,min=18,max=240)=>Math.round(min+seeded(`stock-${seed}`)*(max-min));
-  const leagueTeam={id:'league-store',abbr:'FC',city:'Franchise Central',name:'Baseball'};
-  const leaguePalette={main:'#111827',alt:'#d4af37',border:'#f8fafc',text:'#f8fafc'};
+  const leagueTeam={id:'league-store',abbr:'NMLB',city:"Nicky's Major League",name:'Baseball'};
+  const leaguePalette={main:'#1f0554',alt:'#ffffff',border:'#000000',text:'#ffffff'};
   const add=(x)=>products.push({rating:(4.5+seeded(x.id)*.5).toFixed(1),reviews:Math.round(14+seeded(`${x.id}-reviews`)*980),stock:stock(x.id),...x});
 
   teamStates.forEach(x=>{
@@ -121,8 +121,8 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
       ['HOODIE',`${t.abbr} Heavyweight Clubhouse Hoodie`,'COLD WEATHER',58,84,'CLUBHOUSE','team','Heavy fleece pullover with oversized stitched crest and sleeve hit.'],
       ['BALL',`${t.abbr} Official Logo Baseball`,'DESK & SHELF',18,29,'OFFICIAL','team','Display baseball with team stamp, red seams and acrylic-style presentation stand.'],
     ].forEach(([type,name,tag,lo,hi,edition,scope,description])=>add({id:`${t.id}-${type.toLowerCase()}`,team:t,type,name,tag,price:price(`${t.id}-${type}`,lo,hi),edition,scope,collection:'TEAM SHOP',description,rarity:'CORE'}));
-    if(streakN>=3&&String(t.streak||'').startsWith('W')) add({id:`${t.id}-streak`,team:t,type:'TEE',name:`${t.abbr} ${t.streak} “KEEP IT ROLLING” Tee`,tag:'48 HOUR DROP',price:price(`${t.id}-streak`,29,39),edition:'LIMITED',scope:'meme',collection:'MEME DROP',description:`A blink-and-you-miss-it shirt celebrating the current ${t.streak} heater.`,rarity:'LIMITED',stock:stock(`${t.id}-streak`,8,64)});
-    if(x.approval<38) add({id:`${t.id}-pain`,team:t,type:'TEE',name:`${t.abbr} “I SURVIVED THIS WEEK” Tee`,tag:'FAN THERAPY',price:32,edition:'MEME',scope:'meme',collection:'MEME DROP',description:'For the fanbase that has seen enough and will absolutely be back tomorrow.',rarity:'LIMITED'});
+    if(streakN>=3&&String(t.streak||'').startsWith('W')) add({id:`${t.id}-streak`,team:t,type:'TEE',name:`${t.abbr} ${t.streak} “KEEP IT ROLLING” Tee`,tag:'48 HOUR DROP',price:price(`${t.id}-streak`,29,39),edition:'LIMITED',scope:'meme',collection:'MEME DROP',memeText:'KEEP IT ROLLING',memeSub:`${t.streak} AND COUNTING`,description:`A blink-and-you-miss-it shirt celebrating the current ${t.streak} heater.`,rarity:'LIMITED',stock:stock(`${t.id}-streak`,8,64)});
+    if(x.approval<38) add({id:`${t.id}-pain`,team:t,type:'TEE',name:`${t.abbr} “I SURVIVED THIS WEEK” Tee`,tag:'FAN THERAPY',price:32,edition:'MEME',scope:'meme',collection:'MEME DROP',memeText:'I SURVIVED THIS WEEK',memeSub:`${t.abbr} BASEBALL`,description:'For the fanbase that has seen enough and will absolutely be back tomorrow.',rarity:'LIMITED'});
 
     const pic=playoffPicture.find(p=>p.league===t.league);
     const ps=pic?getPostseasonStatus(t,pic):null;
@@ -134,13 +134,13 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
 
   // League-wide house brand.
   [
-    ['CAP','Franchise Central League Cap','LEAGUE ESSENTIAL',38,'LEAGUE'],
-    ['JERSEY','Franchise Central League Jersey','LEAGUE COLLECTION',96,'LEAGUE'],
-    ['HOODIE','SMB League Heavyweight Hoodie','LEAGUE ESSENTIAL',68,'LEAGUE'],
-    ['PENNANT','Franchise Central 30-Club Pennant','LEAGUE OFFICE',32,'LEAGUE'],
-    ['BALL','Official Franchise Central League Baseball','OFFICIAL BALL',24,'LEAGUE'],
-    ['JACKET','Franchise Central Commissioner Jacket','PREMIUM',128,'LEAGUE'],
-  ].forEach(([type,name,tag,pr,edition])=>add({id:`league-${type.toLowerCase()}`,team:leagueTeam,palette:leaguePalette,type,name,tag,price:pr,edition,scope:'league',collection:'LEAGUE SHOP',description:'League-wide Franchise Central issue with premium gold-and-navy identity.',rarity:type==='JACKET'?'PREMIUM':'CORE'}));
+    ['CAP','NMLB Authentic League Cap','LEAGUE ESSENTIAL',38,'NMLB'],
+    ['JERSEY','NMLB League Jersey','LEAGUE COLLECTION',96,'NMLB'],
+    ['HOODIE','NMLB Heavyweight Clubhouse Hoodie','LEAGUE ESSENTIAL',72,'NMLB'],
+    ['PENNANT','NMLB League Pennant','LEAGUE OFFICE',32,'NMLB'],
+    ['BALL','Official NMLB League Baseball','OFFICIAL BALL',26,'NMLB'],
+    ['JACKET','NMLB Commissioner Jacket','PREMIUM',128,'NMLB'],
+  ].forEach(([type,name,tag,pr,edition])=>add({id:`league-${type.toLowerCase()}`,team:leagueTeam,palette:leaguePalette,type,name,tag,price:pr,edition,scope:'league',collection:'LEAGUE SHOP',description:"Official NMLB league issue in royal purple, white and black.",rarity:type==='JACKET'?'PREMIUM':'CORE'}));
 
   // Championship archive: every archived champion gets a season-specific vault capsule.
   (data.seasonHistory||[]).forEach((season,index)=>{
@@ -158,7 +158,15 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
       ['RING',`${champ.abbr} ${seasonName} Replica Championship Ring`,189,'COLLECTOR SERIES'],
       ['FRAME',`${champ.abbr} ${seasonName} Champions Newspaper Shadowbox`,219,'ARCHIVE EDITION'],
     ];
-    vault.forEach(([type,name,pr,edition],i)=>add({id:`champ-${index}-${champ.id}-${type}`,team:champ,type,name,tag:i<2?'WORLD SERIES CHAMPIONS':'CHAMPIONS ARCHIVE',price:pr,edition,scope:'championship',collection:'CHAMPIONS VAULT',season:seasonName,seasonCode:shortSeason,description:`Official-looking commemorative piece honoring ${champ.abbr}'s ${seasonName} championship run.`,rarity:i>=4?'NUMBERED':'ARCHIVE',stock:stock(`champ-${index}-${type}`,i>=4?4:12,i>=4?40:120)}));
+    vault.forEach(([type,name,pr,edition],i)=>add({id:`champ-${index}-${champ.id}-${type}`,team:champ,type,name,tag:i<2?'WORLD SERIES CHAMPIONS':'CHAMPIONS ARCHIVE',price:pr,edition,scope:'championship',collection:'CHAMPIONS VAULT',season:seasonName,seasonCode:shortSeason,championshipLabel:'WORLD CHAMPIONS',pennantLabel:'WS CHAMPS',description:`Official-looking commemorative piece honoring ${champ.abbr}'s ${seasonName} championship run.`,rarity:i>=4?'NUMBERED':'ARCHIVE',stock:stock(`champ-${index}-${type}`,i>=4?4:12,i>=4?40:120)}));
+
+    const leagueChamps=[['AL', bracket?.al?.lc?.winnerTeamId], ['NL', bracket?.nl?.lc?.winnerTeamId]];
+    leagueChamps.forEach(([league,teamId])=>{
+      const lc=(season?.teams||[]).find(t=>t.id===teamId)||teams.find(t=>t.id===teamId);
+      if(!lc||lc.id===champ.id)return;
+      add({id:`leaguechamp-${index}-${league}-${lc.id}-pennant`,team:lc,type:'PENNANT',name:`${lc.abbr} ${seasonName} ${league} Champions Pennant`,tag:`${league} CHAMPIONS`,price:34,edition:'LEAGUE CHAMPIONS',scope:'championship',collection:'CHAMPIONS VAULT',season:seasonName,seasonCode:shortSeason,championshipLabel:`${league} CHAMPIONS`,pennantLabel:`${league} CHAMPS`,description:`League-championship felt pennant celebrating ${lc.abbr}'s ${seasonName} ${league} pennant.`,rarity:'ARCHIVE',stock:stock(`leaguechamp-${index}-${league}-${lc.id}`,18,120)});
+      add({id:`leaguechamp-${index}-${league}-${lc.id}-tee`,team:lc,type:'TEE',name:`${lc.abbr} ${seasonName} ${league} Champions Tee`,tag:`${league} CHAMPIONS`,price:38,edition:'LEAGUE CHAMPIONS',scope:'championship',collection:'CHAMPIONS VAULT',season:seasonName,seasonCode:shortSeason,championshipLabel:`${league} CHAMPIONS`,memeText:`${league} CHAMPIONS`,memeSub:seasonName.toUpperCase(),description:`Team-color league championship tee honoring the road to the World Series.`,rarity:'ARCHIVE',stock:stock(`leaguechamptee-${index}-${league}-${lc.id}`,20,140)});
+    });
   });
 
   (data.leagueExtras?.retiredNumbers||[]).forEach(x=>{const team=teams.find(t=>t.abbr===x.teamAbbr);if(team){

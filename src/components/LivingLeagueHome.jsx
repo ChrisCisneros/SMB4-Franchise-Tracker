@@ -16,7 +16,7 @@ export default function LivingLeagueHome({data,teams,playoffPicture,setPage}){
   const topMeaning=world.meaningful[0];
   return <section className="v6-living-league-home">
     <header className="card v6-home-hero">
-      <div><small>VERSION 6.2 · THE LIVING LEAGUE</small><h2>{world.headline}</h2><p>{world.phase.label} · {world.phase.tone}</p><div className="v6-hero-tags"><span>{world.todayLabel}</span><span>{world.pulse.phase}</span><span>CHAOS {world.chaos.chaos}/100</span><span>DRAMA {world.chaos.drama}/100</span>{world.dayEvent&&<span>{world.dayEvent.icon||'🎟️'} {world.dayEvent.name||world.dayEvent.title}</span>}</div></div>
+      <div><small>VERSION 6.2.1 · THE LIVING LEAGUE</small><h2>{world.headline}</h2><p>{world.phase.label} · {world.phase.tone}</p><div className="v6-hero-tags"><span>{world.todayLabel}</span><span>{world.pulse.phase}</span><span>CHAOS {world.chaos.chaos}/100</span><span>DRAMA {world.chaos.drama}/100</span>{world.dayEvent&&<span>{world.dayEvent.icon||'🎟️'} {world.dayEvent.name||world.dayEvent.title}</span>}</div></div>
       <div className="v6-chaos-orb"><small>LEAGUE CHAOS</small><strong>{world.chaos.chaos}</strong><span>{world.chaos.label}</span></div>
     </header>
 
@@ -53,7 +53,7 @@ export default function LivingLeagueHome({data,teams,playoffPicture,setPage}){
     </div>
 
     <div className="v6-bottom-grid">
-      <Card kicker="PREVIOUSLY ON…" title="The SMB League"><div className="v6-mini-list">{world.previous.slice(0,5).map((x,i)=><span key={i}><b>{x.label}</b> {x.title}</span>)}</div></Card>
+      <Card kicker="PREVIOUSLY ON…" title="The NMLB"><div className="v6-mini-list">{world.previous.slice(0,5).map((x,i)=><span key={i}><b>{x.label}</b> {x.title}</span>)}</div></Card>
       <Card kicker="ON THIS DAY" title={world.onThisDay[0]?.title||'Memory Lane'}><p>{world.onThisDay[0]?.detail||'Historical anniversaries will surface here as the archive grows.'}</p></Card>
       <Card kicker="NEXT STOP" title={world.tomorrow?`Game ${world.tomorrow.gameNumber} · ${world.tomorrow.weekday}`:'Calendar awaiting placement'}><p>{world.tomorrow?.promo?`${world.tomorrow.promo.icon||'🎟️'} ${world.tomorrow.promo.name}`:'The next scheduled baseball day is waiting.'}</p></Card>
     </div>
