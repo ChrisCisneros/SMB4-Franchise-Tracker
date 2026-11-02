@@ -106,7 +106,33 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
   const stock=(seed,min=18,max=240)=>Math.round(min+seeded(`stock-${seed}`)*(max-min));
   const leagueTeam={id:'league-store',abbr:'NMLB',city:"Nicky's Major League",name:'Baseball'};
   const leaguePalette={main:'#1f0554',alt:'#ffffff',border:'#000000',text:'#ffffff'};
-  const add=(x)=>products.push({rating:(4.5+seeded(x.id)*.5).toFixed(1),reviews:Math.round(14+seeded(`${x.id}-reviews`)*980),stock:stock(x.id),...x});
+  const teamStateById=new Map(teamStates.map(x=>[x.team.id,x]));
+  const leagueHeat=teamStates.length?teamStates.reduce((sum,x)=>sum+(Number(x.marketHeat)||50),0)/teamStates.length:50;
+  const scopeMultiplier={team:1,league:1.12,meme:1.7,postseason:4.2,championship:2.35,archive:.82};
+  const typeBase={CAP:52,JERSEY:38,HOODIE:31,JACKET:18,TEE:44,SOCKS:26,PENNANT:21,BALL:24,'SIGNED BALL':9,RING:7,FRAME:6,PLUSH:22};
+  const salesFor=(x)=>{
+    const state=teamStateById.get(x.team?.id);
+    const team=x.team||{};
+    const gp=(Number(team.wins)||0)+(Number(team.losses)||0);
+    const pct=gp?Number(team.wins||0)/gp:.5;
+    const streakText=String(team.streak||'');
+    const streakN=Number(streakText.replace(/\D/g,''))||0;
+    const streakBoost=streakText.startsWith('W')?Math.min(28,streakN*5):streakText.startsWith('L')?-Math.min(24,streakN*5):0;
+    const heat=state?Number(state.marketHeat)||50:leagueHeat;
+    const hype=state?Number(state.hype)||50:50;
+    const demand=Math.max(12,Math.min(100,Math.round(48+(pct-.5)*95+(heat-50)*.38+(hype-50)*.24+streakBoost)));
+    const base=typeBase[String(x.type||'TEE').toUpperCase()]||28;
+    const scope=scopeMultiplier[x.scope]||1;
+    const seasonal=x.scope==='postseason'?1.4:x.scope==='championship'?1.18:x.scope==='meme'?1.25:1;
+    const variance=.82+seeded(`${x.id}-sales`)*.36;
+    const sales7d=Math.max(1,Math.round(base*(.55+demand/58)*scope*seasonal*variance));
+    const salesToday=Math.max(0,Math.round(sales7d*(.11+seeded(`${x.id}-today`)*.11)));
+    const rawTrend=Math.round((demand-50)*1.45+streakBoost*1.7+(x.scope==='postseason'?85:0)+(x.scope==='championship'?32:0)+(x.scope==='meme'?22:0));
+    const trendPct=Math.max(-72,Math.min(260,rawTrend));
+    const demandLabel=demand>=86?'WHITE HOT':demand>=72?'SURGING':demand>=58?'STRONG':demand>=44?'STEADY':demand>=30?'COOLING':'COLD';
+    return {demand,sales7d,salesToday,trendPct,demandLabel,weeklyRevenue:sales7d*Number(x.price||0)};
+  };
+  const add=(x)=>products.push({rating:(4.5+seeded(x.id)*.5).toFixed(1),reviews:Math.round(14+seeded(`${x.id}-reviews`)*980),stock:stock(x.id),...x,...salesFor(x)});
 
   teamStates.forEach(x=>{
     const t=x.team, hot=x.marketHeat>=70;
