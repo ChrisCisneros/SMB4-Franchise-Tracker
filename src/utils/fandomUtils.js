@@ -1,5 +1,6 @@
 import { buildV4TeamMetrics, personalityForMetric } from './v4Utils';
 import { buildHeadToHead } from './historyUtils';
+import { getPostseasonStatus } from './standingsUtils';
 
 const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
 const gp=(t)=>Number(t?.wins||0)+Number(t?.losses||0);
@@ -102,20 +103,69 @@ export function buildMerch(data={},teams=[],playoffPicture=[]){
   const {teamStates}=buildFanUniverse(data,teams,playoffPicture);
   const products=[];
   const price=(seed,min,max)=>Math.round(min+seeded(seed)*(max-min));
+  const stock=(seed,min=18,max=240)=>Math.round(min+seeded(`stock-${seed}`)*(max-min));
+  const leagueTeam={id:'league-store',abbr:'FC',city:'Franchise Central',name:'Baseball'};
+  const leaguePalette={main:'#111827',alt:'#d4af37',border:'#f8fafc',text:'#f8fafc'};
+  const add=(x)=>products.push({rating:(4.5+seeded(x.id)*.5).toFixed(1),reviews:Math.round(14+seeded(`${x.id}-reviews`)*980),stock:stock(x.id),...x});
+
   teamStates.forEach(x=>{
     const t=x.team, hot=x.marketHeat>=70;
-    products.push(
-      {id:`${t.id}-cap`,team:t,type:'CAP',name:`${t.abbr} On-Field Cap`,tag:hot?'TRENDING':'TEAM STORE',price:price(`${t.id}-cap`,28,42),edition:'ON-FIELD'},
-      {id:`${t.id}-jersey`,team:t,type:'JERSEY',name:`${t.abbr} Home Jersey`,tag:x.hype>=75?'BEST SELLER':'AUTHENTIC',price:price(`${t.id}-jersey`,82,128),edition:'AUTHENTIC'},
-      {id:`${t.id}-socks`,team:t,type:'SOCKS',name:`${t.abbr} Stirrups & Socks Set`,tag:'BALLPARK CLASSIC',price:price(`${t.id}-socks`,16,29),edition:'GAME DAY'},
-      {id:`${t.id}-pennant`,team:t,type:'PENNANT',name:`${t.abbr} Felt Pennant`,tag:'WALL FAVORITE',price:price(`${t.id}-pennant`,18,34),edition:'HERITAGE'},
-      {id:`${t.id}-plush`,team:t,type:'PLUSH',name:`${t.abbr} Ballpark Plush`,tag:'FAMILY DROP',price:price(`${t.id}-plush`,22,38),edition:'BALLPARK'},
-      {id:`${t.id}-jacket`,team:t,type:'JACKET',name:`${t.abbr} Dugout Jacket`,tag:hot?'HOT ITEM':'OUTERWEAR',price:price(`${t.id}-jacket`,74,118),edition:'DUGOUT'}
-    );
-    if(x.team.streak?.startsWith('W')&&Number(x.team.streak.slice(1)||0)>=3)products.push({id:`${t.id}-streak`,team:t,type:'TEE',name:`${x.team.streak} Heat Check Tee`,tag:'JUST DROPPED',price:price(`${t.id}-streak`,24,36),edition:'LIMITED'});
-    if(x.history.titles){products.push({id:`${t.id}-champ`,team:t,type:'MEMORABILIA',name:`${t.abbr} Championship Shadowbox`,tag:`${x.history.titles}× CHAMPS`,price:price(`${t.id}-champ`,110,220),edition:'LEGACY'});products.push({id:`${t.id}-ball`,team:t,type:'SIGNED BALL',name:`${t.abbr} Championship Signed Baseball`,tag:'COLLECTOR',price:price(`${t.id}-ball`,95,260),edition:'NUMBERED'});}
+    const streakN=Number(String(t.streak||'').replace(/\D/g,''))||0;
+    [
+      ['CAP',`${t.abbr} Authentic On-Field 59FIFTY`,hot?'TRENDING NOW':'AUTHENTIC COLLECTION',34,48,'ON-FIELD','team','Pro-cut crown with raised team mark and contrast underbrim.'],
+      ['JERSEY',`${t.abbr} Home Authentic Jersey`,x.hype>=75?'BEST SELLER':'AUTHENTIC COLLECTION',104,149,'AUTHENTIC','team','Full-button home jersey with stitched chest mark, sleeve trim and player-ready detailing.'],
+      ['SOCKS',`${t.abbr} Stirrups & Game Socks`, 'BALLPARK CLASSIC',22,34,'GAME DAY','team','Throwback stirrup profile with team-color stripe package.'],
+      ['PENNANT',`${t.abbr} Heritage Wool Pennant`,'HERITAGE WALL',24,38,'HERITAGE','team','Heavy felt pennant with stitched-look lettering and vintage ballpark proportions.'],
+      ['PLUSH',`${t.abbr} Ballpark Buddy Plush`,'FAMILY FAVORITE',28,44,'BALLPARK','team','Soft mascot-inspired clubhouse plush wearing a tiny team cap.'],
+      ['JACKET',`${t.abbr} Dugout Bomber Jacket`,hot?'HOT ITEM':'DUGOUT COLLECTION',96,148,'DUGOUT','team','Satin-look dugout jacket with ribbed collar, snap front and embroidered chest mark.'],
+      ['HOODIE',`${t.abbr} Heavyweight Clubhouse Hoodie`,'COLD WEATHER',58,84,'CLUBHOUSE','team','Heavy fleece pullover with oversized stitched crest and sleeve hit.'],
+      ['BALL',`${t.abbr} Official Logo Baseball`,'DESK & SHELF',18,29,'OFFICIAL','team','Display baseball with team stamp, red seams and acrylic-style presentation stand.'],
+    ].forEach(([type,name,tag,lo,hi,edition,scope,description])=>add({id:`${t.id}-${type.toLowerCase()}`,team:t,type,name,tag,price:price(`${t.id}-${type}`,lo,hi),edition,scope,collection:'TEAM SHOP',description,rarity:'CORE'}));
+    if(streakN>=3&&String(t.streak||'').startsWith('W')) add({id:`${t.id}-streak`,team:t,type:'TEE',name:`${t.abbr} ${t.streak} “KEEP IT ROLLING” Tee`,tag:'48 HOUR DROP',price:price(`${t.id}-streak`,29,39),edition:'LIMITED',scope:'meme',collection:'MEME DROP',description:`A blink-and-you-miss-it shirt celebrating the current ${t.streak} heater.`,rarity:'LIMITED',stock:stock(`${t.id}-streak`,8,64)});
+    if(x.approval<38) add({id:`${t.id}-pain`,team:t,type:'TEE',name:`${t.abbr} “I SURVIVED THIS WEEK” Tee`,tag:'FAN THERAPY',price:32,edition:'MEME',scope:'meme',collection:'MEME DROP',description:'For the fanbase that has seen enough and will absolutely be back tomorrow.',rarity:'LIMITED'});
+
+    const pic=playoffPicture.find(p=>p.league===t.league);
+    const ps=pic?getPostseasonStatus(t,pic):null;
+    if(['z','y','w','x'].includes(ps?.marker)){
+      add({id:`${t.id}-post-cap`,team:t,type:'CAP',name:`${t.abbr} Postseason Locker Room Cap`,tag:'POSTSEASON',price:42,edition:ps.marker==='z'?'#1 SEED':ps.marker==='y'?'DIVISION CHAMPS':ps.marker==='w'?'WILD CARD':'PLAYOFFS',scope:'postseason',collection:'POSTSEASON',description:'October-style cap with metallic postseason side patch and locker-room color treatment.',rarity:'SEASONAL',stock:stock(`${t.id}-post-cap`,20,110)});
+      add({id:`${t.id}-post-hoodie`,team:t,type:'HOODIE',name:`${t.abbr} Postseason Bound Hoodie`,tag:'OCTOBER COLLECTION',price:72,edition:'POSTSEASON',scope:'postseason',collection:'POSTSEASON',description:'Heavyweight postseason hoodie made for nervous scoreboard watching.',rarity:'SEASONAL'});
+    }
   });
-  (data.leagueExtras?.retiredNumbers||[]).forEach(x=>{const team=teams.find(t=>t.abbr===x.teamAbbr);if(team)products.push({id:`ret-${x.id}`,team,type:'FRAME',name:`${x.name} ${x.title} Retirement Shadowbox`,tag:'LEGACY DROP',price:175,edition:'RETIREMENT'});});
+
+  // League-wide house brand.
+  [
+    ['CAP','Franchise Central League Cap','LEAGUE ESSENTIAL',38,'LEAGUE'],
+    ['JERSEY','Franchise Central League Jersey','LEAGUE COLLECTION',96,'LEAGUE'],
+    ['HOODIE','SMB League Heavyweight Hoodie','LEAGUE ESSENTIAL',68,'LEAGUE'],
+    ['PENNANT','Franchise Central 30-Club Pennant','LEAGUE OFFICE',32,'LEAGUE'],
+    ['BALL','Official Franchise Central League Baseball','OFFICIAL BALL',24,'LEAGUE'],
+    ['JACKET','Franchise Central Commissioner Jacket','PREMIUM',128,'LEAGUE'],
+  ].forEach(([type,name,tag,pr,edition])=>add({id:`league-${type.toLowerCase()}`,team:leagueTeam,palette:leaguePalette,type,name,tag,price:pr,edition,scope:'league',collection:'LEAGUE SHOP',description:'League-wide Franchise Central issue with premium gold-and-navy identity.',rarity:type==='JACKET'?'PREMIUM':'CORE'}));
+
+  // Championship archive: every archived champion gets a season-specific vault capsule.
+  (data.seasonHistory||[]).forEach((season,index)=>{
+    const bracket=season?.playoffBracket||{};
+    const champId=season?.championTeamId||bracket?.finals?.winnerTeamId;
+    const champ=(season?.teams||[]).find(t=>t.id===champId)||teams.find(t=>t.id===champId);
+    if(!champ)return;
+    const seasonName=season?.name||`Season ${index+1}`;
+    const shortSeason=seasonName.replace(/^Season\s*/i,'S');
+    const vault=[
+      ['CAP',`${champ.abbr} ${seasonName} World Champions Cap`,46,'CHAMPIONS LOCKER ROOM'],
+      ['JACKET',`${champ.abbr} ${seasonName} Champions Satin Jacket`,154,'CHAMPIONS VAULT'],
+      ['PENNANT',`${champ.abbr} ${seasonName} World Champions Pennant`,38,'CHAMPIONS VAULT'],
+      ['BALL',`${champ.abbr} ${seasonName} Commemorative Championship Baseball`,42,'COMMEMORATIVE'],
+      ['RING',`${champ.abbr} ${seasonName} Replica Championship Ring`,189,'COLLECTOR SERIES'],
+      ['FRAME',`${champ.abbr} ${seasonName} Champions Newspaper Shadowbox`,219,'ARCHIVE EDITION'],
+    ];
+    vault.forEach(([type,name,pr,edition],i)=>add({id:`champ-${index}-${champ.id}-${type}`,team:champ,type,name,tag:i<2?'WORLD SERIES CHAMPIONS':'CHAMPIONS ARCHIVE',price:pr,edition,scope:'championship',collection:'CHAMPIONS VAULT',season:seasonName,seasonCode:shortSeason,description:`Official-looking commemorative piece honoring ${champ.abbr}'s ${seasonName} championship run.`,rarity:i>=4?'NUMBERED':'ARCHIVE',stock:stock(`champ-${index}-${type}`,i>=4?4:12,i>=4?40:120)}));
+  });
+
+  (data.leagueExtras?.retiredNumbers||[]).forEach(x=>{const team=teams.find(t=>t.abbr===x.teamAbbr);if(team){
+    add({id:`ret-${x.id}`,team,type:'FRAME',name:`${x.name} ${x.title} Retirement Shadowbox`,tag:'LEGENDS COLLECTION',price:185,edition:'RETIREMENT',scope:'archive',collection:'LEGENDS & ARCHIVE',description:'Framed retirement-night display with plaque, signature panel and team-color matting.',rarity:'NUMBERED',stock:stock(`ret-${x.id}`,6,48)});
+    add({id:`ret-ball-${x.id}`,team,type:'SIGNED BALL',name:`${x.name} Commemorative Signed Baseball`,tag:'LEGENDS COLLECTION',price:135,edition:'SIGNATURE',scope:'archive',collection:'LEGENDS & ARCHIVE',description:'Display ball celebrating a permanent place in franchise history.',rarity:'COLLECTOR'});
+  }});
+
   return products;
 }
 

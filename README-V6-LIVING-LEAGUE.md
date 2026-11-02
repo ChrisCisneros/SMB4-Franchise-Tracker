@@ -74,3 +74,7 @@ Version 6 is the major daily-life release. The app now treats the league as a wo
 - Records becomes the Record Vault with player immortals integrated into the page.
 - Standings becomes Pennant Race HQ with race-pulse cards and a stronger late-season visual hierarchy.
 - Visible app version updated to v6.1.
+
+
+## V6.2 — Franchise Central Market
+V6.2 turns merch from decorative cards into a full fake-commerce ecosystem. The Fandom shop now has dedicated Team Shop, League Shop, Postseason, Champions Vault, Meme Drops and Legends & Archive departments; richer studio-style illustrated product photography; quick-view product pages; simulated ratings, inventory and collector scarcity; current postseason merchandise driven by actual clinch state; moment/streak meme drops; league-branded gear; and season-specific merchandise for every archived World Series champion. Previous champions remain permanently shoppable through the Champions Vault, including caps, satin jackets, pennants, commemorative baseballs, replica rings and framed archive pieces.

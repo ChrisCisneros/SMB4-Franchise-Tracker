@@ -16,7 +16,7 @@ export default function LivingLeagueHome({data,teams,playoffPicture,setPage}){
   const topMeaning=world.meaningful[0];
   return <section className="v6-living-league-home">
     <header className="card v6-home-hero">
-      <div><small>VERSION 6.1 · THE LIVING LEAGUE</small><h2>{world.headline}</h2><p>{world.phase.label} · {world.phase.tone}</p><div className="v6-hero-tags"><span>{world.todayLabel}</span><span>{world.pulse.phase}</span><span>CHAOS {world.chaos.chaos}/100</span><span>DRAMA {world.chaos.drama}/100</span>{world.dayEvent&&<span>{world.dayEvent.icon||'🎟️'} {world.dayEvent.name||world.dayEvent.title}</span>}</div></div>
+      <div><small>VERSION 6.2 · THE LIVING LEAGUE</small><h2>{world.headline}</h2><p>{world.phase.label} · {world.phase.tone}</p><div className="v6-hero-tags"><span>{world.todayLabel}</span><span>{world.pulse.phase}</span><span>CHAOS {world.chaos.chaos}/100</span><span>DRAMA {world.chaos.drama}/100</span>{world.dayEvent&&<span>{world.dayEvent.icon||'🎟️'} {world.dayEvent.name||world.dayEvent.title}</span>}</div></div>
       <div className="v6-chaos-orb"><small>LEAGUE CHAOS</small><strong>{world.chaos.chaos}</strong><span>{world.chaos.label}</span></div>
     </header>
 

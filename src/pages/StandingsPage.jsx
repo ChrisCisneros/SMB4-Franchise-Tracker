@@ -181,7 +181,7 @@ export default function StandingsPage({ ctx }) {
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V6.1 · PENNANT RACE HQ</div>
+          <div className="standings-hero-eyebrow">FRANCHISE CENTRAL · V6.2 · PENNANT RACE HQ</div>
           <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
           <p>The living race board: division control, wild-card pressure, clinches, elimination danger and every game left to matter.</p>
         </div>

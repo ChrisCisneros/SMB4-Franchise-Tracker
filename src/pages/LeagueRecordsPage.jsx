@@ -119,7 +119,7 @@ export default function LeagueRecordsPage({ ctx }) {
     <div className="records-page">
       <section className="records-hero card">
         <div>
-          <div className="records-hero-kicker">VERSION 6.1 · THE RECORD VAULT</div>
+          <div className="records-hero-kicker">VERSION 6.2 · THE RECORD VAULT</div>
           <h2>The Record Vault</h2>
           <p>
             Every championship, playoff run, dynasty, drought, and ridiculous season preserved from the archive.

@@ -1932,7 +1932,7 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1>SMB4 Franchise Central</h1>
-    <span className="version-pill version-pill-v3">v6.1</span>
+    <span className="version-pill version-pill-v3">v6.2</span>
   </div>
   <p>SMB4 Franchise Central · Version 6.1 · Living League Expanded · Daily Life · 40-game baseball universe</p>
 </div>
