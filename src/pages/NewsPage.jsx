@@ -8,6 +8,7 @@ import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, build
 import { buildBroadcastBooth, buildDefiningMoments, buildMediaOutlets, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildCityBuzz, buildConsequenceChains, buildHistoricGameAlerts, buildRevengeWatch } from "../utils/ballparkLifeUtils";
 import { buildSpecialAchievements } from "../utils/playerLegacyUtils";
+import { buildV6LivingLeague } from "../utils/v6LivingLeagueUtils";
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -98,6 +99,7 @@ export default function NewsPage({ ctx }) {
   const broadcastBooth=useMemo(()=>buildBroadcastBooth(data,teams),[data,teams]);
   const definingMoments=useMemo(()=>buildDefiningMoments(data,teams),[data,teams]);
   const preservedAchievements=useMemo(()=>buildSpecialAchievements(data,teams),[data,teams]);
+  const v6=useMemo(()=>buildV6LivingLeague(data,teams,ctx.playoffPicture||[],Date.now()),[data,teams,ctx.playoffPicture,tickerOffset]);
   const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -137,10 +139,13 @@ export default function NewsPage({ ctx }) {
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block"><div className="news-network-mark">SMB</div><div><div className="news-kicker">SMB4 League Network</div><h2>League News</h2><p>A constantly rotating feed of headlines, races, records, history, weird stats and league-wide baseball nonsense.</p></div></div>
+        <div className="news-brand-block"><div className="news-network-mark">SMB</div><div><div className="news-kicker">SMB4 League Network</div><h2>League News</h2><p>Version 6 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 
+      <section className="news-v6-edition card"><div><small>V6 DAILY EDITION · {v6.phase.label}</small><h2>{v6.headline}</h2><p>{v6.phase.tone}</p></div><div className="news-v6-meters"><span><b>{v6.chaos.chaos}</b> CHAOS</span><span><b>{v6.chaos.drama}</b> DRAMA</span><span><b>{v6.meaningful.length}</b> PRESSURE TEAMS</span></div></section>
+      <section className="news-v6-grid"><article className="card"><div className="news-kicker">PREVIOUSLY ON…</div><h3>The SMB League</h3>{v6.previous.slice(0,4).map((x,i)=><p key={i}><b>{x.label}</b><span>{x.title} · {x.detail}</span></p>)}</article><article className="card"><div className="news-kicker">CITY DESK</div><h3>Hope vs. Anxiety</h3>{v6.moods.slice(0,5).map(x=><p key={x.team.id}><b>{x.team.abbr} · {x.mood}</b><span>Hope {x.hope} · Anxiety {x.anxiety} · {x.climate}</span></p>)}</article><article className="card"><div className="news-kicker">PROGRAMMING GRID</div><h3>Today's recurring shows</h3>{v6.media.shows.slice(0,5).map(x=><p key={x.show}><b>{x.slot} · {x.show}</b><span>{x.hook}</span></p>)}</article></section>
+      {(v6.aftermath.length>0||v6.spoilerBoard.length>0)&&<section className="news-v6-grid"><article className="card"><div className="news-kicker">POSTSEASON AFTERMATH</div><h3>Clinches and eliminations have a second day now</h3>{v6.aftermath.slice(0,5).map(x=><p key={x.team.id}><b>{x.team.abbr} · {x.label}</b><span>{x.detail}</span></p>)}</article><article className="card"><div className="news-kicker">SPOILER DESK</div><h3>Eliminated does not mean irrelevant</h3>{v6.spoilerBoard.length?v6.spoilerBoard.slice(0,5).map(x=><p key={x.team.id}><b>{x.team.abbr} · {x.label}</b><span>{x.detail}</span></p>):<p><span>No spoiler teams yet. That will change quickly in the stretch run.</span></p>}</article><article className="card"><div className="news-kicker">HISTORY ECHOES</div><h3>Today's stories talking to yesterday</h3>{v6.echoes.slice(0,4).map((x,i)=><p key={i}><b>{x.label}</b><span>{x.title} · {x.detail}</span></p>)}</article></section>}
       <section className="news-today-edition card"><div><small>TODAY'S BASEBALL WORLD · M{todaySlot?.month||1} D{todaySlot?.dayOfMonth||1}</small><strong>{todaySlot?.gameNumber?`G${todaySlot.gameNumber} · ${scheduleEntryLabel(todaySlot.schedule)}`:todaySlot?.dayEvent?`${todaySlot.dayEvent.icon||'✨'} ${todaySlot.dayEvent.name}`:'League off day'}</strong><span>{todaySlot?.dateLabel?`${todaySlot.weekday} · ${todaySlot.dateLabel}`:`Week ${todaySlot?.week||pulse.week} · ${pulse.phase}`}</span></div><div><small>{todaySlot?.gameNumber?'TODAY AT THE PARK':'OFF-DAY FEATURE'}</small><strong>{todayCeremonies[0]?.title||todaySlot?.promo?.displayName||todaySlot?.promo?.name||todaySlot?.dayEvent?.name||worldState.moments?.[0]?.title||'Around the league'}</strong><span>{todayCeremonies[0]?.detail||todaySlot?.promo?.giveaway||todaySlot?.dayEvent?.detail||worldState.leagueMood}</span></div><div className="news-edition-stamp"><b>DAILY DIAMOND</b><em>{pulse.phase}</em></div></section>
 
       {!!ticker && <div className="news-ticker news-ticker-live" aria-label="SMB Network live ticker"><span className="news-ticker-label"><i/>LIVE</span><strong key={ticker.id}>{ticker.headline}</strong><span className="news-ticker-date">{ticker.dateLabel}</span></div>}

@@ -23,6 +23,7 @@ import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, build
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
 import { buildBallparkLife, buildHistoricGameAlerts, buildRevengeWatch, buildAttendanceForecast, buildBallparkProfile, buildGameConditions } from "../utils/ballparkLifeUtils";
 import { broadcastThemeClasses, broadcastThemeStyle, resolveBroadcastTheme } from "../utils/broadcastThemeUtils";
+import LivingLeagueHome from "../components/LivingLeagueHome";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -304,6 +305,9 @@ export default function DashboardPage({ ctx }) {
       </aside>
     </section>
 
+
+
+    <LivingLeagueHome data={data} teams={teams} playoffPicture={playoffPicture} setPage={setPage} />
 
     <section className="dashboard-next-strip card">
       <div className="dashboard-next-label"><span>COMING UP</span><strong>Next on the franchise calendar</strong></div>

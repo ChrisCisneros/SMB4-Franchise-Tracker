@@ -89,6 +89,8 @@ export const defaultLeagueExtras = {
   dayEventSchedule: {}, seasonDayIndex: null, gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
   chronicleSnapshots: [], recordChangeHistory: [], awardRace: [],
   careerRecordWatches: [], museumArtifacts: [], ceremonyCompletions: [],
+  v6Watchlist: [], v6CommissionerNotes: [], v6SeasonTimeCapsules: [],
+  v6FanMemory: {}, v6EventTraditions: {}, v6LeagueLastVisitAt: '',
 };
 
 export const defaultData = {
