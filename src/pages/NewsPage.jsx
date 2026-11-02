@@ -17,7 +17,7 @@ const TICKER_ROTATE_MS = 14000;
 function storyBucket(story) {
   if (["Game Final", "League Watch", "Pennant Race", "Hot & Cold", "Milestone Watch", "Race to October", "Transactions", "Injury Report", "Developing", "League Alert"].includes(story.category)) return "Current";
   if (["By the Numbers", "Did You Know?", "History Lesson", "Franchise Spotlight"].includes(story.category) || story.kind === "fact") return "Facts";
-  if (["Championship", "Postseason"].includes(story.category)) return "Postseason";
+  if (["Championship", "Postseason", "Clinched", "Eliminated"].includes(story.category)) return "Postseason";
   if (["Record Book", "V3 Record Alert"].includes(story.category)) return "Record Book";
   return "Archive";
 }
@@ -31,7 +31,7 @@ function rotateList(list, offset) {
 function StoryMeta({ story }) {
   return (
     <div className="news-story-topline">
-      <span className="news-category-pill">{story.category}</span>
+      <span className="news-story-tags"><span className="news-category-pill">{story.category}</span>{story.badge && <span className={`news-status-pill news-status-${story.category.toLowerCase()}`}>{story.badge}</span>}</span>
       <span className="news-date">{story.dateLabel}</span>
     </div>
   );
@@ -74,7 +74,7 @@ export default function NewsPage({ ctx }) {
   const [factOffset, setFactOffset] = useState(0);
   const [tickerOffset, setTickerOffset] = useState(0);
   const [selectedStory, setSelectedStory] = useState(null);
-  const stories = useMemo(() => buildNewsFeed(data, teams), [data, teams]);
+  const stories = useMemo(() => buildNewsFeed(data, teams, ctx.playoffPicture || []), [data, teams, ctx.playoffPicture]);
   const fanPoll = useMemo(() => buildFanPoll(data, teams, ctx.playoffPicture || [], Date.now()), [data, teams, ctx.playoffPicture, featureOffset]);
   const social = useMemo(() => buildSocialChatter(data, teams, ctx.playoffPicture || [], Date.now()).slice(0,4), [data, teams, ctx.playoffPicture, tickerOffset]);
   const pulse = useMemo(() => getSeasonPulse(data, teams), [data, teams]);

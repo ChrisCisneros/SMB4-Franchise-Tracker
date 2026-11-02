@@ -151,75 +151,55 @@ export function hasClinchedTopLeagueSeed(team, picture) {
   );
 }
 
-export function getPlayoffMarker(team, picture, divisionLeader) {
-  if (!team || !picture) return "";
+export function getPostseasonStatus(team, picture) {
+  if (!team || !picture) return { marker: "", label: "", detail: "" };
 
-  const divisionLeaderIds = new Set(
-    picture.divisionLeaders.map((leaderTeam) => leaderTeam.id)
-  );
+  const divisionLeaders = picture.divisionLeaders || [];
+  const divisionLeaderIds = new Set(divisionLeaders.map((leaderTeam) => leaderTeam.id));
+  const divisionLeader = divisionLeaders.find((leaderTeam) => leaderTeam.division === team.division) || null;
+  const firstTeamOut = picture.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE] || null;
 
-  const firstTeamOut = picture.wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE];
-
-  const allLeagueGamesFinished = (picture.leagueTeams || []).every(
-    (leagueTeam) => gamesRemaining(leagueTeam) === 0
-  );
-
-  if (allLeagueGamesFinished && hasClinchedTopLeagueSeed(team, picture)) {
-    return "z";
+  // z is immediate: once nobody else in the league can even tie the club's current win total,
+  // the No. 1 seed is mathematically locked. No need to wait for Game 40.
+  if (hasClinchedTopLeagueSeed(team, picture)) {
+    return { marker: "z", label: "#1 Seed", detail: `${picture.league} No. 1 seed clinched` };
   }
 
   if (hasClinchedDivision(team, picture)) {
-    return "y";
+    return { marker: "y", label: "Division", detail: `${picture.league} ${team.division} clinched` };
   }
 
   if (firstTeamOut) {
-    const firstTeamOutMaxWins =
-      Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
-
-    const hasClinchedPlayoffSpot =
-      Number(team.wins || 0) > firstTeamOutMaxWins;
-
-    if (hasClinchedPlayoffSpot) {
-      if (!divisionLeaderIds.has(team.id)) {
-        return "w";
-      }
-
-      return "x";
+    const firstTeamOutMaxWins = maxPossibleWins(firstTeamOut);
+    if (Number(team.wins || 0) > firstTeamOutMaxWins) {
+      return divisionLeaderIds.has(team.id)
+        ? { marker: "x", label: "Playoffs", detail: "Postseason berth clinched" }
+        : { marker: "w", label: "Wild Card", detail: "Wild Card berth clinched" };
     }
   }
 
-  if (divisionLeader && isEliminatedFromTarget(team, divisionLeader)) {
-    return "e";
+  // e means truly out of the postseason, not merely out of the division race.
+  // A club stays alive while it can still tie the current division leader OR the Wild Card cutoff.
+  const teamMaxWins = maxPossibleWins(team);
+  const divisionAlive = !divisionLeader || divisionLeader.id === team.id || teamMaxWins >= Number(divisionLeader.wins || 0);
+  const cutoffTeam = picture.cutoffTeam || null;
+  const wildcardAlive = !cutoffTeam || divisionLeaderIds.has(team.id) || cutoffTeam.id === team.id || teamMaxWins >= Number(cutoffTeam.wins || 0);
+
+  if (!divisionAlive && !wildcardAlive) {
+    return { marker: "e", label: "Eliminated", detail: "Eliminated from postseason contention" };
   }
 
-  return "";
+  return { marker: "", label: "", detail: "" };
+}
+
+export function getPlayoffMarker(team, picture, divisionLeader) {
+  return getPostseasonStatus(team, picture).marker;
 }
 
 export function getWildcardMarker(team, picture, index) {
   if (!team || !picture) return "";
-
-  const isWildCardTeam = index < WILD_CARD_TEAMS_PER_LEAGUE;
-  const cutoffTeam = picture.cutoffTeam;
-
-  if (isWildCardTeam) {
-    const firstTeamOut = picture.wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE];
-
-    if (!firstTeamOut) return "";
-
-    const firstTeamOutMaxWins =
-      Number(firstTeamOut.wins || 0) + gamesRemaining(firstTeamOut);
-
-    if (Number(team.wins || 0) > firstTeamOutMaxWins) {
-      return "w";
-    }
-
-    return "";
-  }
-
-  if (cutoffTeam && isEliminatedFromTarget(team, cutoffTeam)) {
-    return "e";
-  }
-
+  const marker = getPostseasonStatus(team, picture).marker;
+  if (marker === "w" || marker === "e") return marker;
   return "";
 }
 

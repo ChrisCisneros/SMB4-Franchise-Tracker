@@ -118,7 +118,7 @@ export default function DashboardPage({ ctx }) {
   const gameRecords = useMemo(()=>buildGameRecords(data.games||[],teams,data.seasonHistory||[]),[data.games,teams,data.seasonHistory]);
   const alerts = useMemo(()=>buildDashboardAlerts(data,teams),[data,teams]);
   const power = useMemo(()=>buildPowerRankings(teams).slice(0,5),[teams]);
-  const news = useMemo(()=>buildNewsFeed(data,teams).slice(0,4),[data,teams]);
+  const news = useMemo(()=>buildNewsFeed(data,teams,playoffPicture).slice(0,4),[data,teams,playoffPicture]);
   const leagueRecords = useMemo(()=>buildLeagueRecords(data.seasonHistory||[],teams),[data.seasonHistory,teams]);
   const latestArchive = data.seasonHistory?.[0];
   const defendingChampion = latestArchive ? (latestArchive.teams||[]).find(t=>t.id===latestArchive.championTeamId) : null;

@@ -306,6 +306,32 @@
   margin-bottom: 14px;
 }
 
+.news-story-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.news-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(74, 222, 128, .45);
+  background: rgba(22, 163, 74, .16);
+  color: #bbf7d0;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.news-status-eliminated {
+  border-color: rgba(248, 113, 113, .48);
+  background: rgba(220, 38, 38, .16);
+  color: #fecaca;
+}
+
 .news-category-pill {
   display: inline-flex;
   align-items: center;

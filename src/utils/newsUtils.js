@@ -2,6 +2,7 @@ import { makeSafePlayoffBracket } from "./playoffUtils";
 import { buildLeagueRecords, formatPct } from "./recordsUtils";
 import { buildGameRecords, buildHeadToHead, buildTeamHistoryLeaders } from "./historyUtils";
 import { buildHistoricGameAlerts } from "./ballparkLifeUtils";
+import { getPostseasonStatus, maxPossibleWins } from "./standingsUtils";
 
 function gamePct(team) {
   const wins = Number(team?.wins || 0);
@@ -58,13 +59,55 @@ function getSeasonPlayoffStats(season) {
   return [...wins.entries()].sort((a, b) => b[1] - a[1])[0] || null;
 }
 
-export function buildNewsFeed(data, teams) {
+export function buildNewsFeed(data, teams, playoffPicture = []) {
   const stories = [];
   const activeTeams = Array.isArray(teams) ? teams : [];
   const seasonHistory = Array.isArray(data?.seasonHistory) ? data.seasonHistory : [];
   const teamById = (id) => activeTeams.find((team) => team.id === id);
 
+  // Pennant-race status stories use the exact same clinch/elimination math as Standings.
+  // This keeps the News desk, Dashboard and standings markers from disagreeing.
+  (Array.isArray(playoffPicture) ? playoffPicture : []).forEach((picture) => {
+    (picture.leagueTeams || []).forEach((team) => {
+      const status = getPostseasonStatus(team, picture);
+      if (!status.marker) return;
 
+      const record = `${Number(team.wins || 0)}-${Number(team.losses || 0)}`;
+      const remaining = Math.max(0, maxPossibleWins(team) - Number(team.wins || 0));
+      const base = {
+        teams: [team.abbr],
+        tone: status.marker === "e" ? "archive" : "postseason",
+        dateLabel: "Pennant race",
+        badge: status.label.toUpperCase(),
+      };
+
+      if (status.marker === "z") stories.push({
+        ...base, id: `clinch-z-${team.id}`, category: "Clinched",
+        headline: `${team.abbr} locks up the ${picture.league} No. 1 seed`,
+        dek: `${teamName(team)} is ${record}. No other ${picture.league} club can reach its current win total, so home-field positioning is mathematically secured with ${remaining} game${remaining === 1 ? "" : "s"} left.`,
+      });
+      else if (status.marker === "y") stories.push({
+        ...base, id: `clinch-y-${team.id}`, category: "Clinched",
+        headline: `${team.abbr} clinches the ${picture.league} ${team.division}`,
+        dek: `${teamName(team)} has ${Number(team.wins || 0)} wins, more than every division rival can still reach. The division race is officially over.`,
+      });
+      else if (status.marker === "w") stories.push({
+        ...base, id: `clinch-w-${team.id}`, category: "Clinched",
+        headline: `${team.abbr} clinches a ${picture.league} Wild Card berth`,
+        dek: `${teamName(team)} has punched its postseason ticket. Even the first club currently outside the field cannot reach ${team.abbr}'s current win total.`,
+      });
+      else if (status.marker === "x") stories.push({
+        ...base, id: `clinch-x-${team.id}`, category: "Clinched",
+        headline: `${team.abbr} punches its ticket to the postseason`,
+        dek: `${teamName(team)} is mathematically guaranteed a place in the ${picture.league} playoff field. Seeding is still being decided.`,
+      });
+      else if (status.marker === "e") stories.push({
+        ...base, id: `eliminated-${team.id}`, category: "Eliminated", badge: "ELIMINATED",
+        headline: `${team.abbr} eliminated from postseason contention`,
+        dek: `${teamName(team)} can finish with at most ${maxPossibleWins(team)} wins, which is no longer enough to reach either the division lead or the current Wild Card line.`,
+      });
+    });
+  });
 
   const extremeAlerts = buildHistoricGameAlerts(data, activeTeams);
   extremeAlerts.slice(0,3).forEach((alert,index)=>stories.push({
