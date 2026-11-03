@@ -37,10 +37,10 @@ function TeamCell({ team, marker, divisionOut = false }) {
           <strong>{team?.abbr || "TBD"}</strong>
           {marker && (
             <span className={`playoff-marker marker-${marker}`} title={markerLabel(marker)}>
-              {marker}
+              {marker === "e" ? "E" : marker}
             </span>
           )}
-          {divisionOut && marker !== "e" && <span className="division-out-pill" title="Mathematically eliminated from the division race">DIV OUT</span>}
+          {divisionOut && marker !== "e" && <span className="division-elim-marker" title="Mathematically eliminated from the division race">E</span>}
         </span>
         <small>{team?.name || ""}</small>
       </span>
@@ -202,7 +202,7 @@ export default function StandingsPage({ ctx }) {
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">NMLB · V6.4.7 · PENNANT RACE COMMAND</div>
+          <div className="standings-hero-eyebrow">NMLB · V6.4.8 · PENNANT RACE COMMAND</div>
           <h1>NMLB Pennant Race</h1>
           <p>{data.activeSeasonName || "Season 4"} is entering the pressure zone. Division control, Wild Card survival, clinches and elimination paths all live here.</p>
         </div>
@@ -215,7 +215,7 @@ export default function StandingsPage({ ctx }) {
 
       <section className="card nmlb63-standings-power"><div><small>NMLB POWER INDEX</small><h2>Who is dangerous right now?</h2><p>Record, run differential, recent form, streak and postseason position rolled into one league pulse.</p></div><div className="nmlb63-power-mini">{nmlbPower.slice(0,5).map(x=><article key={x.team.id}><b>#{x.rank}</b><strong>{x.team.abbr}</strong><span>{x.score}</span><em>{x.label}</em></article>)}</div></section>
       <section className="nmlb646-race-control">
-        <article className="card nmlb646-race-card"><small>DIVISION RACE STATUS</small><strong>{divisionOut.length}</strong><span>clubs mathematically out of their division race</span><div>{divisionOut.slice(0,8).map(({team})=><b key={team.id}>{team.abbr} · DIVISION OUT</b>)}</div></article>
+        <article className="card nmlb646-race-card"><small>DIVISION RACE STATUS</small><strong>{divisionOut.length}</strong><span>clubs mathematically out of their division race</span><div>{divisionOut.slice(0,8).map(({team,picture})=><b key={team.id}>{team.abbr} · {getPlayoffMarker(team,picture)==='e'?'POSTSEASON OUT':'DIVISION E'}</b>)}</div></article>
         <article className="card nmlb646-race-card danger"><small>POSTSEASON ELIMINATION</small><strong>{postseasonOut.length}</strong><span>clubs fully eliminated from the NMLB postseason</span><div>{postseasonOut.slice(0,8).map(({team})=><b key={team.id}>{team.abbr} · ELIMINATED</b>)}</div></article>
         <article className="card nmlb646-race-card"><small>TIEBREAK POLICY</small><strong>RD</strong><span>run differential resolves completed-schedule ties</span><div><b>NO MORE ZOMBIE TEAMS</b></div></article>
       </section>
@@ -234,8 +234,8 @@ export default function StandingsPage({ ctx }) {
         <span><b className="legend-marker marker-y">y</b><i>Division</i></span>
         <span><b className="legend-marker marker-x">x</b><i>Playoffs</i></span>
         <span><b className="legend-marker marker-w">w</b><i>Wild Card</i></span>
-        <span><b className="legend-marker marker-e">e</b><i>Postseason Eliminated</i></span>
-        <span><b className="legend-division-out">DIV OUT</b><i>Division Eliminated</i></span>
+        <span><b className="legend-marker marker-e">E</b><i>Postseason Eliminated</i></span>
+        <span><b className="legend-division-e">E</b><i>Division Eliminated</i></span>
       </div>
 
       {(data.leagues || []).map((league) => {

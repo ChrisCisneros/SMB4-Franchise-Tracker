@@ -11,6 +11,7 @@ import { buildSpecialAchievements } from "../utils/playerLegacyUtils";
 import { buildV6LivingLeague } from "../utils/v6LivingLeagueUtils";
 import NMLBUniverseHub from '../components/NMLBUniverseHub';
 import { buildNMLBCulture, predictionSnapshot } from '../utils/nmlbCultureUtils';
+import { buildPostseasonNightlyShow, buildPostseasonSeriesMemory, buildAnalystReputation, buildHistoricalComparisons, buildPostseasonMemoryCards, buildPostseasonRivalryHeat } from '../utils/postseasonMemoryUtils';
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -104,6 +105,12 @@ export default function NewsPage({ ctx }) {
   const v6=useMemo(()=>buildV6LivingLeague(data,teams,ctx.playoffPicture||[],Date.now()),[data,teams,ctx.playoffPicture,tickerOffset]);
   const culture=useMemo(()=>buildNMLBCulture(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture,tickerOffset]);
   const postseasonPredictions=culture.predictions;
+  const postseasonTonight=useMemo(()=>buildPostseasonNightlyShow(data,teams),[data.games,data.activeSeasonName,teams]);
+  const postseasonSeries=useMemo(()=>buildPostseasonSeriesMemory(data,teams),[data.games,data.playoffBracket,data.activeSeasonName,teams]);
+  const analystReputation=useMemo(()=>buildAnalystReputation(data,teams),[data.leagueExtras?.nmlbLockedPredictions,data.championTeamId,data.playoffBracket,teams]);
+  const historicalComparisons=useMemo(()=>buildHistoricalComparisons(data,teams),[data.seasonHistory,teams]);
+  const postseasonMemories=useMemo(()=>buildPostseasonMemoryCards(data,teams),[data.games,data.activeSeasonName,teams]);
+  const postseasonRivalries=useMemo(()=>buildPostseasonRivalryHeat(data,teams),[data.games,data.seasonHistory,teams]);
   const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -151,7 +158,7 @@ export default function NewsPage({ ctx }) {
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4.3 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
+        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4.8 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 
@@ -160,6 +167,7 @@ export default function NewsPage({ ctx }) {
         <article><small>NMLB NETWORK · ROAD TO OCTOBER</small><h2>{postseasonPredictions.phase.label}</h2><p>{postseasonPredictions.phase.detail}</p><div className="nmlb64-culture-tags"><span>WEEK {postseasonPredictions.phase.week||culture.week}</span><span>{postseasonPredictions.phase.locked?'🔒 PICKS LOCKED':'PICKS CAN STILL MOVE'}</span>{postseasonPredictions.consensus&&<span>CONSENSUS · {postseasonPredictions.consensus.abbr}</span>}</div></article>
         <article className="nmlb64-calls"><small>THE CALLS</small>{postseasonPredictions.analysts.slice(0,4).map(a=><span key={a.name}><b>{a.name}</b><strong>{a.al} / {a.nl} → {a.champion}</strong></span>)}</article>
       </section>}
+      {postseasonTonight&&<section className="nmlb648-news-nightly"><article className="card"><small>NMLB POSTSEASON TONIGHT</small><h2>{postseasonTonight.headline}</h2><p>{postseasonTonight.detail}</p><div className="nmlb648-memory-tags"><span>GAME OF THE NIGHT · {postseasonTonight.bestDrama}</span>{postseasonMemories[0]&&<span>{postseasonMemories[0].importance}</span>}</div></article><article className="card"><small>SERIES MEMORY</small>{postseasonSeries.slice(0,3).map(x=><div className="nmlb648-series-line" key={x.id}><b>{x.label}</b><strong>{x.away?.abbr||'TBD'} {x.awayWins}-{x.homeWins} {x.home?.abbr||'TBD'}</strong><span>{x.narrative}</span></div>)}</article><article className="card"><small>ANALYST REPUTATION</small>{analystReputation.slice(0,4).map(a=><div className="nmlb648-analyst-line" key={a.name}><b>{a.name}</b><span>{a.verdict}</span><strong>{a.champion}</strong></div>)}</article><article className="card"><small>HISTORICAL ECHO</small>{historicalComparisons.slice(0,3).map(x=><p key={x.team.id}><b>{x.team.abbr}</b> · {x.detail}</p>)}</article><article className="card"><small>RIVALRY TEMPERATURE</small>{postseasonRivalries.slice(0,3).map(x=><div className="nmlb648-rivalry-line" key={`${x.a.id}-${x.b.id}`}><b>{x.a.abbr} × {x.b.abbr}</b><strong>{x.label} · {x.heat}</strong><span>{x.detail}</span></div>)}</article></section>}
       <section className="nmlb64-culture-strip"><small>NMLB CULTURE DESK · WEEK {culture.week}</small><h2>{culture.activeTraditions[0]?.name||'The league has rituals now.'}</h2><p>{culture.activeTraditions[0]?.detail||'Traditions, recurring voices, rivalry mythology, Network segments and league-wide language now give every part of the season its own personality.'}</p><div className="nmlb64-culture-tags">{culture.segments.slice(0,5).map(([name])=><span key={name}>{name}</span>)}</div></section>
 
       <section className="news-v6-edition card"><div><small>V6 DAILY EDITION · {v6.phase.label}</small><h2>{v6.headline}</h2><p>{v6.phase.tone}</p></div><div className="news-v6-meters"><span><b>{v6.chaos.chaos}</b> CHAOS</span><span><b>{v6.chaos.drama}</b> DRAMA</span><span><b>{v6.meaningful.length}</b> PRESSURE TEAMS</span></div></section>

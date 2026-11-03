@@ -3,6 +3,7 @@ import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
 import { buildNMLBPostseasonPredictions } from "../utils/nmlbCultureUtils";
 import NMLBCommissionersTrophy from "../components/NMLBCommissionersTrophy";
 import { getTeamColorsByAbbr } from "../config/teamColors";
+import { buildPostseasonSeriesMemory, buildPostseasonNightlyShow, buildPostseasonMythology } from "../utils/postseasonMemoryUtils";
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
@@ -44,6 +45,9 @@ export default function BracketPage({ ctx }) {
   const predictions=buildNMLBPostseasonPredictions(data,data.teams||[],playoffPicture||[]);
   const champColors=champion?getTeamColorsByAbbr(champion.abbr):null;
   const trophyChampion=champion?{...champion,colors:champColors}:null;
+  const seriesMemory=buildPostseasonSeriesMemory(data,data.teams||[]);
+  const nightly=buildPostseasonNightlyShow(data,data.teams||[]);
+  const mythology=buildPostseasonMythology(data,data.teams||[]);
 
   return <div className={`bracket-page nmlb-postseason-page ${nmlbPostseason.stage.toLowerCase().replace(/\s+/g,'-')}`}>
     <div className="card season-format-card bracket-hero-v423"><div><span>NMLB · ROAD TO THE COMMISSIONER'S TROPHY</span><h2>{nmlbPostseason.headline}</h2><p className="muted">{nmlbPostseason.detail}</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
@@ -59,6 +63,8 @@ export default function BracketPage({ ctx }) {
       <div className="nmlb64-prediction-grid">{predictions.analysts.slice(0,4).map(a=><div className="nmlb64-prediction-card" key={a.name}><b>{a.name}</b><span>{a.role}</span><strong>{a.al} / {a.nl}</strong><em>Champion: {a.champion} · {a.note}</em></div>)}</div>
       {predictions.consensus&&<div className="nmlb64-consensus"><span>NETWORK CONSENSUS</span><strong>{predictions.consensus.abbr} · {predictions.consensus.votes}/{predictions.analysts.length} picks</strong></div>}
     </section>}
+
+    {nightly&&<section className="nmlb648-bracket-memory card"><div><small>NMLB POSTSEASON TONIGHT</small><h2>{nightly.headline}</h2><p>{nightly.detail}</p></div><div className="nmlb648-bracket-series-memory">{seriesMemory.slice(0,4).map(x=><article key={x.id}><b>{x.label}</b><strong>{x.away?.abbr||'TBD'} {x.awayWins}-{x.homeWins} {x.home?.abbr||'TBD'}</strong><span>{x.narrative}</span><em>SERIES RATING · {x.rating}/10</em></article>)}</div>{mythology.length>0&&<div className="nmlb648-mythology-strip">{mythology.slice(0,5).map(x=><span key={x.team.id}><b>{x.team.abbr}</b> {x.label}</span>)}</div>}</section>}
 
     <div className="nmlb64-bracket-stage">
       <LeagueWing league="AL" renderBracketSeries={renderBracketSeries}/>

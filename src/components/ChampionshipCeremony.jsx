@@ -44,9 +44,10 @@ export default function ChampionshipCeremony({ceremony,team,onComplete,onClose,r
     return()=>clearTimeout(timer);
   },[bannerStage,ceremony?.id]);
 
-  const showHeavyConfetti=['postBanner','trophy','rings','fans2','finale'].includes(stage);
-  const showBannerBurst=bannerStage;
-  const confettiCount=showHeavyConfetti||showBannerBurst?260:90;
+  const bannerIndex=stages.indexOf('banner');
+  const celebrationStarted=safeStep>bannerIndex||(bannerStage&&bannerReady);
+  const ambientConfettiCount=celebrationStarted?220:72;
+  const showBannerBurst=bannerStage&&bannerReady;
   const showFireworks=stage==='finale'||(isChamp&&stage==='trophy');
 
   if(!ceremony||!team)return null;
@@ -57,7 +58,8 @@ export default function ChampionshipCeremony({ceremony,team,onComplete,onClose,r
     <div className={`championship-ceremony-stage stage-${stage} ${isChamp?'world-series-ceremony':'league-title-ceremony'}`} style={{'--cer-main':teamPrimary,'--cer-accent':teamSecondary,'--cer-border':colors?.border||teamSecondary,'--cer-text':colors?.text||'#ffffff','--cer-confetti-a':teamPrimary,'--cer-confetti-b':teamSecondary}}>
       <div className="ceremony-rafters"><i/><i/><i/><i/><i/></div>
       <div className="ceremony-spotlights"><i/><i/><i/><i/><i/><i/></div>
-      <div className={`ceremony-confetti ${showHeavyConfetti?'ceremony-confetti-heavy':''} ${showBannerBurst?'ceremony-confetti-banner-burst':''}`}>{Array.from({length:confettiCount},(_,i)=><i key={i} style={{'--confetti-color':confettiColors[i%confettiColors.length],'--confetti-left':`${(i*37)%101}%`,'--confetti-delay':`${((i*17)%120)/20}s`,'--confetti-drift':`${((i%9)-4)*18}px`}}/>)}</div>
+      <div className={`ceremony-confetti ceremony-confetti-ambient ${celebrationStarted?'ceremony-confetti-heavy ceremony-confetti-celebration':''}`}>{Array.from({length:ambientConfettiCount},(_,i)=><i key={`ambient-${i}`} style={{'--confetti-color':confettiColors[i%confettiColors.length],'--confetti-left':`${(i*37)%101}%`,'--confetti-delay':`${((i*17)%120)/20}s`,'--confetti-drift':`${((i%9)-4)*18}px`}}/>)}</div>
+      {showBannerBurst&&<div className="ceremony-confetti ceremony-confetti-impact" aria-hidden="true">{Array.from({length:320},(_,i)=><i key={`impact-${i}`} style={{'--confetti-color':confettiColors[i%confettiColors.length],'--confetti-left':`${(i*29)%101}%`,'--confetti-delay':`${((i*11)%18)/100}s`,'--confetti-drift':`${((i%13)-6)*22}px`}}/>)}</div>}
       {showFireworks&&<div className={`ceremony-fireworks ${stage==='finale'?'ceremony-fireworks-finale':'ceremony-fireworks-trophy'}`} aria-hidden="true">{Array.from({length:14},(_,i)=><i key={i}/>)}</div>}
       <div className="ceremony-broadcast-kicker">NMLB NETWORK · CHAMPIONSHIP CEREMONY {replay?'REPLAY':'LIVE'}</div>
       {controlled&&!replay&&<div className="ceremony-live-badge">● LIVE ACROSS THE NMLB</div>}

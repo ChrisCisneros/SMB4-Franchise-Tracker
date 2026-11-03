@@ -190,6 +190,14 @@ Championship ceremonies are now designed as the largest live spectacles in the N
 - Postseason `e` remains reserved for clubs mathematically eliminated from every playoff path.
 
 
-## V6.4.7 — NMLB Pennant Race Command
+## V6.4.8 — NMLB Pennant Race Command
 
 Pennant Race / Race Control received a full NMLB presentation pass for the Season 4 stretch run. Division standings now display earned `z`, `y`, `x`, `w`, and `e` status markers directly beside team abbreviations, while division-only elimination remains a separate `DIV OUT` state so postseason elimination keeps its precise meaning. Division cards now include live race meters, stronger clinched/eliminated states, refreshed AL/NL mastheads, a sticky NMLB clinching key, an emphasized Wild Card cut line, and a more dramatic postseason command-center visual hierarchy.
+
+## V6.4.8 — Postseason Atmosphere & Memory
+- Championship ceremonies now carry continuous team-color confetti from the opening, then ramp to a heavy continuous storm after the banner reaches the rafters.
+- Banner landing fires a separate 320-piece impact burst; fireworks now play through the ongoing confetti atmosphere.
+- Pennant Race elimination language is simplified: gray `E` means division eliminated, red `E` means postseason eliminated.
+- Added postseason series memory, series ratings, turning-point context, team postseason mythology, rivalry temperature, historical comparisons, analyst prediction reputation, memory cards, and NMLB Postseason Tonight coverage.
+- Dashboard, News, and Bracket now surface postseason memory generated from every live-scored playoff final, giving non-anchor clubs the same cultural footprint as the favorite club.
+- Ceremony completions preserve the speech/fan script used for that event so the ceremony itself becomes part of league history.

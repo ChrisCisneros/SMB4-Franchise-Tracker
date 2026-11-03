@@ -17,7 +17,7 @@ import GameDaySocial from "../components/GameDaySocial";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildWorldState } from "../utils/cultureUtils";
 import { buildSeasonCalendar, currentLeagueDay, currentSeasonDay, canAdvanceLeagueDay, nextLeagueDayIndex, scheduleEntryLabel } from "../utils/seasonCalendarUtils";
-import { ceremonyForGame } from "../utils/ceremonyUtils";
+import { ceremonyForGame, buildCeremonyScript } from "../utils/ceremonyUtils";
 import ChampionshipCeremony from "../components/ChampionshipCeremony";
 import { buildAroundLeagueTonight, buildDynamicAds, buildFansTalkingAbout, buildHotColdBoard, buildTicketForecast, buildWeeklyMediaRoundup } from "../utils/mediaMemoryUtils";
 import { buildLeagueMainCharacter, buildMediaOutlets, buildOffDayWorld, buildPredictionReceipts, buildTopicLifecycles } from "../utils/lifeSystemsUtils";
@@ -28,6 +28,7 @@ import MerchProductArt from "../components/MerchProductArt";
 import NMLBUniverseHub from "../components/NMLBUniverseHub";
 import { buildNMLBCulture } from "../utils/nmlbCultureUtils";
 import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
+import { buildPostseasonNightlyShow, buildPostseasonMythology, buildPostseasonMemoryCards } from "../utils/postseasonMemoryUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -57,6 +58,9 @@ export default function DashboardPage({ ctx }) {
   const activeSeason = data.activeSeasonName || "Season 4";
   const nmlbCulture = useMemo(()=>buildNMLBCulture(data,teams,playoffPicture||[]),[data,teams,playoffPicture,tickerSlide]);
   const postseasonTakeover = useMemo(()=>buildNMLBPostseasonTakeover(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
+  const postseasonTonight = useMemo(()=>buildPostseasonNightlyShow(data,teams),[data.games,data.activeSeasonName,teams]);
+  const postseasonMythology = useMemo(()=>buildPostseasonMythology(data,teams),[data.games,data.activeSeasonName,teams]);
+  const postseasonMemories = useMemo(()=>buildPostseasonMemoryCards(data,teams),[data.games,data.activeSeasonName,teams]);
   const divisionEliminated = useMemo(() => (playoffPicture || []).flatMap((picture) => (picture.leagueTeams || []).filter((team) => isDivisionEliminated(team, picture)).map((team) => ({ team, picture }))), [playoffPicture]);
   const ticketForecast = useMemo(()=>buildTicketForecast(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const hotCold = useMemo(()=>buildHotColdBoard(teams),[teams]);
@@ -123,7 +127,9 @@ export default function DashboardPage({ ctx }) {
     if(!ceremony)return;
     const extras=data.leagueExtras||{};
     const ceremonies=(extras.ceremonies||[]).map(c=>c.id===ceremony.id?{...c,status:'completed',completedAt:new Date().toISOString()}:c);
-    const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,completedAt:new Date().toISOString()};
+    const ceremonyTeam=teams.find(t=>t.id===ceremony.teamId||t.abbr===ceremony.teamAbbr)||null;
+    const ceremonyScript=ceremonyTeam?buildCeremonyScript(ceremony,ceremonyTeam):null;
+    const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,script:ceremonyScript?{commissioner:ceremonyScript.commissioner,commissionerExtra:ceremonyScript.commissionerExtra,manager:ceremonyScript.manager,managerSecond:ceremonyScript.managerSecond,fans:ceremonyScript.fans}:null,ceremonyVersion:'6.4.8',completedAt:new Date().toISOString()};
     const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
     const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Museum & Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
     const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
@@ -234,11 +240,12 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.7</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.8</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
     {nmlbCulture.predictions.phase.id!=='preview'&&<section className="nmlb64-dashboard-race"><div><small>NMLB POSTSEASON CENTRAL</small><h2>{postseasonTakeover.headline}</h2><p>{postseasonTakeover.detail}</p><div className="nmlb64-dashboard-race-tags"><span>{nmlbCulture.predictions.phase.label}</span><span>{postseasonTakeover.qualified.length} QUALIFIED</span><span>{postseasonTakeover.eliminated.length} ELIMINATED</span>{nmlbCulture.predictions.consensus&&<span>NETWORK PICK · {nmlbCulture.predictions.consensus.abbr}</span>}</div></div><div><small>TONIGHT ON NMLB NETWORK</small><h2>{nmlbCulture.segments[0]?.[0]}</h2><p>{nmlbCulture.segments[0]?.[1]}</p><div className="nmlb64-dashboard-race-tags">{nmlbCulture.activeTraditions.slice(0,3).map(t=><span key={t.id}>{t.name}</span>)}</div></div></section>}
+    {postseasonTonight&&<section className="nmlb648-postseason-tonight card"><div><small>NMLB POSTSEASON TONIGHT</small><h2>{postseasonTonight.headline}</h2><p>{postseasonTonight.detail}</p><div className="nmlb648-memory-tags"><span>DRAMA · {postseasonTonight.bestDrama}</span><span>{postseasonTonight.games.length} FINAL{postseasonTonight.games.length===1?'':'S'}</span>{postseasonMemories[0]&&<span>{postseasonMemories[0].importance}</span>}</div></div><div className="nmlb648-mythology-list">{postseasonMythology.slice(0,4).map(x=><article key={x.team.id}><b>{x.team.abbr}</b><strong>{x.label}</strong><span>{x.detail}</span></article>)}</div></section>}
     {divisionEliminated.length>0&&<section className="card nmlb646-division-watch"><div><small>NMLB RACE CONTROL · DIVISION ELIMINATIONS</small><h2>The first division doors are closing.</h2><p>These clubs can no longer win their division. A Wild Card path may still remain unless they are also marked <b>e</b>.</p></div><div className="nmlb646-division-watch-teams">{divisionEliminated.slice(0,10).map(({team,picture})=><span key={`${picture.league}-${team.id}`}><b>{team.abbr}</b>{picture.league} {team.division} OUT</span>)}</div></section>}
     <section className="dashboard-world-pulse"><div className="dashboard-world-live"><i/> WORLD PULSE</div><div className="dashboard-world-moments">{worldState.moments.map((m,i)=><span key={`${m.type}-${i}`}><b>{m.icon} {m.type}</b>{m.title}</span>)}</div><div className="dashboard-world-tags">{worldState.trending.map(x=><em key={x}>{x}</em>)}</div></section>
     <section className="card dashboard-today-package">
@@ -248,7 +255,7 @@ export default function DashboardPage({ ctx }) {
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
         {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div>{controlsUnlocked?<button type="button" onClick={()=>startSharedCeremony(readyCeremony)}>Begin Ceremony for Everyone</button>:<span className="ceremony-waiting-pill">WAITING FOR OPERATOR</span>}</section>}
-        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.7 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
+        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.8 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
           <div><span>Broadcast Theme</span><strong>{broadcastTheme.icon} {broadcastTheme.label}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>
