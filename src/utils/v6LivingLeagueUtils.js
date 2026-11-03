@@ -5,7 +5,7 @@ import { buildMediaOutlets, buildFranchiseReputations, buildStadiumFolklore, bui
 import { buildBallparkDirectory, buildCityBuzz, buildHistoricGameAlerts } from './ballparkLifeUtils';
 import { buildSeasonCalendar, currentLeagueDay, currentSeasonDay } from './seasonCalendarUtils';
 import { getScheduledDayEvent } from './dayEventUtils';
-import { getPlayoffMarker } from './standingsUtils';
+import { getPlayoffMarker, isDivisionEliminated } from './standingsUtils';
 
 const n=v=>Number(v||0);
 const gp=t=>n(t?.wins)+n(t?.losses);
@@ -182,7 +182,15 @@ export function buildLeagueHistoryEchoes(data={},teams=[]){
 export function buildClinchAftermath(data={},teams=[],playoffPicture=[]){
   const rows=standingsRows(teams,playoffPicture);
   const out=[];
-  rows.forEach(({team,marker})=>{
+  rows.forEach(({team,marker,picture})=>{
+    const divisionOut = picture ? isDivisionEliminated(team,picture) : false;
+    if (divisionOut && marker !== 'e') {
+      out.push({team,type:'division-out',label:'DIVISION OUT',phase:'WILD CARD OR BUST',detail:pick([
+        `${team.city} has lost the division path. Every remaining October hope now runs through the Wild Card.`,
+        `The division race is over for ${team.abbr}, but the postseason race is not. Scoreboard watching just changed shape.`,
+        `${team.abbr} can no longer raise a division banner this season. The Wild Card is now the only door left open.`
+      ],`${team.id}-division-out`)});
+    }
     if(['z','y','w','x'].includes(marker)){
       const label=marker==='z'?'#1 SEED LOCKED':marker==='y'?'DIVISION CLINCHED':marker==='w'?'WILD CARD CLINCHED':'PLAYOFF BERTH CLINCHED';
       out.push({team,type:'clinch',label,phase:'CELEBRATION WAVE',detail:pick([

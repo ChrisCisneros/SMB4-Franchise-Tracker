@@ -47,3 +47,25 @@
 .ceremony-controls button:disabled{opacity:.55;cursor:wait;filter:saturate(.65)}
 @media(max-width:760px){.championship-ceremony-stage{min-height:94vh}.ceremony-banner-lift{height:430px}.ceremony-banner-lift .hall-banner{animation-duration:7s}.ceremony-confetti-banner-burst i{animation-delay:6.7s!important}.ceremony-trophy-reveal .ceremony-trophy-aura{width:390px;height:390px}}
 @media(prefers-reduced-motion:reduce){.ceremony-banner-lift .hall-banner,.ceremony-confetti-banner-burst i,.ceremony-trophy-reveal .ceremony-trophy-wrap,.ceremony-fireworks i{animation:none!important}.ceremony-confetti-banner-burst i{opacity:.9}}
+
+
+/* V6.4.6 NMLB Race Control — clinch/elimination intelligence */
+.standings-v4-page{background:radial-gradient(circle at 50% -8%,rgba(79,35,160,.19),transparent 31%),linear-gradient(180deg,#07101f,#080d19 44%,#070b14)!important}
+.standings-v4-page .standings-hero{background:radial-gradient(circle at 88% 4%,rgba(111,55,207,.34),transparent 36%),linear-gradient(135deg,#0a1530 0%,#160b35 60%,#0a1020 100%)!important;border-color:#4c2a82!important;box-shadow:0 22px 60px rgba(23,7,55,.28)!important}
+.standings-v4-page .standings-hero-eyebrow,.standings-v4-page .standings-card-kicker,.standings-v4-page .standings-section-heading span{color:#a98cff!important}
+.nmlb646-race-control{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.nmlb646-race-card{padding:16px 18px!important;background:radial-gradient(circle at 90% 0,rgba(111,55,207,.15),transparent 44%),linear-gradient(145deg,#0a1324,#100d22)!important;border-color:#352957!important;display:grid;gap:6px;min-height:128px}
+.nmlb646-race-card.danger{background:radial-gradient(circle at 90% 0,rgba(220,38,38,.13),transparent 44%),linear-gradient(145deg,#120d1a,#0c101c)!important;border-color:#5f2439!important}
+.nmlb646-race-card small{font-size:8px;letter-spacing:.12em;font-weight:950;color:#a98cff}
+.nmlb646-race-card strong{font-size:29px;line-height:1}
+.nmlb646-race-card>span{font-size:10px;color:#9aa8bd}
+.nmlb646-race-card>div{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.nmlb646-race-card>div b{font-size:7px;letter-spacing:.07em;border:1px solid #46356b;background:#160f2b;border-radius:999px;padding:5px 7px;color:#d9ccff}
+.standings-wildcard-table .standings-table-row{grid-template-columns:42px minmax(125px,1.5fr) 62px 55px 50px 38px 52px!important}
+.race-eliminated-number{color:#fb7185!important;font-weight:950;text-shadow:0 0 14px rgba(244,63,94,.35)}
+.playoff-marker.marker-e{background:rgba(127,29,29,.46)!important;border:1px solid #ef4444!important;color:#fecaca!important;box-shadow:0 0 14px rgba(239,68,68,.18)}
+.playoff-marker.marker-w,.playoff-marker.marker-x,.playoff-marker.marker-y,.playoff-marker.marker-z{box-shadow:0 0 16px rgba(167,139,250,.16)}
+.nmlb646-division-watch{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px;align-items:center;padding:18px 20px!important;background:radial-gradient(circle at 90% 10%,rgba(104,56,183,.22),transparent 42%),linear-gradient(135deg,#0b1530,#160d2f)!important;border-color:#493279!important}
+.nmlb646-division-watch small{font-size:8px;font-weight:950;letter-spacing:.12em;color:#b9a0ff}.nmlb646-division-watch h2{margin:5px 0 4px}.nmlb646-division-watch p{margin:0;color:#aab6c8;font-size:10px}
+.nmlb646-division-watch-teams{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap}.nmlb646-division-watch-teams span{display:grid;gap:1px;padding:7px 9px;border:1px solid #4b3972;background:rgba(15,10,34,.76);border-radius:10px;font-size:7px;color:#9aa8bd;letter-spacing:.06em}.nmlb646-division-watch-teams b{font-size:11px;color:#fff}
+@media(max-width:900px){.nmlb646-race-control{grid-template-columns:1fr}.nmlb646-division-watch{grid-template-columns:1fr}.nmlb646-division-watch-teams{justify-content:flex-start}.standings-wildcard-table .standings-table-row{min-width:625px!important}}

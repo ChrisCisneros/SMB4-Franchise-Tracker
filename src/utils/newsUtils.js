@@ -2,7 +2,7 @@ import { makeSafePlayoffBracket } from "./playoffUtils";
 import { buildLeagueRecords, formatPct } from "./recordsUtils";
 import { buildGameRecords, buildHeadToHead, buildTeamHistoryLeaders } from "./historyUtils";
 import { buildHistoricGameAlerts } from "./ballparkLifeUtils";
-import { getPostseasonStatus, maxPossibleWins } from "./standingsUtils";
+import { getPostseasonStatus, isDivisionEliminated, maxPossibleWins } from "./standingsUtils";
 
 function gamePct(team) {
   const wins = Number(team?.wins || 0);
@@ -70,9 +70,25 @@ export function buildNewsFeed(data, teams, playoffPicture = []) {
   (Array.isArray(playoffPicture) ? playoffPicture : []).forEach((picture) => {
     (picture.leagueTeams || []).forEach((team) => {
       const status = getPostseasonStatus(team, picture);
-      if (!status.marker) return;
-
+      const divisionOut = isDivisionEliminated(team, picture);
       const record = `${Number(team.wins || 0)}-${Number(team.losses || 0)}`;
+
+      if (divisionOut) {
+        stories.push({
+          teams: [team.abbr],
+          tone: status.marker === "e" ? "archive" : "postseason",
+          dateLabel: "Pennant race",
+          badge: "DIVISION OUT",
+          id: `division-eliminated-${team.id}`,
+          category: "Division Race",
+          headline: `${team.abbr} eliminated from ${picture.league} ${team.division} contention`,
+          dek: status.marker === "e"
+            ? `${teamName(team)} can no longer win the division and has also been eliminated from the postseason field.`
+            : `${teamName(team)} can no longer catch the ${team.division} leader. The division path is closed, but the Wild Card remains the route to October.`,
+        });
+      }
+
+      if (!status.marker) return;
       const remaining = Math.max(0, maxPossibleWins(team) - Number(team.wins || 0));
       const base = {
         teams: [team.abbr],

@@ -7,7 +7,9 @@ import {
   gamesBack,
   getPlayoffMarker,
   getWildcardMarker,
+  isDivisionEliminated,
   pct,
+  wildCardEliminationNumber,
   wildCardGamesBack,
 } from "../utils/standingsUtils";
 import { buildV4TeamMetrics } from "../utils/v4Utils";
@@ -132,9 +134,9 @@ function PlayoffLeagueCard({ picture, recentlyUpdatedTeamId }) {
 
       <div className="playoff-picture-section">
         <div className="playoff-picture-title"><span>Wild Card</span><small>Top 5 advance</small></div>
-        <div className="standings-table standings-playoff-table">
+        <div className="standings-table standings-playoff-table standings-wildcard-table">
           <div className="standings-table-row standings-table-head playoff-head-row">
-            <span>SEED</span><span>TEAM</span><span>W-L</span><span>PCT</span><span>WCGB</span><span>DIFF</span>
+            <span>SEED</span><span>TEAM</span><span>W-L</span><span>PCT</span><span>WCGB</span><span>E#</span><span>DIFF</span>
           </div>
           {picture.wildcardTeams.map((team, index) => {
             const isIn = index < WILD_CARD_TEAMS_PER_LEAGUE;
@@ -150,6 +152,7 @@ function PlayoffLeagueCard({ picture, recentlyUpdatedTeamId }) {
                 <strong>{team.wins}-{team.losses}</strong>
                 <span>{pct(team.wins, team.losses)}</span>
                 <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
+                <span className={wildCardEliminationNumber(team, picture) === "E" ? "race-eliminated-number" : ""}>{isIn ? "—" : wildCardEliminationNumber(team, picture)}</span>
                 <strong className={Number(team.runDiff || 0) >= 0 ? "rd-positive" : "rd-negative"}>{rdText(team.runDiff)}</strong>
               </div>
             );
@@ -179,11 +182,13 @@ export default function StandingsPage({ ctx }) {
   const biggestMover=[...v4Metrics].filter(m=>m.previousRank).sort((a,b)=>Math.abs(b.movement)-Math.abs(a.movement))[0];
 
   const nmlbPower=buildNMLBPowerIndex(data,allTeams,playoffPicture);
+  const divisionOut = playoffPicture.flatMap((picture) => (picture.leagueTeams || []).filter((team) => isDivisionEliminated(team, picture)).map((team) => ({ team, picture })));
+  const postseasonOut = playoffPicture.flatMap((picture) => (picture.leagueTeams || []).filter((team) => getPlayoffMarker(team, picture) === "e").map((team) => ({ team, picture })));
   return (
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">NMLB · V6.4.5 · PENNANT RACE HQ</div>
+          <div className="standings-hero-eyebrow">NMLB · V6.4.6 · RACE CONTROL</div>
           <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
           <p>The living race board: division control, wild-card pressure, clinches, elimination danger and every game left to matter.</p>
         </div>
@@ -195,6 +200,11 @@ export default function StandingsPage({ ctx }) {
       </section>
 
       <section className="card nmlb63-standings-power"><div><small>NMLB POWER INDEX</small><h2>Who is dangerous right now?</h2><p>Record, run differential, recent form, streak and postseason position rolled into one league pulse.</p></div><div className="nmlb63-power-mini">{nmlbPower.slice(0,5).map(x=><article key={x.team.id}><b>#{x.rank}</b><strong>{x.team.abbr}</strong><span>{x.score}</span><em>{x.label}</em></article>)}</div></section>
+      <section className="nmlb646-race-control">
+        <article className="card nmlb646-race-card"><small>DIVISION RACE STATUS</small><strong>{divisionOut.length}</strong><span>clubs mathematically out of their division race</span><div>{divisionOut.slice(0,8).map(({team})=><b key={team.id}>{team.abbr} · DIVISION OUT</b>)}</div></article>
+        <article className="card nmlb646-race-card danger"><small>POSTSEASON ELIMINATION</small><strong>{postseasonOut.length}</strong><span>clubs fully eliminated from the NMLB postseason</span><div>{postseasonOut.slice(0,8).map(({team})=><b key={team.id}>{team.abbr} · ELIMINATED</b>)}</div></article>
+        <article className="card nmlb646-race-card"><small>TIEBREAK POLICY</small><strong>RD</strong><span>run differential resolves completed-schedule ties</span><div><b>NO MORE ZOMBIE TEAMS</b></div></article>
+      </section>
       <section className="standings-v61-race-strip">{playoffPicture.map(p=>{const leader=p.divisionLeaders?.[0];const bubble=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE-1];const chase=p.wildcardTeams?.[WILD_CARD_TEAMS_PER_LEAGUE];return <article className="card" key={`pulse-${p.league}`}><small>{p.league} RACE PULSE</small><strong>{leader?.abbr||'—'} sets the pace</strong><span>{bubble?`${bubble.abbr} currently holds the final Wild Card`: 'Race still forming'}</span><em>{chase?`${chase.abbr} is first team out`:'No team below the cut yet'}</em></article>})}</section>
 
       <section className="card standings-v4-intel">

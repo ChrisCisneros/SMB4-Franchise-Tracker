@@ -178,3 +178,13 @@ Championship ceremonies are now designed as the largest live spectacles in the N
 - World Series trophy reveals receive a second confetti storm and an expanded fireworks field; the final coronation receives the largest fireworks treatment.
 - The operator cannot skip the banner-rise animation while it is in progress, keeping shared live ceremonies synchronized around the reveal.
 - Existing shared Firebase ceremony control and restart/replay behavior are preserved.
+
+
+## V6.4.6 — NMLB Race Control
+
+- Refreshed Pennant Race HQ into NMLB Race Control with a stronger purple postseason-race presentation.
+- Restored postseason status markers and added Wild Card E# visibility.
+- Fixed completed-season tiebreak elimination: tied W-L clubs now use the standings run-differential tiebreak once both schedules are complete.
+- Added a separate Division Out state so division elimination does not incorrectly mean postseason elimination.
+- Division-elimination updates now feed Dashboard Race Control, News and the living postseason aftermath desk.
+- Postseason `e` remains reserved for clubs mathematically eliminated from every playoff path.

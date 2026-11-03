@@ -98,15 +98,36 @@ export function formatGamesBack(team, leader) {
   return Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
 }
 
+function finalTiebreakRanksAhead(team, target) {
+  if (!team || !target) return false;
+  if (gamesRemaining(team) > 0 || gamesRemaining(target) > 0) return false;
+  if (Number(team.wins || 0) !== Number(target.wins || 0)) return false;
+  return sortStandingsTeams([team, target])[0]?.id === target.id;
+}
+
+export function canStillCatchTarget(team, target) {
+  if (!team || !target || team.id === target.id) return true;
+  const ceiling = maxPossibleWins(team);
+  const targetWins = Number(target.wins || 0);
+  if (ceiling > targetWins) return true;
+  if (ceiling < targetWins) return false;
+  // A tie in wins stays alive while either club still has games because run
+  // differential can still move. Once both schedules are complete, the same
+  // tiebreak used to sort the standings decides whether the chase is over.
+  if (gamesRemaining(team) > 0 || gamesRemaining(target) > 0) return true;
+  return !finalTiebreakRanksAhead(team, target);
+}
+
 export function eliminationNumber(team, target, gamesPerSeason = SEASON_LENGTH) {
   if (!team || !target || team.id === target.id) return "—";
 
+  if (!canStillCatchTarget(team, target)) return "E";
+
   const targetWins = Number(target.wins || 0);
   const teamLosses = Number(team.losses || 0);
-
   const number = gamesPerSeason + 1 - targetWins - teamLosses;
 
-  return number <= 0 ? "E" : number;
+  return Math.max(1, number);
 }
 
 export function gamesPlayed(team) {
@@ -180,16 +201,35 @@ export function getPostseasonStatus(team, picture) {
 
   // e means truly out of the postseason, not merely out of the division race.
   // A club stays alive while it can still tie the current division leader OR the Wild Card cutoff.
-  const teamMaxWins = maxPossibleWins(team);
-  const divisionAlive = !divisionLeader || divisionLeader.id === team.id || teamMaxWins >= Number(divisionLeader.wins || 0);
+  const divisionAlive = !divisionLeader || divisionLeader.id === team.id || canStillCatchTarget(team, divisionLeader);
   const cutoffTeam = picture.cutoffTeam || null;
-  const wildcardAlive = !cutoffTeam || divisionLeaderIds.has(team.id) || cutoffTeam.id === team.id || teamMaxWins >= Number(cutoffTeam.wins || 0);
+  const wildcardAlive = !cutoffTeam || divisionLeaderIds.has(team.id) || cutoffTeam.id === team.id || canStillCatchTarget(team, cutoffTeam);
 
   if (!divisionAlive && !wildcardAlive) {
     return { marker: "e", label: "Eliminated", detail: "Eliminated from postseason contention" };
   }
 
   return { marker: "", label: "", detail: "" };
+}
+
+export function isDivisionEliminated(team, picture) {
+  if (!team || !picture) return false;
+  const leader = (picture.divisionLeaders || []).find((candidate) => candidate.division === team.division);
+  if (!leader || leader.id === team.id) return false;
+  return !canStillCatchTarget(team, leader);
+}
+
+export function divisionEliminationNumber(team, picture) {
+  if (!team || !picture) return "—";
+  const leader = (picture.divisionLeaders || []).find((candidate) => candidate.division === team.division);
+  return leader && leader.id !== team.id ? eliminationNumber(team, leader) : "—";
+}
+
+export function wildCardEliminationNumber(team, picture) {
+  if (!team || !picture) return "—";
+  const cutoff = picture.cutoffTeam || null;
+  if (!cutoff || cutoff.id === team.id) return "—";
+  return eliminationNumber(team, cutoff);
 }
 
 export function getPlayoffMarker(team, picture, divisionLeader) {

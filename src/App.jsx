@@ -1932,7 +1932,7 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
-    <span className="version-pill version-pill-v3">v6.4.5</span>
+    <span className="version-pill version-pill-v3">v6.4.6</span>
   </div>
   <p>NMLB · Nicky's Major League Baseball · Version 6.4.3 · Culture & Postseason Spectacle</p>
 </div>
