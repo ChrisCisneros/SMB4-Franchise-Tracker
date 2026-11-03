@@ -4,6 +4,7 @@ import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildNMLBPowerIndex } from '../utils/nmlbUniverseUtils';
 import {
   eliminationNumber,
+  divisionEliminationNumber,
   gamesBack,
   getPlayoffMarker,
   getWildcardMarker,
@@ -23,7 +24,7 @@ function markerLabel(marker) {
   return ({ z: "#1 Seed", y: "Division", x: "Playoffs", w: "Wild Card", e: "Eliminated" })[marker] || "";
 }
 
-function TeamCell({ team, marker }) {
+function TeamCell({ team, marker, divisionOut = false }) {
   const colors = getTeamColorsByAbbr(team?.abbr);
   return (
     <span className="standings-team-cell">
@@ -32,14 +33,17 @@ function TeamCell({ team, marker }) {
         style={{ background: colors.main, borderColor: colors.border }}
       />
       <span className="standings-team-copy">
-        <strong>{team?.abbr || "TBD"}</strong>
+        <span className="standings-team-name-line">
+          <strong>{team?.abbr || "TBD"}</strong>
+          {marker && (
+            <span className={`playoff-marker marker-${marker}`} title={markerLabel(marker)}>
+              {marker}
+            </span>
+          )}
+          {divisionOut && marker !== "e" && <span className="division-out-pill" title="Mathematically eliminated from the division race">DIV OUT</span>}
+        </span>
         <small>{team?.name || ""}</small>
       </span>
-      {marker && (
-        <span className={`playoff-marker marker-${marker}`} title={markerLabel(marker)}>
-          {marker}
-        </span>
-      )}
     </span>
   );
 }
@@ -47,6 +51,9 @@ function TeamCell({ team, marker }) {
 function DivisionCard({ league, division, divisionTeams, picture, recentlyUpdatedTeamId }) {
   const leader = divisionTeams[0];
   const leaderColors = getTeamColorsByAbbr(leader?.abbr);
+  const leaderMarker = leader ? getPlayoffMarker(leader, picture, leader) : "";
+  const nearestChaser = divisionTeams.find((team) => team.id !== leader?.id && !isDivisionEliminated(team, picture));
+  const divisionLocked = leaderMarker === "y" || leaderMarker === "z";
 
   return (
     <div
@@ -59,11 +66,16 @@ function DivisionCard({ league, division, divisionTeams, picture, recentlyUpdate
           <h3>{division} Division</h3>
         </div>
         {leader && (
-          <div className="division-leader-chip">
-            <span>Leader</span>
-            <strong>{leader.abbr}</strong>
+          <div className={`division-leader-chip ${divisionLocked ? "is-clinched" : ""}`}>
+            <span>{divisionLocked ? "Clinched" : "Leader"}</span>
+            <div><strong>{leader.abbr}</strong>{leaderMarker && <b className={`playoff-marker marker-${leaderMarker}`} title={markerLabel(leaderMarker)}>{leaderMarker}</b>}</div>
           </div>
         )}
+      </div>
+
+      <div className={`division-race-meter ${divisionLocked ? "is-clinched" : ""}`}>
+        <span>{divisionLocked ? `${leader?.abbr || "—"} OWNS THE DIVISION` : nearestChaser ? `${leader?.abbr || "—"} vs ${nearestChaser.abbr} · ${gamesBack(nearestChaser, leader)} GB` : "DIVISION RACE"}</span>
+        <strong>{divisionLocked ? markerLabel(leaderMarker) : nearestChaser ? `${divisionEliminationNumber(nearestChaser, picture)} E#` : "—"}</strong>
       </div>
 
       <div className="standings-table standings-division-table">
@@ -73,13 +85,15 @@ function DivisionCard({ league, division, divisionTeams, picture, recentlyUpdate
 
         {divisionTeams.map((team, index) => {
           const marker = getPlayoffMarker(team, picture, leader);
+          const teamDivisionOut = isDivisionEliminated(team, picture);
+          const rowStatus = marker ? `status-${marker}` : teamDivisionOut ? "status-division-out" : "";
           return (
             <div
-              className={`standings-table-row ${index === 0 ? "division-first" : ""} ${recentlyUpdatedTeamId === team.id ? "recently-updated-row" : ""}`}
+              className={`standings-table-row ${index === 0 ? "division-first" : ""} ${rowStatus} ${recentlyUpdatedTeamId === team.id ? "recently-updated-row" : ""}`}
               key={team.id}
             >
               <span className="standings-rank">{index + 1}</span>
-              <TeamCell team={team} marker={marker} />
+              <TeamCell team={team} marker={marker} divisionOut={teamDivisionOut} />
               <strong>{team.wins}-{team.losses}</strong>
               <span>{pct(team.wins, team.losses)}</span>
               <span>{gamesBack(team, leader)}</span>
@@ -148,7 +162,7 @@ function PlayoffLeagueCard({ picture, recentlyUpdatedTeamId }) {
                 key={`${picture.league}-wc-${team.id}`}
               >
                 <strong className="seed-number">{isIn ? `#${index + 4}` : "—"}</strong>
-                <TeamCell team={team} marker={marker} />
+                <TeamCell team={team} marker={marker} divisionOut={isDivisionEliminated(team, picture)} />
                 <strong>{team.wins}-{team.losses}</strong>
                 <span>{pct(team.wins, team.losses)}</span>
                 <span>{wildCardGamesBack(team, picture.cutoffTeam, index)}</span>
@@ -188,9 +202,9 @@ export default function StandingsPage({ ctx }) {
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">NMLB · V6.4.6 · RACE CONTROL</div>
-          <h1>{data.activeSeasonName || "Season 4"} Standings</h1>
-          <p>The living race board: division control, wild-card pressure, clinches, elimination danger and every game left to matter.</p>
+          <div className="standings-hero-eyebrow">NMLB · V6.4.7 · PENNANT RACE COMMAND</div>
+          <h1>NMLB Pennant Race</h1>
+          <p>{data.activeSeasonName || "Season 4"} is entering the pressure zone. Division control, Wild Card survival, clinches and elimination paths all live here.</p>
         </div>
         <div className="standings-hero-stats">
           <div><span>Games Played</span><strong>{Math.round(gamesPlayed)}</strong></div>
@@ -215,12 +229,13 @@ export default function StandingsPage({ ctx }) {
       </section>
 
       <div className="standings-legend card">
-        <strong>Clinching Key</strong>
-        <span><b className="legend-marker marker-z">z</b>#1 Seed</span>
-        <span><b className="legend-marker marker-y">y</b>Division</span>
-        <span><b className="legend-marker marker-x">x</b>Playoffs</span>
-        <span><b className="legend-marker marker-w">w</b>Wild Card</span>
-        <span><b className="legend-marker marker-e">e</b>Eliminated</span>
+        <strong>NMLB Clinching Key</strong>
+        <span><b className="legend-marker marker-z">z</b><i>#1 Seed</i></span>
+        <span><b className="legend-marker marker-y">y</b><i>Division</i></span>
+        <span><b className="legend-marker marker-x">x</b><i>Playoffs</i></span>
+        <span><b className="legend-marker marker-w">w</b><i>Wild Card</i></span>
+        <span><b className="legend-marker marker-e">e</b><i>Postseason Eliminated</i></span>
+        <span><b className="legend-division-out">DIV OUT</b><i>Division Eliminated</i></span>
       </div>
 
       {(data.leagues || []).map((league) => {
@@ -229,7 +244,7 @@ export default function StandingsPage({ ctx }) {
         const leagueHasGames = leagueTeams.some((team) => Number(team.wins || 0) + Number(team.losses || 0) > 0);
         const leagueBest = leagueHasGames ? [...leagueTeams].sort((a, b) => Number(b.wins || 0) - Number(a.wins || 0) || Number(b.runDiff || 0) - Number(a.runDiff || 0))[0] : null;
         return (
-          <section className="standings-league-section" key={league}>
+          <section className={`standings-league-section league-${league.toLowerCase()}`} key={league}>
             <div className="standings-league-masthead">
               <div><span>{league}</span><h2>{league === "AL" ? "American League" : "National League"}</h2></div>
               <div>{leagueBest ? `${leagueBest.abbr} leads ${league} at ${leagueBest.wins}-${leagueBest.losses}` : "Season awaiting first results"}</div>
@@ -246,8 +261,8 @@ export default function StandingsPage({ ctx }) {
 
       <section className="standings-postseason-section">
         <div className="standings-section-heading">
-          <div><span>IF THE SEASON ENDED TODAY</span><h2>Playoff Picture</h2></div>
-          <p>Division leaders earn the top three seeds; five wild cards fill the field.</p>
+          <div><span>IF THE SEASON ENDED TODAY</span><h2>NMLB Postseason Field</h2></div>
+          <p>Division leaders take Seeds 1–3. Five Wild Cards survive the cut. Every marker above is mathematically earned.</p>
         </div>
         <div className="standings-playoff-grid">
           {playoffPicture.map((picture) => <PlayoffLeagueCard key={picture.league} picture={picture} recentlyUpdatedTeamId={recentlyUpdatedTeamId} />)}

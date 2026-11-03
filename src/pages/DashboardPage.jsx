@@ -234,7 +234,7 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.6</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.7</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -248,7 +248,7 @@ export default function DashboardPage({ ctx }) {
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
         {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div>{controlsUnlocked?<button type="button" onClick={()=>startSharedCeremony(readyCeremony)}>Begin Ceremony for Everyone</button>:<span className="ceremony-waiting-pill">WAITING FOR OPERATOR</span>}</section>}
-        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.6 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
+        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.7 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
           <div><span>Broadcast Theme</span><strong>{broadcastTheme.icon} {broadcastTheme.label}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>

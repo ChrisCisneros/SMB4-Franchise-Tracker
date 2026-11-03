@@ -188,3 +188,8 @@ Championship ceremonies are now designed as the largest live spectacles in the N
 - Added a separate Division Out state so division elimination does not incorrectly mean postseason elimination.
 - Division-elimination updates now feed Dashboard Race Control, News and the living postseason aftermath desk.
 - Postseason `e` remains reserved for clubs mathematically eliminated from every playoff path.
+
+
+## V6.4.7 — NMLB Pennant Race Command
+
+Pennant Race / Race Control received a full NMLB presentation pass for the Season 4 stretch run. Division standings now display earned `z`, `y`, `x`, `w`, and `e` status markers directly beside team abbreviations, while division-only elimination remains a separate `DIV OUT` state so postseason elimination keeps its precise meaning. Division cards now include live race meters, stronger clinched/eliminated states, refreshed AL/NL mastheads, a sticky NMLB clinching key, an emphasized Wild Card cut line, and a more dramatic postseason command-center visual hierarchy.
