@@ -87,7 +87,37 @@ export default function DashboardPage({ ctx }) {
     return seasonCalendar.filter(x=>x.gameNumber && x.slotIndex>=todaySlot.slotIndex && !x.result).slice(0,3);
   },[seasonCalendar,todaySlot]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
-  const readyCeremony = todayCeremonies.find(c=>c.status!=='completed' && ['banner','rings','trophy','championship-opening'].includes(c.type))||null;
+  const ceremonyTypes=['banner','rings','trophy','championship-opening'];
+  const readyCeremony = todayCeremonies.find(c=>c.status!=='completed' && ceremonyTypes.includes(c.type))||null;
+  const completedCeremony = todayCeremonies.find(c=>c.status==='completed' && ceremonyTypes.includes(c.type))||null;
+  const sharedCeremonySession=data.leagueExtras?.ceremonySession||null;
+  const sharedCeremony=sharedCeremonySession?.ceremonyId?(data.leagueExtras?.ceremonies||[]).find(c=>c.id===sharedCeremonySession.ceremonyId)||null:null;
+  useEffect(()=>{
+    if(sharedCeremonySession?.status==='active'&&sharedCeremony)setActiveCeremony(sharedCeremony);
+    if(sharedCeremonySession?.status==='completed'&&activeCeremony?.id===sharedCeremonySession.ceremonyId)setActiveCeremony(null);
+  },[sharedCeremonySession?.ceremonyId,sharedCeremonySession?.status,sharedCeremonySession?.step,sharedCeremony?.id]);
+  const saveCeremonyExtras=(next)=>{syncLeagueExtrasToFirebase?.(next);setData?.(p=>({...p,leagueExtras:next}))};
+  const startSharedCeremony=(ceremony,{restart=false}={})=>{
+    if(!ceremony||!controlsUnlocked)return;
+    const extras=data.leagueExtras||{};
+    let ceremonies=extras.ceremonies||[];
+    let ceremonyCompletions=extras.ceremonyCompletions||[];
+    let worldMoments=extras.worldMoments||[];
+    if(restart){
+      ceremonies=ceremonies.map(c=>c.id===ceremony.id?{...c,status:'pending',completedAt:null,restartedAt:new Date().toISOString()}:c);
+      ceremonyCompletions=ceremonyCompletions.filter(x=>x.ceremonyId!==ceremony.id);
+      worldMoments=worldMoments.filter(x=>x.id!==`glory-${ceremony.id}`);
+    }
+    const ceremonySession={id:`live-${ceremony.id}`,ceremonyId:ceremony.id,status:'active',step:0,startedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const next={...extras,ceremonies,ceremonyCompletions,worldMoments,ceremonySession};
+    saveCeremonyExtras(next);setActiveCeremony({...ceremony,status:'pending'});
+  };
+  const setSharedCeremonyStep=(step)=>{
+    if(!controlsUnlocked||!sharedCeremonySession?.ceremonyId)return;
+    const extras=data.leagueExtras||{};
+    const ceremonySession={...sharedCeremonySession,status:'active',step:Number(step||0),updatedAt:new Date().toISOString()};
+    saveCeremonyExtras({...extras,ceremonySession});
+  };
   const completeCeremony=(ceremony,revealed=[])=>{
     if(!ceremony)return;
     const extras=data.leagueExtras||{};
@@ -96,8 +126,9 @@ export default function DashboardPage({ ctx }) {
     const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
     const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Museum & Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
     const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
-    const next={...extras,ceremonies,ceremonyCompletions,worldMoments};
-    syncLeagueExtrasToFirebase?.(next); setData?.(p=>({...p,leagueExtras:next})); setActiveCeremony(null);
+    const ceremonySession={...(extras.ceremonySession||{}),ceremonyId:ceremony.id,status:'completed',completedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const next={...extras,ceremonies,ceremonyCompletions,worldMoments,ceremonySession};
+    saveCeremonyExtras(next);setActiveCeremony(null);
   };
   const advanceLeagueDay=()=>{
     if(!controlsUnlocked||!canAdvanceLeagueDay(data,teams))return;
@@ -195,14 +226,14 @@ export default function DashboardPage({ ctx }) {
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444',...broadcastThemeStyle(broadcastTheme)}}>
-    {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
+    {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} sharedStep={sharedCeremonySession?.status==='active'&&sharedCeremonySession?.ceremonyId===activeCeremony.id?Number(sharedCeremonySession.step||0):null} onSharedStepChange={setSharedCeremonyStep} operator={Boolean(controlsUnlocked)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
     <div className="dashboard-theme-canvas" data-icon={broadcastTheme.icon||"⚾"} data-label={broadcastTheme.label||"BASEBALL NIGHT"} aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
     {v4ShowBunting && <div className={`dashboard-v4-bunting dashboard-v4-bunting-top ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
 
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.2</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.4</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -214,7 +245,8 @@ export default function DashboardPage({ ctx }) {
     </section>
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
-        {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div><button type="button" onClick={()=>setActiveCeremony(readyCeremony)}>Begin Ceremony</button></section>}
+        {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div>{controlsUnlocked?<button type="button" onClick={()=>startSharedCeremony(readyCeremony)}>Begin Ceremony for Everyone</button>:<span className="ceremony-waiting-pill">WAITING FOR OPERATOR</span>}</section>}
+        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.4 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
           <div><span>Broadcast Theme</span><strong>{broadcastTheme.icon} {broadcastTheme.label}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>

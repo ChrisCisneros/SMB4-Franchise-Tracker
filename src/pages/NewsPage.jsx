@@ -151,7 +151,7 @@ export default function NewsPage({ ctx }) {
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4.2 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
+        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4.3 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 

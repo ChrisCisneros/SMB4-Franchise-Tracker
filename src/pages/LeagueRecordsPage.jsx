@@ -121,7 +121,7 @@ export default function LeagueRecordsPage({ ctx }) {
     <div className="records-page">
       <section className="records-hero card">
         <div>
-          <div className="records-hero-kicker">NMLB 6.4.2 · HALL OF RECORDS</div>
+          <div className="records-hero-kicker">NMLB 6.4.3 · HALL OF RECORDS</div>
           <h2>NMLB Hall of Records</h2>
           <p>
             Every championship, playoff run, dynasty, drought, and ridiculous season preserved from the archive.

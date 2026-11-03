@@ -152,3 +152,16 @@ V6.4 gives the NMLB a recognizable culture and prepares the entire product for t
 - The league calendar can be returned directly to a chosen game slot after an accidental skip.
 - Last-final state is refreshed after corrections so Dashboard context follows the repaired game book.
 - Player stats are intentionally left untouched by game deletion; the tool will not guess at stat rollbacks.
+
+## V6.4.3 — Grand Championship Ceremonies
+
+- Rebuilt World Series and League Championship ceremonies as full NMLB live events.
+- Championship banners now rise from the bottom of the presentation toward the rafters.
+- Added 18 Commissioner speech variants and 24 manager speech variants with stable per-ceremony selection.
+- Added fan-voice montage stages so championship nights include the fanbase, not only league officials.
+- World Series ceremonies now feature an expanded Nicky’s Commissioner’s Trophy reveal, heavier team-color confetti, rings presentation and fireworks finale.
+- League championship ceremonies receive the same speech, banner-raise, fan and fireworks treatment while preserving World Series-only trophy/ring hardware.
+- Added a shared Firebase-backed ceremony session: when the operator starts or advances a ceremony, connected viewers follow the same live stage.
+- Completed ceremonies scheduled for the current game can be restarted as a Grand Ceremony; restart clears the prior completion and replaces it when the new ceremony finishes.
+- Visible NMLB version updated to V6.4.3.
+

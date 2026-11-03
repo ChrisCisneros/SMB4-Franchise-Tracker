@@ -69,3 +69,101 @@ export function ceremonySocialLines(ceremony,team){
   if(type==='retired-number')return [`That number belongs in the rafters forever.`,`Whole place stood up for that one. What a career.`];
   return [`Special ceremony tonight for ${abbr}. The building feels different already.`,`This is one of those nights fans remember.`];
 }
+
+const COMMISSIONER_SPEECH_BANK=[
+  "Tonight, we do more than celebrate a result. We recognize a club that carried the pressure of a season, answered it, and earned a permanent place in NMLB history.",
+  "Every championship begins as a possibility and ends as proof. This team turned months of work into something no standings page can ever take away.",
+  "A pennant is not given for promise. A championship is not awarded for potential. These honors are earned, and tonight this club receives what it earned.",
+  "The NMLB is built on rivalries, long nights, heartbreak and belief. This team survived all of it, and tonight the league stands together to recognize them.",
+  "There are seasons a fan remembers by record, and there are seasons remembered by feeling. This was one of those seasons, and this ceremony makes that memory permanent.",
+  "To the players, staff, families and fans who carried this season from Opening Day to its final out: tonight belongs to all of you.",
+  "Championships become history only after somebody is brave enough to chase them. This club chased one all the way to the end.",
+  "The banner that rises tonight is more than fabric. It is every comeback, every late inning, every road trip and every person who believed before the result was certain.",
+  "We spend a season asking who is good enough, tough enough and ready enough. This team answered every question the league could ask.",
+  "The NMLB remembers its champions because champions help define the league itself. Tonight, another chapter joins that record.",
+  "A season can change in one inning, one swing, one decision. Great teams survive those moments. Championship teams make them their own.",
+  "Tonight we honor the standard this club set: compete every day, carry the pressure, and leave the league with no choice but to remember your name.",
+  "No championship run belongs to one person. It belongs to a clubhouse, a city and a fanbase that carried the same hope through every uncertain night.",
+  "There is no shortcut to this stage. The only road here runs through the entire league, and this team made it to the end of that road.",
+  "The celebration will end. The season will move on. But the banner, the record and the memory of what happened will remain.",
+  "Tonight is why we play the season. To create a moment large enough that an entire city can point to it years from now and say: we were there.",
+  "From the first pitch of the year to the final celebration, this club gave the NMLB a season worth remembering. Tonight, we make sure we never forget it.",
+  "Some teams win games. Some teams win moments. This team won enough of both to stand here tonight as champions."
+];
+
+const MANAGER_SPEECH_BANK=[
+  "This group never needed to be reminded what was at stake. They showed up, trusted each other, and kept finding one more way to win.",
+  "I told these players all year that the only game we could control was the next one. Somehow, that simple idea carried us all the way here.",
+  "The banner has the team name on it, but every person in this building owns a piece of it. We heard you all season, especially when we needed you most.",
+  "There were nights when we looked unbeatable and nights when nothing came easy. What never changed was the belief in that clubhouse.",
+  "You remember the celebrations, but I remember the work before the doors opened, the travel, the meetings, the losses that hurt and the way these guys responded.",
+  "Nobody in our room ever asked for the easy road. They asked for another chance, another inning and another game. That is why we are standing here.",
+  "The best thing about this team was that nobody cared who got the credit. They cared whether the person next to them had what they needed to win.",
+  "We knew this fanbase would hold us accountable, and we loved that. You pushed us, you believed in us, and you made this place impossible for opponents when it mattered.",
+  "A championship season has a thousand little moments nobody outside the clubhouse sees. I wish every one of you could have seen how much this group wanted it.",
+  "When the pressure got louder, this team got calmer. When the games got bigger, they trusted each other more. That is a rare thing to coach.",
+  "I could stand here and talk about talent all night. What I am proudest of is the toughness, the patience and the way this team kept answering adversity.",
+  "We did not win because every night went according to plan. We won because when the plan broke, somebody always found another way.",
+  "To every player who took an at-bat, threw a pitch, made a play or picked up a teammate after a bad night: this belongs to you.",
+  "To the fans who stayed loud through the losses, the travel and the nervous innings: this belongs to you just as much as it belongs to us.",
+  "I have coached a lot of games. I will remember the way this club looked at each other before the biggest ones for the rest of my life.",
+  "Championships are supposed to be difficult. Ours certainly was. That is exactly why this one means what it means.",
+  "This group made pressure feel like a privilege. Every big game was another chance to show who we were.",
+  "We wanted to give this city something permanent. Look up at that banner. We did.",
+  "The season is over, but what these players built together is not. That standard comes with us into every season that follows.",
+  "There is nothing I can say that will match the sound this building made when we knew we had done it. I will never forget that sound.",
+  "You can count wins, runs and innings. You cannot really measure how much these players cared about each other. That was our edge.",
+  "Tonight is a celebration, but it is also a thank you. Thank you to everyone who carried us when the season got heavy.",
+  "The next season will ask us to prove ourselves again. Good. But tonight, for one more night, we are going to enjoy what this team earned.",
+  "They will remember the trophy and the banner. I will remember the people who made them possible."
+];
+
+const FAN_VOICE_BANK=[
+  "I watched the whole run and I still cannot believe we get to look up and see that banner forever.",
+  "Every stressful ninth inning was worth it for this exact moment.",
+  "I brought my family because I wanted them to remember what this building sounded like tonight.",
+  "That season belongs to this city now. Nobody can take it away from us.",
+  "The second that banner started moving, I got chills. That is our season up there.",
+  "I have replayed the final out a hundred times. Seeing the ceremony somehow made it feel real all over again.",
+  "We argued about this team all year and now we get to argue about where they rank in history.",
+  "The trophy is beautiful, but hearing this crowd when it appeared was even better.",
+  "I waited all offseason for tonight. Worth every second.",
+  "This is the kind of night that turns kids into fans for life.",
+  "You can feel how much the whole city still cares about that run.",
+  "I am never going to walk into this park again without looking at that banner first.",
+  "They gave us a season we will be talking about for years.",
+  "I thought I was done getting emotional about the championship. Apparently not.",
+  "That banner is going to be hanging there when we are all telling the next generation about this team.",
+  "The whole building knew what was coming and it still exploded when the reveal happened.",
+  "This is why you stick with a team through every awful loss. Nights like this.",
+  "I do not care what happens next. Nobody can erase what this club already did.",
+  "The league can start chasing us again tomorrow. Tonight is ours.",
+  "It feels like the season got one final victory lap."
+];
+
+function stableCeremonyIndex(seed='',size=1,offset=0){
+  const raw=String(seed||'NMLB'); let hash=2166136261;
+  for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619)}
+  return Math.abs((hash+offset)|0)%Math.max(1,size);
+}
+
+export function buildCeremonyScript(ceremony={},team={}){
+  const seed=`${ceremony.id||''}|${ceremony.originSeasonName||ceremony.seasonName||''}|${team.abbr||ceremony.teamAbbr||''}|${ceremony.type||''}`;
+  const isWorld=ceremony.type==='championship-opening';
+  const commissioner=COMMISSIONER_SPEECH_BANK[stableCeremonyIndex(seed,COMMISSIONER_SPEECH_BANK.length,11)];
+  const manager=MANAGER_SPEECH_BANK[stableCeremonyIndex(seed,MANAGER_SPEECH_BANK.length,29)];
+  const fans=Array.from({length:4},(_,i)=>FAN_VOICE_BANK[stableCeremonyIndex(seed,FAN_VOICE_BANK.length,47+i*13)]);
+  return {
+    commissioner,
+    manager,
+    fans,
+    opening:isWorld
+      ?`The championship season returns to center stage. Tonight ${team.city||team.abbr||'this city'} raises the banner, welcomes home Nicky’s Commissioner’s Trophy and places championship rings into the hands that earned them.`
+      :`Tonight ${team.city||team.abbr||'this city'} turns a league championship into something permanent. The pennant earned on the field now rises into the rafters.` ,
+    road:`${ceremony.originSeasonName||'That season'} is remembered here as more than a line in the standings. It was the long road that brought ${team.abbr||'this club'} from Opening Day pressure to a championship night no one in the fanbase has to forget.`,
+    finale:isWorld
+      ?`The banner is raised. Nicky’s Commissioner’s Trophy has returned to the champions. The rings have been revealed. Let the fireworks carry this title into NMLB history.`
+      :`The banner is raised, the pennant is permanent, and the fanbase gets one more roar for the team that conquered its league.`
+  };
+}
+
