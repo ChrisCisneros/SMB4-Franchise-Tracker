@@ -141,6 +141,66 @@ const FAN_VOICE_BANK=[
   "It feels like the season got one final victory lap."
 ];
 
+const COMMISSIONER_WORLD_EXTRA_BANK=[
+  "A World Series championship is the highest honor this league can give. It asks a club to survive every challenge, every opponent and every ounce of pressure the NMLB can create. Tonight, this team stands here because it answered all of them.",
+  "There are banners that mark a good year, and there are banners that change how a franchise is remembered forever. A World Series banner belongs to the second kind. Tonight, this club enters that permanent company.",
+  "The trophy waiting behind us represents more than one final series. It represents every decision, every inning and every person who carried this club from the first day of the season to the last out of the year.",
+  "This is the moment every team begins the season chasing. Only one gets to stand beneath these lights with the trophy, the rings and the right to call itself World Champion.",
+  "When the history of this era is written, this team will not be listed as a contender, a finalist or a great story. It will be listed simply and permanently as champion.",
+  "A World Series title belongs to the players who earned it, the staff who prepared for it, and the fans who carried the belief through every difficult night. Tonight the NMLB honors all of them together.",
+  "Championship teams leave evidence behind: a trophy, a banner, a ring, a record and a memory that belongs to an entire city. Tonight, every one of those things comes home.",
+  "The NMLB can produce only one World Champion each season. That scarcity is what gives this moment its weight. This club earned the right to make the entire league stop and recognize what it accomplished.",
+  "The final out ended the competition, but it did not end the meaning of the season. Tonight is where that meaning becomes permanent, where a championship becomes part of the identity of a franchise.",
+  "Years from now, people will still point to this banner and remember where they were, who they watched with and what this team made them feel. That is the power of a championship season."
+];
+
+const COMMISSIONER_LEAGUE_EXTRA_BANK=[
+  "Winning a league is an achievement worthy of its own place in the rafters. This club conquered its side of the NMLB, earned the pennant, and gave its supporters a run they will carry with them for years.",
+  "A league championship means surviving every challenge between Opening Day and the pennant. Tonight, we recognize a club that did exactly that and earned the right to raise its colors above this field.",
+  "The road to the World Series passes through a league championship first. This pennant is proof that this club met every test required to reach baseball's biggest stage.",
+  "Tonight is not about what came after the pennant. It is about honoring the pennant itself: a season-long achievement, won on the field and remembered permanently in this building.",
+  "The NMLB celebrates its league champions because winning a pennant is never ordinary. It requires excellence, resilience and the courage to survive the games when a season can turn in an instant.",
+  "This banner represents a league conquered and a fanbase rewarded. It belongs in the rafters because what this club achieved belongs in NMLB history."
+];
+
+const MANAGER_SECOND_BANK=[
+  "What I hope everyone remembers is how connected this group was. The season kept asking us to trust one another, and every time it did, these players answered yes.",
+  "There are too many people to thank by name tonight, and that is exactly the point. Championships are built by entire organizations, entire clubhouses and entire communities pulling in the same direction.",
+  "I have managed a lot of games, but there are moments from that run I will carry with me forever. I know the people in this ballpark feel the same way.",
+  "This team gave me everything it had. When we were tired, we competed. When we were behind, we believed. When the moment got enormous, nobody ran from it.",
+  "The thing I am proudest of is not that we never struggled. It is that struggle never changed who we were. We kept showing up for one another until there were no games left to win.",
+  "Every player in that room has their own memory of the season. Tonight we get to put all of those memories under one banner and call them part of the same story.",
+  "The fans saw the games. I got to see the work behind them. Believe me when I tell you this team earned every inch that banner is about to climb.",
+  "We talked all season about leaving something behind. Tonight, we can actually look up and see it. That is a feeling I will never forget.",
+  "I want the players to take this moment in. Seasons move fast. Careers move fast. A night like this is one of the rare chances to understand what you accomplished while you are still standing inside it.",
+  "To everyone who stayed with us when the season got difficult: this celebration is yours too. You gave us noise, belief and a home-field feeling we never took for granted.",
+  "The banner is permanent because the work was real. The sacrifices were real. The pressure was real. And the way this team answered all of it was real too.",
+  "We wanted to give this city a team it could believe in. Looking around tonight, I think this group did something even better: it gave the city a team it will remember."
+];
+
+const FAN_VOICE_EXTRA_BANK=[
+  "I have been counting down to this ceremony since the final out. Seeing the whole place dressed for it is unbelievable.",
+  "You can hear people telling stories from the run all around the concourse. Everybody has their own favorite moment.",
+  "This does not feel like a normal pregame. It feels like the entire season came back for one more night.",
+  "My voice was gone after the clincher and I am fully prepared to lose it again tonight.",
+  "I wanted to see the banner before anything else this season. Now I finally get to watch it go up.",
+  "The lights, the crowd, the colors — this is exactly how a championship should be remembered.",
+  "I know the next season has already started, but for tonight I am right back in that final inning again.",
+  "You can tell how much this means by how early everybody got here. Nobody wanted to miss a second of it.",
+  "The best part is knowing that banner is not coming back down. That season belongs to this park forever.",
+  "There are people here wearing shirts from every round of the run. It feels like the whole postseason showed up together.",
+  "I have seen big games here, but I have never seen the building pause for history like this.",
+  "When the banner reaches the top, I think this place might actually shake.",
+  "We spent the whole year hoping for a night like this. Now we get to live in it for a little while longer.",
+  "This team gave us so many reasons to celebrate. Tonight the league is finally giving the celebration the stage it deserves.",
+  "I brought the ticket from the clinching game with me. I needed it here for this.",
+  "Every time the crowd gets quiet, you can feel everyone waiting for the next big reveal.",
+  "The championship already felt real, but this ceremony makes it feel permanent.",
+  "I cannot wait to bring somebody here years from now and point at that banner.",
+  "This is what all those nervous late innings were buying us: a night the whole fanbase gets to share.",
+  "If the confetti cannons are anything like this crowd, the roof is in trouble."
+];
+
 function stableCeremonyIndex(seed='',size=1,offset=0){
   const raw=String(seed||'NMLB'); let hash=2166136261;
   for(let i=0;i<raw.length;i++){hash^=raw.charCodeAt(i);hash=Math.imul(hash,16777619)}
@@ -151,19 +211,27 @@ export function buildCeremonyScript(ceremony={},team={}){
   const seed=`${ceremony.id||''}|${ceremony.originSeasonName||ceremony.seasonName||''}|${team.abbr||ceremony.teamAbbr||''}|${ceremony.type||''}`;
   const isWorld=ceremony.type==='championship-opening';
   const commissioner=COMMISSIONER_SPEECH_BANK[stableCeremonyIndex(seed,COMMISSIONER_SPEECH_BANK.length,11)];
+  const commissionerExtra=(isWorld?COMMISSIONER_WORLD_EXTRA_BANK:COMMISSIONER_LEAGUE_EXTRA_BANK)[stableCeremonyIndex(seed,(isWorld?COMMISSIONER_WORLD_EXTRA_BANK:COMMISSIONER_LEAGUE_EXTRA_BANK).length,17)];
   const manager=MANAGER_SPEECH_BANK[stableCeremonyIndex(seed,MANAGER_SPEECH_BANK.length,29)];
-  const fans=Array.from({length:4},(_,i)=>FAN_VOICE_BANK[stableCeremonyIndex(seed,FAN_VOICE_BANK.length,47+i*13)]);
+  const managerSecond=MANAGER_SECOND_BANK[stableCeremonyIndex(seed,MANAGER_SECOND_BANK.length,37)];
+  const fanPool=[...FAN_VOICE_BANK,...FAN_VOICE_EXTRA_BANK];
+  const fans=Array.from({length:isWorld?8:6},(_,i)=>fanPool[stableCeremonyIndex(seed,fanPool.length,47+i*13)]);
   return {
-    commissioner,
-    manager,
-    fans,
+    commissioner, commissionerExtra, manager, managerSecond, fans,
     opening:isWorld
       ?`The championship season returns to center stage. Tonight ${team.city||team.abbr||'this city'} raises the banner, welcomes home Nicky’s Commissioner’s Trophy and places championship rings into the hands that earned them.`
-      :`Tonight ${team.city||team.abbr||'this city'} turns a league championship into something permanent. The pennant earned on the field now rises into the rafters.` ,
+      :`Tonight ${team.city||team.abbr||'this city'} turns a league championship into something permanent. The pennant earned on the field now rises into the rafters.`,
     road:`${ceremony.originSeasonName||'That season'} is remembered here as more than a line in the standings. It was the long road that brought ${team.abbr||'this club'} from Opening Day pressure to a championship night no one in the fanbase has to forget.`,
+    roadSecond:isWorld
+      ?`Every round narrowed the field until only one club remained standing. The pressure grew, the lights got brighter, and ${team.abbr||'the champions'} kept answering until the final out belonged to them.`
+      :`The pennant was earned one night at a time, through the stretches that tested the clubhouse and the games that demanded something extra. Tonight that entire road is represented by one banner.`,
+    bannerIntro:isWorld
+      ?`The lights move to the rafters. The championship banner waits at field level. In a moment, the symbol of a World Series season will begin its climb.`
+      :`The pennant has been announced. The building turns toward the rafters. The league championship banner is ready to rise.`,
+    trophyIntro:`The banner is home. Now the lights return to the field for the piece of hardware every club in the NMLB spends a season chasing.`,
+    ringsIntro:`One final symbol remains. The championship rings are brought forward, one by one, for the people who carried the season to its last out.`,
     finale:isWorld
       ?`The banner is raised. Nicky’s Commissioner’s Trophy has returned to the champions. The rings have been revealed. Let the fireworks carry this title into NMLB history.`
       :`The banner is raised, the pennant is permanent, and the fanbase gets one more roar for the team that conquered its league.`
   };
 }
-

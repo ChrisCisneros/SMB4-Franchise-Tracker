@@ -12,7 +12,7 @@
 @media(max-width:760px){.championship-ceremony-stage{min-height:560px;padding-inline:18px}.ceremony-ring{width:250px;height:250px;border-width:40px}.ceremony-banner{width:250px;min-height:330px}.v421-hardware-row{grid-template-columns:1fr}.ceremony-ready-card{grid-template-columns:auto 1fr}.ceremony-ready-card button{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.ceremony-banner,.ceremony-trophy,.ceremony-ring{animation:none}}
 
-/* V6.4.4 Grand Championship Ceremonies */
+/* V6.4.5 Grand Championship Ceremonies */
 .championship-ceremony-overlay{background:radial-gradient(circle at 50% 15%,rgba(31,5,84,.32),rgba(0,0,0,.96) 64%);padding:16px}
 .championship-ceremony-stage{width:min(1180px,98vw);min-height:min(760px,94vh);border:1px solid color-mix(in srgb,var(--cer-border) 58%,transparent);background:radial-gradient(circle at 50% 12%,color-mix(in srgb,var(--cer-main) 80%,#fff 12%),rgba(10,7,28,.98) 48%,#02030a 82%);box-shadow:0 0 0 1px rgba(255,255,255,.04),0 50px 150px #000,0 0 90px color-mix(in srgb,var(--cer-main) 36%,transparent)}
 .championship-ceremony-stage.world-series-ceremony{border-color:color-mix(in srgb,#e8c66a 72%,var(--cer-border));box-shadow:0 0 0 1px rgba(232,198,106,.15),0 50px 160px #000,0 0 120px color-mix(in srgb,var(--cer-main) 42%,transparent)}

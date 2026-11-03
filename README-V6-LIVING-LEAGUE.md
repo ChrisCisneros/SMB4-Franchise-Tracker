@@ -165,3 +165,16 @@ V6.4 gives the NMLB a recognizable culture and prepares the entire product for t
 - Completed ceremonies scheduled for the current game can be restarted as a Grand Ceremony; restart clears the prior completion and replaces it when the new ceremony finishes.
 - Visible NMLB version updated to V6.4.3.
 
+
+## V6.4.5 — Majestic Championship Ceremonies
+
+Championship ceremonies are now designed as the largest live spectacles in the NMLB.
+
+- World Series ceremonies expand to a 17-beat coronation with a two-part Commissioner address, two-part manager address, season reflection, two waves of fan voices, slow banner presentation, trophy introduction/reveal, ring introduction/reveal, and a full fireworks finale.
+- League Championship ceremonies expand to an 11-beat pennant celebration with the Commissioner, fan voices, manager remarks, season reflection, slow banner presentation, team-color confetti, and fireworks while remaining intentionally one tier below the World Series.
+- Commissioner, manager, and fan voice banks were expanded substantially so repeated ceremonies have more variety and better flow.
+- Banner raises now take roughly eight seconds. The confetti waits until the banner reaches the rafters, then the celebration erupts.
+- Confetti now uses the club's actual franchise primary and secondary colors and increases to a 260-piece championship storm for major reveal stages.
+- World Series trophy reveals receive a second confetti storm and an expanded fireworks field; the final coronation receives the largest fireworks treatment.
+- The operator cannot skip the banner-rise animation while it is in progress, keeping shared live ceremonies synchronized around the reveal.
+- Existing shared Firebase ceremony control and restart/replay behavior are preserved.
