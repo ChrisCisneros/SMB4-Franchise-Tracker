@@ -202,7 +202,7 @@ export default function StandingsPage({ ctx }) {
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">NMLB · V6.4.9 · PENNANT RACE COMMAND</div>
+          <div className="standings-hero-eyebrow">NMLB · V6.4.11 · PENNANT RACE COMMAND</div>
           <h1>NMLB Pennant Race</h1>
           <p>{data.activeSeasonName || "Season 4"} is entering the pressure zone. Division control, Wild Card survival, clinches and elimination paths all live here.</p>
         </div>

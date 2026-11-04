@@ -11,6 +11,7 @@ import { buildChronicleSnapshot, chronicleSnapshots, compareSnapshotToCurrent, b
 import ChampionshipCeremony from '../components/ChampionshipCeremony';
 import PlayerLegacyDesk from '../components/PlayerLegacyDesk';
 import NMLBAwardsShow from '../components/NMLBAwardsShow';
+import NMLBThemeLab from '../components/NMLBThemeLab';
 import { buildNMLBCulture } from '../utils/nmlbCultureUtils';
 import { buildNMLBPowerIndex, buildNMLBSeasonNarrative } from '../utils/nmlbUniverseUtils';
 import { buildSeasonCalendar } from '../utils/seasonCalendarUtils';
@@ -23,7 +24,7 @@ import {
   personalityForMetric
 } from '../utils/v4Utils';
 
-const TABS=[['intelligence','League Intelligence'],['storylines','Storylines'],['players','Players & Awards'],['records','Records & Milestones'],['snapshots','Snapshots'],['museum','Museum & Hall of Glory']];
+const TABS=[['intelligence','League Intelligence'],['storylines','Storylines'],['players','Players & Awards'],['records','Records & Milestones'],['snapshots','Snapshots'],['theme','Theme Lab'],['museum','Museum & Hall of Glory']];
 const pct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const rd=n=>`${Number(n||0)>0?'+':''}${Number(n||0)}`;
 function Pill({children,tone=''}){return <span className={`v4-pill ${tone}`}>{children}</span>}
@@ -210,7 +211,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className={`v4-page nmlb64-center-page tab-${tab}`}>
     <section className="nmlb64-center-hero">
-      <div><div className="v4-kicker">NMLB · VERSION 6.4.9 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>WEEK {culture.week}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div></div>
+      <div><div className="v4-kicker">NMLB · VERSION 6.4.11 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>WEEK {culture.week}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div></div>
       <div className="nmlb64-center-pulse"><div><span>POWER #1</span><strong>{nmlbPower[0]?.team?.abbr||'—'}</strong></div><div><span>POWER INDEX</span><strong>{nmlbPower[0]?.score||0}</strong></div><div><span>STORED GAMES</span><strong>{(data.games||[]).length}</strong></div><div><span>ARCHIVED SEASONS</span><strong>{(data.seasonHistory||[]).length}</strong></div></div>
     </section>
     <section className="card v424-global-search"><div><small>GLOBAL LEAGUE SEARCH</small><input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="Search Cain, Season 3, SF vs LAD, 50th homer..."/></div>{searchResults.length>0&&<div className="v424-search-results">{searchResults.map(r=><button type="button" key={r.id} onClick={()=>{if(r.teamId)setSelectedTeamId(r.teamId);setTab(r.tab||'intelligence');setGlobalSearch('')}}><span>{r.type}</span><strong>{r.title}</strong><small>{r.detail}</small></button>)}</div>}</section>
@@ -233,6 +234,8 @@ export default function V4CenterPage({ctx}){
       <div className="v4-grid-2"><div className="card"><SectionTitle kicker="RECORD CHASE" title="History Within Reach"/>{recordChases.map(x=><div className="v4-list-row" key={x.team.id}><TeamChip team={x.team}/><span>{x.needed===0?'At the archived wins record':`${x.needed} wins from matching ${x.targetWins}`}</span></div>)}</div><div className="card"><SectionTitle kicker="WHAT CHANGED?" title="Standings Movement" detail="Save snapshots during the season to create a real movement history."/>{metrics.filter(m=>m.previousRank).slice(0,12).map(m=><div className="v4-list-row" key={m.team.id}><TeamChip team={m.team}/><span>#{m.previousRank} → #{m.currentRank} {m.movement>0?`▲ ${m.movement}`:m.movement<0?`▼ ${Math.abs(m.movement)}`:'—'}</span></div>)}{!metrics.some(m=>m.previousRank)&&<Empty>Save the first standings snapshot, then compare after more games.</Empty>}</div></div>
       <div className="card"><SectionTitle kicker="PLAYOFF RACE GRAPH" title="Projection Ladder"/><div className="v4-race-bars">{metrics.map(m=><div key={m.team.id}><TeamChip team={m.team}/><div className="v4-race-track"><i style={{width:`${m.playoffProbability}%`}}/></div><strong>{Math.round(m.playoffProbability)}%</strong></div>)}</div></div>
     </div>}
+
+    {tab==='theme'&&<NMLBThemeLab teams={teams} playoffPicture={playoffPicture||[]} />}
 
     {tab==='records'&&<div className="v4-stack">
       <PlayerLegacyDesk data={data} teams={teams} controlsUnlocked={controlsUnlocked} saveExtras={saveExtras} />

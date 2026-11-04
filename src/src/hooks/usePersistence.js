@@ -66,12 +66,19 @@ function gameProgressScore(game={}){
   return inning*10000+half*5000+Number(game?.outs||0)*1000+Number(game?.awayScore||0)*120+Number(game?.homeScore||0)*120+(game?.playLog?.length||0)*4+(game?.history?.length||0);
 }
 function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0,remoteRevision=0){
-  const local=localRecord?.game; if(!local||!sameMatchup(local,remoteGame))return false;
-  if(remoteGame?.status==='Final')return false;
-  if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
+  const local=localRecord?.game;
+  if(!local)return false;
   const localUpdatedAt=Number(localRecord?.updatedAt||0);
   const localRevision=Number(localRecord?.revision||0);
+
+  // Revision order is authoritative even when the matchup changes. Finalizing a game
+  // intentionally replaces the live matchup with a blank reset/tombstone. An older
+  // Firebase echo from the finished matchup must never be allowed to resurrect it.
   if(localRevision>0&&remoteRevision>0&&localRevision!==remoteRevision)return localRevision>remoteRevision;
+
+  if(remoteGame?.status==='Final')return false;
+  if(!sameMatchup(local,remoteGame))return false;
+  if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
   if(remoteUpdatedAt>0&&localUpdatedAt>0&&gameFingerprint(local)!==gameFingerprint(remoteGame))return localUpdatedAt>remoteUpdatedAt;
   return ['Live','Delay'].includes(local?.status||'')&&gameFingerprint(local)!==gameFingerprint(remoteGame)&&gameProgressScore(local)>=gameProgressScore(remoteGame);
 }
