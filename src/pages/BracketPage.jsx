@@ -4,6 +4,7 @@ import { buildNMLBPostseasonPredictions } from "../utils/nmlbCultureUtils";
 import NMLBCommissionersTrophy from "../components/NMLBCommissionersTrophy";
 import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildPostseasonSeriesMemory, buildPostseasonNightlyShow, buildPostseasonMythology } from "../utils/postseasonMemoryUtils";
+import { buildStretchRunBoard } from "../utils/finalWeeksUtils";
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
@@ -48,6 +49,7 @@ export default function BracketPage({ ctx }) {
   const seriesMemory=buildPostseasonSeriesMemory(data,data.teams||[]);
   const nightly=buildPostseasonNightlyShow(data,data.teams||[]);
   const mythology=buildPostseasonMythology(data,data.teams||[]);
+  const stretchRun=buildStretchRunBoard(data,data.teams||[],playoffPicture||[]);
 
   return <div className={`bracket-page nmlb-postseason-page ${nmlbPostseason.stage.toLowerCase().replace(/\s+/g,'-')}`}>
     <div className="card season-format-card bracket-hero-v423"><div><span>NMLB · ROAD TO THE COMMISSIONER'S TROPHY</span><h2>{nmlbPostseason.headline}</h2><p className="muted">{nmlbPostseason.detail}</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
@@ -58,6 +60,7 @@ export default function BracketPage({ ctx }) {
       <div className="playoff-hub-stat"><span>Season Phase</span><strong>{phase}</strong></div>
     </div>
 
+    {stretchRun.phase.id!=='postseason'&&stretchRun.phase.id!=='regular'&&<section className={`card nmlb6411-projected-bracket ${stretchRun.phase.id}`}><div><small>{stretchRun.phase.id==='selection'?'NMLB SELECTION SHOW':'IF THE SEASON ENDED TONIGHT'}</small><h2>{stretchRun.phase.id==='selection'?'The field is set.':'Projected postseason field'}</h2><p>{stretchRun.phase.id==='selection'?'Seeds, matchups and predictions are ready for the official bracket reveal.':'Ghosted seeds update with the live pennant race until the bracket becomes official.'}</p></div><div className="nmlb6411-projected-field">{stretchRun.field.map(l=><article key={l.league}><h3>{l.league}</h3>{l.seeds.map(x=><span key={x.team.id}><b>#{x.seed}</b><strong>{x.team.abbr}</strong><em>{x.status.marker||'LIVE'}</em></span>)}</article>)}</div></section>}
     {predictions.phase.id!=='preview'&&<section className={`nmlb64-predictions ${predictions.phase.locked?'is-locked':''}`}>
       <div className="nmlb64-predictions-head"><div><small>NMLB NETWORK · POSTSEASON PICKS</small><h3>{predictions.phase.label}</h3><p>{predictions.phase.detail}</p></div><span>{predictions.phase.locked?'🔒 RECEIPTS PRESERVED':'LIVE FORECAST'}</span></div>
       <div className="nmlb64-prediction-grid">{predictions.analysts.slice(0,4).map(a=><div className="nmlb64-prediction-card" key={a.name}><b>{a.name}</b><span>{a.role}</span><strong>{a.al} / {a.nl}</strong><em>Champion: {a.champion} · {a.note}</em></div>)}</div>

@@ -8,7 +8,7 @@ import { makeSafePlayoffBracket } from "../utils/playoffUtils";
 const LEAGUE_EXTRAS_BACKUP_KEY = `${STORAGE_KEY}.leagueExtras.v5`;
 const PROTECTED_SNAPSHOT_PATH = "leagueProtected/v5Snapshot";
 const LIVE_GAME_BACKUP_KEY = `${STORAGE_KEY}.currentGame.v5`;
-const LIVE_GAME_SYNC_VERSION = 5;
+const LIVE_GAME_SYNC_VERSION = 6;
 
 function hasOwn(obj,key){return Object.prototype.hasOwnProperty.call(obj||{},key)}
 function hasMeaningfulLeagueExtras(extras={}){
@@ -57,26 +57,42 @@ function readLiveGameBackupRecord(){
     return parsed?.game?parsed:null;
   }catch{return null}
 }
-function writeLiveGameBackup(game,updatedAt=Date.now()){
-  try{localStorage.setItem(LIVE_GAME_BACKUP_KEY,JSON.stringify({version:LIVE_GAME_SYNC_VERSION,updatedAt,game:makeSafeGame(game||{})}))}catch{}
+function writeLiveGameBackup(game,updatedAt=Date.now(),revision=0){
+  try{localStorage.setItem(LIVE_GAME_BACKUP_KEY,JSON.stringify({version:LIVE_GAME_SYNC_VERSION,updatedAt,revision:Number(revision||0),game:makeSafeGame(game||{})}))}catch{}
 }
 function sameMatchup(a={},b={}){return Boolean(a?.awayTeamId&&a?.homeTeamId&&a.awayTeamId===b?.awayTeamId&&a.homeTeamId===b?.homeTeamId)}
 function gameProgressScore(game={}){
   const inning=Math.max(1,Number(game?.inning||1)); const half=game?.half==='Bottom'?1:0;
   return inning*10000+half*5000+Number(game?.outs||0)*1000+Number(game?.awayScore||0)*120+Number(game?.homeScore||0)*120+(game?.playLog?.length||0)*4+(game?.history?.length||0);
 }
-function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0){
-  const local=localRecord?.game; if(!local||!sameMatchup(local,remoteGame))return false;
-  if(remoteGame?.status==='Final')return false;
-  if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
+function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0,remoteRevision=0){
+  const local=localRecord?.game;
+  if(!local)return false;
   const localUpdatedAt=Number(localRecord?.updatedAt||0);
-  if(remoteUpdatedAt>0)return localUpdatedAt>remoteUpdatedAt+1200;
+  const localRevision=Number(localRecord?.revision||0);
+
+  // Revision order is authoritative even when the matchup changes. Finalizing a game
+  // intentionally replaces the live matchup with a blank reset/tombstone. An older
+  // Firebase echo from the finished matchup must never be allowed to resurrect it.
+  if(localRevision>0&&remoteRevision>0&&localRevision!==remoteRevision)return localRevision>remoteRevision;
+
+  if(remoteGame?.status==='Final')return false;
+  if(!sameMatchup(local,remoteGame))return false;
+  if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
+  if(remoteUpdatedAt>0&&localUpdatedAt>0&&gameFingerprint(local)!==gameFingerprint(remoteGame))return localUpdatedAt>remoteUpdatedAt;
   return ['Live','Delay'].includes(local?.status||'')&&gameFingerprint(local)!==gameFingerprint(remoteGame)&&gameProgressScore(local)>=gameProgressScore(remoteGame);
 }
 
 function mergeRemoteExtras(prevExtras={},remoteExtras={}){
   const backup=readLeagueExtrasBackup()||{};
   const merged={...defaultLeagueExtras,...backup,...prevExtras,...remoteExtras};
+  const prevSession=prevExtras?.ceremonySession;
+  const remoteSession=remoteExtras?.ceremonySession;
+  if(prevSession&&remoteSession){
+    const prevStamp=Date.parse(prevSession.updatedAt||prevSession.completedAt||prevSession.startedAt||0)||0;
+    const remoteStamp=Date.parse(remoteSession.updatedAt||remoteSession.completedAt||remoteSession.startedAt||0)||0;
+    if(prevStamp>remoteStamp)merged.ceremonySession=prevSession;
+  }
   // Realtime Database can omit empty arrays/objects. Missing remote fields must never
   // silently erase a locally saved calendar, ceremony plan, museum, or commissioner data.
   for(const key of Object.keys(defaultLeagueExtras)){
@@ -104,11 +120,12 @@ export default function usePersistence({ data, setData }) {
   }
 
   function syncCurrentGameToFirebase(nextCurrentGame) {
-    const safeGame=makeSafeGame(nextCurrentGame); const fingerprint=gameFingerprint(safeGame);
+    const safeGame=makeSafeGame(nextCurrentGame);
     const existing=readLiveGameBackupRecord();
-    const updatedAt=existing&&gameFingerprint(existing.game)===fingerprint?Number(existing.updatedAt||Date.now()):Date.now();
-    writeLiveGameBackup(safeGame,updatedAt);
-    const payload={...safeGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt}};
+    const updatedAt=Date.now();
+    const revision=Math.max(0,Number(existing?.revision||0))+1;
+    writeLiveGameBackup(safeGame,updatedAt,revision);
+    const payload={...safeGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision}};
     set(ref(db, "currentGame"), payload).catch((error) => console.error("[Firebase Debug] WRITE currentGame failed", error));
   }
 
@@ -184,7 +201,8 @@ export default function usePersistence({ data, setData }) {
       applyingRemoteGameFingerprint.current='';
       lastLocalGameFingerprint.current=currentFingerprint;
     }else if(currentFingerprint!==lastLocalGameFingerprint.current){
-      writeLiveGameBackup(data.currentGame||{},Date.now());
+      const existing=readLiveGameBackupRecord();
+      writeLiveGameBackup(data.currentGame||{},Date.now(),Number(existing?.revision||0));
       lastLocalGameFingerprint.current=currentFingerprint;
     }
     try {
@@ -268,18 +286,18 @@ export default function usePersistence({ data, setData }) {
     return onValue(gameRef, (snapshot) => {
       const value = snapshot.val();
       if (!value) { hasLoadedFirebaseGame.current = true; return; }
-      const remoteGame=makeSafeGame(value); const remoteUpdatedAt=Number(value?._sync?.updatedAt||0);
+      const remoteGame=makeSafeGame(value); const remoteUpdatedAt=Number(value?._sync?.updatedAt||0); const remoteRevision=Number(value?._sync?.revision||0);
       const localRecord=readLiveGameBackupRecord();
-      if(shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt)){
-        const localGame=makeSafeGame(localRecord.game); const updatedAt=Number(localRecord.updatedAt||Date.now());
-        set(gameRef,{...localGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,recovered:true}}).catch((error)=>console.error("[Firebase Debug] RECOVER currentGame failed",error));
+      if(shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt,remoteRevision)){
+        const localGame=makeSafeGame(localRecord.game); const updatedAt=Number(localRecord.updatedAt||Date.now()); const revision=Number(localRecord.revision||1);
+        set(gameRef,{...localGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision,recovered:true}}).catch((error)=>console.error("[Firebase Debug] RECOVER currentGame failed",error));
         setData((prev)=>({...prev,currentGame:localGame}));
         hasLoadedFirebaseGame.current=true; return;
       }
       const cleanRemote=makeSafeGame(remoteGame); const fp=gameFingerprint(cleanRemote);
       applyingRemoteGameFingerprint.current=fp;
       lastLocalGameFingerprint.current=fp;
-      writeLiveGameBackup(cleanRemote,remoteUpdatedAt||Date.now());
+      writeLiveGameBackup(cleanRemote,remoteUpdatedAt||Date.now(),remoteRevision);
       setData((prev) => ({ ...prev, currentGame: cleanRemote }));
       hasLoadedFirebaseGame.current = true;
     });
