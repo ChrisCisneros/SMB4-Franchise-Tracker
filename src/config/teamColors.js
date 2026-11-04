@@ -31,351 +31,341 @@ export const TEAM_COLOR_BASE_MAP = {
   WSH: { primary: "#AB0003", accent: "#14225A" },
 };
 
+// COMPACT COLOR HELPERS — keep team blocks short and easy to scan.
+// C(main, alt, border, text, gradient)
+// A(name, main, alt, text, border, gradient)
+const C=(main,alt,border=null,text="#ffffff",gradient=false)=>({main,alt,...(border?{border}:{}),text,gradient:Boolean(gradient)});
+const A=(name,main,alt,text="#ffffff",border=null,gradient=false)=>({name,...C(main,alt,border,text,gradient)});
+
 // EASY EDIT ZONE — postseason palettes only.
 // Format: TEAM: [main, alt, border, text, gradient]
-// Add/edit one line per postseason team; Theme Lab can generate the line for you.
-export const POSTSEASON_PALETTES = {
+// Theme Lab generates this exact one-line format for copy/paste.
+export const POSTSEASON_PALETTES={
   CHC: ["#0442b5", "#c40404", "#ffffff", "#000679", false],
   LAA: ["#a30303", "#ffffff", "#a30303", "#000679", true],
 };
 
-const expandPostseasonPalette = (entry) => {
-  if (!Array.isArray(entry)) return null;
-  const [main, alt, border, text, gradient = false] = entry;
-  return { main, alt, border, text, gradient: Boolean(gradient), name: "Post" };
+const expandPostseasonPalette=(entry)=>{
+  if(!Array.isArray(entry)) return null;
+  const [main,alt,border,text,gradient=false]=entry;
+  return {main,alt,border,text,gradient:Boolean(gradient),name:"Post"};
 };
 
-export const TEAM_COLORS = Object.fromEntries(
-  Object.entries(TEAM_COLOR_BASE_MAP).map(([abbr, colors]) => [
-    abbr,
-    {
-      primary: {
-        main: colors.primary,
-        alt: colors.accent,
-        text: "#FFFFFF",
-      },
-      alternates: [],
-      cityConnect: null,
-      extras: [],
-    },
-  ])
-);
+// TEAM LOOKS — every existing alternate is preserved.
+// Each team is compact: primary, alternates, City Connect, extras.
+export const TEAM_COLORS={
+  ARI: {
+    primary:C("#A71930","#E3D4AD",null,"#FFFFFF",false),
+    alternates:[],
+  },
+  ATH: {
+    primary:C("#ffffff","#2e700f","#f5d01b","#2e700f",false),
+    alternates:[
+      A("Yellow Alt","#f5d01b","#ffffff","#2e700f",null,false),
+      A("Away","#adadad","#f5d01b","#2e700f",null,false),
+    ],
+  },
+  ATL: {
+    primary:C("#ffffff","#01105c","#8c1204","#01105c",false),
+    alternates:[
+      A("Blue Alt","#01105c","#8c1204","#ffffff",null,false),
+      A("Away","#adadad","#8c1204","#01105c",null,false),
+    ],
+    cityConnect:C("#4583d3","#01105c","#8c1204","#ffffff",false),
+  },
+  AZ: {
+    primary:C("#ffffff","#a70808","#02ebeb","#000000",false),
+    alternates:[
+      A("Black Alt","#000000","#02ebeb","#730606",null,false),
+      A("Red Alt","#730606","#02ebeb","#02ebeb",null,false),
+      A("Away","#adadad","#02ebeb","#730606",null,false),
+    ],
+    cityConnect:C("#25026b","#000000","#02ebeb","#02ebeb",true),
+  },
+  BAL: {
+    primary:C("#d94804","#d94804","#000000","#ffffff",false),
+    alternates:[
+      A("Black Alt","#000000","#d94804","#ffffff",null,false),
+      A("Away","#adadad","#000000","#d94804",null,false),
+    ],
+    cityConnect:C("#fcf4e3","#021059","#294d2d","#d94804",false),
+  },
+  BOS: {
+    primary:C("#ffffff","#010238","#b0110e","#010238",false),
+    alternates:[
+      A("Red Alt","#b0110e","#010238","#ffffff",null,false),
+      A("Away","#adadad","#b0110e","#ffffff",null,false),
+    ],
+    cityConnect:C("#2c5443","#021059","#dbc70d","#ffffff",false),
+  },
+  CHC: {
+    primary:C("#ffffff","#c40404","#0442b5","#c40404",false),
+    alternates:[
+      A("Blue Alt","#0442b5","#c40404","#ffffff",null,false),
+      A("Powder Alt","#6dc1f2","#c40404","#ffffff",null,false),
+      A("Away","#adadad","#0442b5","#c40404",null,false),
+      A("Post","#0442b5","#c40404","#000679","#ffffff",false),
+    ],
+    cityConnect:C("#000324","#021059","#6dc1f2","#ffffff",false),
+  },
+  CIN: {
+    primary:C("#ffffff","#e3ac17","#c40404","#c40404",false),
+    alternates:[
+      A("Red Alt","#c40404","#ffffff","#ffffff",null,false),
+      A("Away","#adadad","#c40404","#c40404",null,false),
+    ],
+    cityConnect:C("#9b0303","#ba4404","#000000","#9b0303",false),
+  },
+  CLE: {
+    primary:C("#ffffff","#b0110e","#b0110e","#000324",false),
+    alternates:[
+      A("Blue Alt","#000324","#ffffff","#b0110e",null,false),
+      A("Red Alt","#b0110e","#ffffff","#000324",null,false),
+      A("Away","#adadad","#b0110e","#000324",null,false),
+    ],
+    cityConnect:C("#1a1c36","#021059","#b0110e","#c2b8ab",false),
+  },
+  COL: {
+    primary:C("#ffffff","#e3ac17","#220154","#000000",false),
+    alternates:[
+      A("Purple Alt","#220154","#000000","#ffffff",null,false),
+      A("Away","#adadad","#220154","#ffffff",null,false),
+    ],
+    cityConnect:C("#387bba","#021059","#ed1cb2","#cf9a0a",false),
+  },
+  CWS: {
+    primary:C("#ffffff","#ffffff","#000000","#000000",false),
+    alternates:[
+      A("Black Alt","#000000","#ffffff","#ffffff",null,false),
+      A("Away","#adadad","#ffffff","#000000",null,false),
+    ],
+    cityConnect:C("#8a0601","#021059","#000000","#ffffff",false),
+  },
+  DET: {
+    primary:C("#ffffff","#e3ac17","#010017","#cf5804",false),
+    alternates:[
+      A("Away","#adadad","#010017","#cf5804",null,false),
+    ],
+    cityConnect:C("#020133","#082aa3","#FFFFFF","#ffffff",true),
+  },
+  HOU: {
+    primary:C("#ffffff","#cf6802","#010440","#cf6802",false),
+    alternates:[
+      A("Orange Alt","#cf6802","#ffffff","#010440",null,false),
+      A("Blue Alt","#010440","#ffffff","#cf6802",null,false),
+      A("Away","#adadad","#010440","#cf6802",null,false),
+    ],
+    cityConnect:C("#cf6802","#eba967","#ffffff","#ffffff",true),
+  },
+  KC: {
+    primary:C("#ffffff","#001b85","#001b85","#001b85",false),
+    alternates:[
+      A("Powder Alt","#59b3eb","#ffffff","#ffffff",null,false),
+      A("Blue Alt","#001b85","#ffffff","#ffffff",null,false),
+      A("Away","#adadad","#001b85","#001b85",null,false),
+    ],
+    cityConnect:C("#a904c9","#023eb5","#ffffff","#ffffff",true),
+  },
+  LAA: {
+    primary:C("#ffffff","#a30303","#000679","#a30303",false),
+    alternates:[
+      A("Red Alt","#a30303","#000679","#ffffff",null,false),
+      A("Away","#adadad","#a30303","#000679",null,false),
+      A("Post","#a30303","#ffffff","#000679","#a30303",true),
+    ],
+    cityConnect:C("#fdfaf2","#a30303","#a30303","#a30303",false),
+  },
+  LAD: {
+    primary:C("#ffffff","#ffffff","#001994","#001994",false),
+    alternates:[
+      A("Blue Alt","#001994","#ffffff","#ffffff",null,false),
+      A("Away","#adadad","#001994","#001994",null,false),
+    ],
+    cityConnect:C("#3952cc","#021059","#6b83fa","#ffffff",true),
+  },
+  MIA: {
+    primary:C("#ffffff","#e3ac17","#0e80cc","#000000",false),
+    alternates:[
+      A("Blue Alt","#0e80cc","#c201c2","#ffffff",null,false),
+      A("Black Alt","#000000","#0e80cc","#ffffff",null,false),
+      A("Away","#adadad","#0e80cc","#0e80cc",null,false),
+    ],
+    cityConnect:C("#0e80cc","#c201c2","#7429bb","#ffffff",true),
+  },
+  MIL: {
+    primary:C("#fcf0e3","#010041","#fffb1d","#010041",false),
+    alternates:[
+      A("White Alt","#ffffff","#fffb1d","#010041",null,false),
+      A("Blue  Alt","#010041","#fffb1d","#fffb1d",null,false),
+      A("Away","#adadad","#fffb1d","#010041",null,false),
+    ],
+    cityConnect:C("#023353","#fffb1d","#fff5d3","#fff5d3",false),
+  },
+  MIN: {
+    primary:C("#ffffff","#d30000","#00063b","#d30000",false),
+    alternates:[
+      A("Blue Alt","#00063b","#d30000","#ffffff",null,false),
+      A("Cream Alt","#fff9f3","#00063b","#00063b",null,false),
+      A("Away","#adadad","#d30000","#00063b",null,false),
+    ],
+    cityConnect:C("#0044d8","#00012e","#f0d800","#ffffff",true),
+  },
+  NYM: {
+    primary:C("#0d0d6e","#ed5f07","#ed5f07","#FFFFFF",false),
+    alternates:[
+      A("White Alt","#ffffff","#ed5f07","#0d0d6e",null,false),
+      A("Away","#adadad","#0d0d6e","#ed5f07",null,false),
+    ],
+    cityConnect:C("#454545","#ba4404","#000000","#ffffff",false),
+  },
+  NYY: {
+    primary:C("#ffffff","#00093a","#00093a","#00093a",false),
+    alternates:[
+      A("Away","#adadad","#00093a","#00093a",null,false),
+    ],
+  },
+  OAK: {
+    primary:C("#003831","#EFB21E",null,"#FFFFFF",false),
+    alternates:[],
+  },
+  PHI: {
+    primary:C("#ffffff","#ffffff","#a60000","#a60000",false),
+    alternates:[
+      A("Powder Blue","#388dc2","#a60000","#ffffff",null,false),
+      A("Red","#a60000","#110982","#ffffff",null,false),
+      A("Away","#adadad","#a60000","#a60000",null,false),
+    ],
+    cityConnect:C("#0782ab","#020a4d","#e6d437","#ffffff",true),
+  },
+  PIT: {
+    primary:C("#ffffff","#000000","#e3ac17","#000000",false),
+    alternates:[
+      A("Black Alt","#000000","#e3ac17","#e3ac17",null,false),
+      A("Away","#adadad","#e3ac17","#000000",null,false),
+    ],
+    cityConnect:C("#000000","#77602f","#77602f","#77602f",false),
+  },
+  SD: {
+    primary:C("#302505","#e3ac17","#e3ac17","#FFFFFF",false),
+    alternates:[
+      A("White Alt","#9e8259","#e3ac17","#ffffff",null,false),
+      A("Away","#adadad","#302505","#e3ac17",null,false),
+    ],
+    cityConnect:C("#06113d","#ba4404","#ba4404","#ffffff",false),
+  },
+  SEA: {
+    primary:C("#ffffff","#e3ac17","#106b4a","#010046",false),
+    alternates:[
+      A("Cream  Alt","#fffdfa","#e6e200","#010046",null,false),
+      A("Teal  Alt","#106b4a","#010046","#fffdfa",null,false),
+      A("Away","#adadad","#106b4a","#010046",null,false),
+    ],
+    cityConnect:C("#001c8b","#ba4404","#e6e200","#e6e200",false),
+  },
+  SF: {
+    primary:C("#fcf5eb","#000000","#FD5a1e","#000000",false),
+    alternates:[
+      A("Black Alt","#000000","#FD5A1E","#FFFFFF",null,false),
+      A("Orange Alt","#FD5A1E","#000000","#FFFFFF","#27251F",false),
+      A("Away","#adadad","#FD5A1E","#000000",null,false),
+    ],
+    cityConnect:C("#FD5A1E","#29097a","#1a0354","#FFFFFF",true),
+  },
+  STL: {
+    primary:C("#ffffff","#000000","#d60000","#d60000",false),
+    alternates:[
+      A("Cream Alt","#fffbf5","#d60000","#d60000",null,false),
+      A("Powder Alt","#38a1d1","#d60000","#d60000","#d60000",false),
+      A("Away","#adadad","#d60000","#d60000",null,false),
+    ],
+    cityConnect:C("#d60000","#29097a","#740101","#FFFFFF",false),
+  },
+  TB: {
+    primary:C("#ffffff","#f1da09","#0077d8","#040041",false),
+    alternates:[
+      A("Powder Alt","#0077d8","#f1da09","#FFFFFF",null,false),
+      A("Devil Alt","#0077d8","#f1da09","#FFFFFF","#040041",true),
+      A("Away","#adadad","#0077d8","#0077d8",null,false),
+    ],
+    cityConnect:C("#52f36d","#0077d8","#040041","#FFFFFF",true),
+  },
+  TEX: {
+    primary:C("#ffffff","#000c42","#db0000","#000c42",false),
+    alternates:[
+      A("Powder Alt","#55bcec","#000c42","#FFFFFF",null,false),
+      A("Blue Alt","#000c42","#000000","#FFFFFF","#db0000",false),
+      A("Away","#adadad","#db0000","#000c42",null,false),
+    ],
+    cityConnect:C("#460000","#29097a","#9c8031","#9c8031",false),
+  },
+  TOR: {
+    primary:C("#ffffff","#000000","#0026ff","#0026ff",false),
+    alternates:[
+      A("Blue Alt","#0026ff","#ffffff","#FFFFFF",null,false),
+      A("Powder Alt","#4bace4","#000000","#FFFFFF","#0026ff",false),
+      A("Away","#adadad","#0026ff","#0026ff",null,false),
+    ],
+    cityConnect:C("#f50303","#0026ff","#f50303","#FFFFFF",true),
+  },
+  WSH: {
+    primary:C("#ffffff","#04003b","#cf0c0c","#04003b",false),
+    alternates:[
+      A("Blue Alt","#04003b","#cf0c0c","#ffffff",null,false),
+      A("Away","#adadad","#8c1204","#8c1204",null,false),
+    ],
+    cityConnect:C("#44679e","#ba04b1","#162133","#ffffff",false),
+  },
+};
 
-// Put your team-specific overrides directly below, like this:
-// Put your team-specific overrides directly below, like this:
-
-
-
-
-
-
-
-
-TEAM_COLORS.ATH = {
-  primary: {main: "#ffffff", alt: "#2e700f", border: "#f5d01b", text: "#2e700f", gradient:false},
-  alternates: [
-    { name: "Yellow Alt", main: "#f5d01b", alt: "#ffffff", text: "#2e700f" },{ name: "Away", main: "#adadad", alt: "#f5d01b", text: "#2e700f" }
-  ]
-};
-TEAM_COLORS.ATL = {
-  primary: {main: "#ffffff", alt: "#01105c", border: "#8c1204", text: "#01105c", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#01105c", alt: "#8c1204", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#8c1204", text: "#01105c" }
-  ],
-  cityConnect: { main: "#4583d3", alt: "#01105c", border: "#8c1204", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.AZ = {
-  primary: {main: "#ffffff", alt: "#a70808", border: "#02ebeb", text: "#000000", gradient:false},
-  alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#02ebeb", text: "#730606" },{ name: "Red Alt", main: "#730606", alt: "#02ebeb", text: "#02ebeb" },{ name: "Away", main: "#adadad", alt: "#02ebeb", text: "#730606" }
-  ],
-  cityConnect: { main: "#25026b", alt: "#000000", border: "#02ebeb", text: "#02ebeb", gradient:true},
-};
-TEAM_COLORS.BAL = {
-  primary: {main: "#d94804", alt: "#d94804", border: "#000000", text: "#ffffff", gradient:false},
-  alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#d94804", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#000000", text: "#d94804" }
-  ],
-  cityConnect: { main: "#fcf4e3", alt: "#021059", border: "#294d2d", text: "#d94804", gradient:false},
-};
-TEAM_COLORS.BOS = {
-  primary: {main: "#ffffff", alt: "#010238", border: "#b0110e", text: "#010238", gradient:false},
-  alternates: [
-    { name: "Red Alt", main: "#b0110e", alt: "#010238", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#b0110e", text: "#ffffff" }
-  ],
-  cityConnect: { main: "#2c5443", alt: "#021059", border: "#dbc70d", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.CHC = {
-  primary: {main: "#ffffff", alt: "#c40404", border: "#0442b5", text: "#c40404", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#0442b5", alt: "#c40404", text: "#ffffff" },{ name: "Powder Alt", main: "#6dc1f2", alt: "#c40404", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#0442b5", text: "#c40404" },{ name: "Post", main: "#0442b5", alt: "#c40404",border: "#ffffff", text: "#000679", gradient: false }
-  ],
-  cityConnect: { main: "#000324", alt: "#021059", border: "#6dc1f2", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.CIN = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#c40404", text: "#c40404", gradient:false},
-  alternates: [
-    { name: "Red Alt", main: "#c40404", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#c40404", text: "#c40404" }
-  ],
-  cityConnect: { main: "#9b0303", alt: "#ba4404", border: "#000000", text: "#9b0303", gradient:false},
-};
-TEAM_COLORS.CLE = {
-  primary: {main: "#ffffff", alt: "#b0110e", border: "#b0110e", text: "#000324", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#000324", alt: "#ffffff", text: "#b0110e" }, { name: "Red Alt", main: "#b0110e", alt: "#ffffff", text: "#000324" },{ name: "Away", main: "#adadad", alt: "#b0110e", text: "#000324" }
-  ],
-  cityConnect: { main: "#1a1c36", alt: "#021059", border: "#b0110e", text: "#c2b8ab", gradient:false},
-};
-TEAM_COLORS.COL = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#220154", text: "#000000", gradient:false},
-  alternates: [
-    { name: "Purple Alt", main: "#220154", alt: "#000000", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#220154", text: "#ffffff" }
-  ],
-  cityConnect: { main: "#387bba", alt: "#021059", border: "#ed1cb2", text: "#cf9a0a", gradient:false},
-};
-TEAM_COLORS.CWS = {
-  primary: {main: "#ffffff", alt: "#ffffff", border: "#000000", text: "#000000", gradient:false},
-  alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#ffffff", text: "#000000" }
-  ],
-  cityConnect: { main: "#8a0601", alt: "#021059", border: "#000000", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.DET = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#010017", text: "#cf5804", gradient:false},
-  alternates:[
-    { name: "Away", main: "#adadad", alt: "#010017", text: "#cf5804" }
-  ],
-  cityConnect: { main: "#020133", alt: "#082aa3", border: "#FFFFFF", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.HOU = {
-  primary: {main: "#ffffff", alt: "#cf6802", border: "#010440", text: "#cf6802", gradient:false},
-  alternates: [
-    { name: "Orange Alt", main: "#cf6802", alt: "#ffffff", text: "#010440" }, { name: "Blue Alt", main: "#010440", alt: "#ffffff", text: "#cf6802" },{ name: "Away", main: "#adadad", alt: "#010440", text: "#cf6802" }
-  ],
-  cityConnect: { main: "#cf6802", alt: "#eba967", border: "#ffffff", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.KC = {
-  primary: {main: "#ffffff", alt: "#001b85", border: "#001b85", text: "#001b85", gradient:false},
-  alternates: [
-    { name: "Powder Alt", main: "#59b3eb", alt: "#ffffff", text: "#ffffff" }, { name: "Blue Alt", main: "#001b85", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#001b85", text: "#001b85" }
-  ],
-  cityConnect: { main: "#a904c9", alt: "#023eb5", border: "#ffffff", text: "#ffffff", gradient:true},
-};TEAM_COLORS.LAA = {
-  primary: {main: "#ffffff", alt: "#a30303", border: "#000679", text: "#a30303", gradient:false},
-  alternates: [
-    { name: "Red Alt", main: "#a30303", alt: "#000679", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#a30303", text: "#000679" },{ name: "Post", main: "#a30303", alt: "#ffffff",border: "#a30303", text: "#000679", gradient: true }
-  ],
-  cityConnect: { main: "#fdfaf2", alt: "#a30303", border: "#a30303", text: "#a30303", gradient:false},
-};
-TEAM_COLORS.LAD = {
-  primary: {main: "#ffffff", alt: "#ffffff", border: "#001994", text: "#001994", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#001994", alt: "#ffffff", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#001994", text: "#001994" }
-  ],
-  cityConnect: { main: "#3952cc", alt: "#021059", border: "#6b83fa", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.MIA = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#0e80cc", text: "#000000", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#0e80cc", alt: "#c201c2", text: "#ffffff" }, { name: "Black Alt", main: "#000000", alt: "#0e80cc", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#0e80cc", text: "#0e80cc" }
-  ],
-  cityConnect: { main: "#0e80cc", alt: "#c201c2", border: "#7429bb", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.MIL = {
-  primary: {main: "#fcf0e3", alt: "#010041", border: "#fffb1d", text: "#010041", gradient:false},
-  alternates: [
-    { name: "White Alt", main: "#ffffff", alt: "#fffb1d", text: "#010041" }, { name: "Blue  Alt", main: "#010041", alt: "#fffb1d", text: "#fffb1d" },{ name: "Away", main: "#adadad", alt: "#fffb1d", text: "#010041" }
-  ],
-  cityConnect: { main: "#023353", alt: "#fffb1d", border: "#fff5d3", text: "#fff5d3", gradient:false},
-};
-TEAM_COLORS.MIN = {
-  primary: {main: "#ffffff", alt: "#d30000", border: "#00063b", text: "#d30000", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#00063b", alt: "#d30000", text: "##ffffff" }, { name: "Cream Alt", main: "#fff9f3", alt: "#00063b", text: "#00063b" },{ name: "Away", main: "#adadad", alt: "#d30000", text: "#00063b" }
-  ],
-  cityConnect: { main: "#0044d8", alt: "#00012e", border: "#f0d800", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.NYM = {
-  primary: {main: "#0d0d6e", alt: "#ed5f07", border: "#ed5f07", text: "#FFFFFF", gradient:false},
-  alternates: [
-    { name: "White Alt", main: "#ffffff", alt: "#ed5f07", text: "#0d0d6e" },{ name: "Away", main: "#adadad", alt: "#0d0d6e", text: "#ed5f07" }
-  ],
-  cityConnect: { main: "#454545", alt: "#ba4404", border: "#000000", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.NYY = {
-  primary: {main: "#ffffff", alt: "#00093a", border: "#00093a", text: "#00093a", gradient:false},
-  alternates: [
-    { name: "Away", main: "#adadad", alt: "#00093a", text: "#00093a" }
-  ],
-  
-};
-TEAM_COLORS.PHI = {
-  primary: {main: "#ffffff", alt: "#ffffff", border: "#a60000", text: "#a60000", gradient:false},
-  alternates: [
-    { name: "Powder Blue", main: "#388dc2", alt: "#a60000", text: "#ffffff" },
-    {name: "Red", main: "#a60000", alt: "#110982", text: "#ffffff"},{ name: "Away", main: "#adadad", alt: "#a60000", text: "#a60000" }
-  ],
-  cityConnect: { main: "#0782ab", alt: "#020a4d", border: "#e6d437", text: "#ffffff", gradient:true},
-};
-TEAM_COLORS.PIT = {
-  primary: {main: "#ffffff", alt: "#000000", border: "#e3ac17", text: "#000000", gradient:false},
-  alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#e3ac17", text: "#e3ac17" },{ name: "Away", main: "#adadad", alt: "#e3ac17", text: "#000000" }
-  ],
-  cityConnect: { main: "#000000", alt: "#77602f", border: "#77602f", text: "#77602f", gradient:false},
-};
-TEAM_COLORS.SD = {
-  primary: {main: "#302505", alt: "#e3ac17", border: "#e3ac17", text: "#FFFFFF", gradient:false},
-  alternates: [
-    { name: "White Alt", main: "#9e8259", alt: "#e3ac17", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#302505", text: "#e3ac17" }
-  ],
-  cityConnect: { main: "#06113d", alt: "#ba4404", border: "#ba4404", text: "#ffffff", gradient:false},
-};
-TEAM_COLORS.SEA = {
-  primary: {main: "#ffffff", alt: "#e3ac17", border: "#106b4a", text: "#010046", gradient:false},
-  alternates: [
-    { name: "Cream  Alt", main: "#fffdfa", alt: "#e6e200", text: "#010046" }, { name: "Teal  Alt", main: "#106b4a", alt: "#010046", text: "#fffdfa" },{ name: "Away", main: "#adadad", alt: "#106b4a", text: "#010046" }
-  ],
-  cityConnect: { main: "#001c8b", alt: "#ba4404", border: "#e6e200", text: "#e6e200", gradient:false},
-};
-TEAM_COLORS.SF = {
-  primary: { main: "#fcf5eb", alt: "#000000", border:"#FD5a1e", text: "#000000" , gradient: false},
-  alternates: [
-    { name: "Black Alt", main: "#000000", alt: "#FD5A1E", text: "#FFFFFF" }, { name: "Orange Alt", main: "#FD5A1E", alt: "#000000", border:"#27251F", text: "#FFFFFF" , gradient: false },{ name: "Away", main: "#adadad", alt: "#FD5A1E", text: "#000000" }
-  ],
-  cityConnect: { main: "#FD5A1E", alt: "#29097a", border: "#1a0354", text: "#FFFFFF", gradient:true },
-  extras: [],
-};
-TEAM_COLORS.STL = {
-  primary: { main: "#ffffff", alt: "#000000", border:"#d60000", text: "#d60000" , gradient: false},
-  alternates: [
-    { name: "Cream Alt", main: "#fffbf5", alt: "#d60000", text: "#d60000" }, { name: "Powder Alt", main: "#38a1d1", alt: "#d60000", border:"#d60000", text: "#d60000" , gradient: false },{ name: "Away", main: "#adadad", alt: "#d60000", text: "#d60000" }
-  ],
-  cityConnect: { main: "#d60000", alt: "#29097a", border: "#740101", text: "#FFFFFF", gradient:false },
-  extras: [],
-};
-TEAM_COLORS.TB = {
-  primary: { main: "#ffffff", alt: "#f1da09", border:"#0077d8", text: "#040041" , gradient: false},
-  alternates: [
-    { name: "Powder Alt", main: "#0077d8", alt: "#f1da09", text: "#FFFFFF" }, { name: "Devil Alt", main: "#0077d8", alt: "#f1da09", border:"#040041", text: "#FFFFFF" , gradient: true },{ name: "Away", main: "#adadad", alt: "#0077d8", text: "#0077d8" }
-  ],
-  cityConnect: { main: "#52f36d", alt: "#0077d8", border: "#040041", text: "#FFFFFF", gradient:true },
-  extras: [],
-};
-TEAM_COLORS.TEX = {
-  primary: { main: "#ffffff", alt: "#000c42", border:"#db0000", text: "#000c42" , gradient: false},
-  alternates: [
-    { name: "Powder Alt", main: "#55bcec", alt: "#000c42", text: "#FFFFFF" }, { name: "Blue Alt", main: "#000c42", alt: "#000000", border:"#db0000", text: "#FFFFFF" , gradient: false },{ name: "Away", main: "#adadad", alt: "#db0000", text: "#000c42" }
-  ],
-  cityConnect: { main: "#460000", alt: "#29097a", border: "#9c8031", text: "#9c8031", gradient:false },
-  extras: [],
-};
-TEAM_COLORS.TOR = {
-  primary: { main: "#ffffff", alt: "#000000", border:"#0026ff", text: "#0026ff" , gradient: false},
-  alternates: [
-    { name: "Blue Alt", main: "#0026ff", alt: "#ffffff", text: "#FFFFFF" }, { name: "Powder Alt", main: "#4bace4", alt: "#000000", border:"#0026ff", text: "#FFFFFF" , gradient: false },{ name: "Away", main: "#adadad", alt: "#0026ff", text: "#0026ff" }
-  ],
-  cityConnect: { main: "#f50303", alt: "#0026ff", border: "#f50303", text: "#FFFFFF", gradient:true },
-  extras: [],
-};
-TEAM_COLORS.WSH = {
-  primary: {main: "#ffffff", alt: "#04003b", border: "#cf0c0c", text: "#04003b", gradient:false},
-  alternates: [
-    { name: "Blue Alt", main: "#04003b", alt: "#cf0c0c", text: "#ffffff" },{ name: "Away", main: "#adadad", alt: "#8c1204", text: "#8c1204" }
-  ],
-  cityConnect: { main: "#44679e", alt: "#ba04b1", border: "#162133", text: "#ffffff", gradient:false},
-};
-
-
-export function getAvailableLooks(abbr) {
-  const team = TEAM_COLORS[abbr];
-  if (!team) return [{ mode: "primary", index: 0, label: "Primary" }];
-
-  const looks = [{ mode: "primary", index: 0, label: "Primary" }];
-
-  if (team.cityConnect) {
-    looks.push({ mode: "cityConnect", index: 0, label: "City Connect" });
-  }
-
-  (team.alternates || []).forEach((alt, index) => {
-    looks.push({
-      mode: "alternate",
-      index,
-      label: alt?.name || `Alt ${index + 1}`,
-    });
-  });
-
-  (team.extras || []).forEach((extra, index) => {
-    looks.push({
-      mode: "extra",
-      index,
-      label: extra?.name || `Extra ${index + 1}`,
-    });
-  });
-
+export function getAvailableLooks(abbr){
+  const team=TEAM_COLORS[abbr];
+  if(!team) return [{mode:"primary",index:0,label:"Primary"},{mode:"post",index:0,label:"Post"}];
+  const looks=[{mode:"primary",index:0,label:"Primary"}];
+  if(team.cityConnect) looks.push({mode:"cityConnect",index:0,label:"City Connect"});
+  (team.alternates||[]).forEach((alt,index)=>{if(String(alt?.name||"").trim().toLowerCase()!=="post") looks.push({mode:"alternate",index,label:alt?.name||`Alt ${index+1}`});});
+  (team.extras||[]).forEach((extra,index)=>looks.push({mode:"extra",index,label:extra?.name||`Extra ${index+1}`}));
+  // Always expose Post. Teams without a saved postseason set preview Primary until you create one.
+  looks.push({mode:"post",index:0,label:hasPostseasonPalette(abbr)?"Post":"Post (create)"});
   return looks;
 }
 
-export function getTeamColorsByAbbr(abbr, themeMode = "primary", variantIndex = 0) {
-  const fallback = {
-    main: "#071739",
-    alt: "#2f66ff",
-    border: "#2f66ff",
-    text: "#FFFFFF",
-    gradient: false,
-    name: "Primary",
-  };
-  if (!abbr || !TEAM_COLORS[abbr]) return fallback;
-  const team = TEAM_COLORS[abbr];
-
-  const normalize = (colors) => ({
-    main: colors?.main || fallback.main,
-    alt: colors?.alt || colors?.main || fallback.alt,
-    border: colors?.border || colors?.alt || colors?.main || fallback.border,
-    text: colors?.text || fallback.text,
-    gradient: Boolean(colors?.gradient),
-    name: colors?.name || "Primary",
+export function getTeamColorsByAbbr(abbr,themeMode="primary",variantIndex=0){
+  const fallback={main:"#071739",alt:"#2f66ff",border:"#2f66ff",text:"#ffffff",gradient:false,name:"Primary"};
+  if(themeMode==="post") return {...getPostseasonColorsByAbbr(abbr),name:"Post"};
+  if(!abbr||!TEAM_COLORS[abbr]) return fallback;
+  const team=TEAM_COLORS[abbr];
+  const normalize=(colors)=>({
+    main:colors?.main||fallback.main,
+    alt:colors?.alt||colors?.main||fallback.alt,
+    border:colors?.border||colors?.alt||colors?.main||fallback.border,
+    text:colors?.text||fallback.text,
+    gradient:Boolean(colors?.gradient),
+    name:colors?.name||"Primary",
   });
-
-  if (themeMode === "cityConnect") return normalize(team.cityConnect || team.primary || fallback);
-  if (themeMode === "alternate") return normalize(team.alternates?.[variantIndex] || team.primary || fallback);
-  if (themeMode === "extra") return normalize(team.extras?.[variantIndex] || team.primary || fallback);
-  return normalize(team.primary || fallback);
+  if(themeMode==="cityConnect") return normalize(team.cityConnect||team.primary||fallback);
+  if(themeMode==="alternate") return normalize(team.alternates?.[variantIndex]||team.primary||fallback);
+  if(themeMode==="extra") return normalize(team.extras?.[variantIndex]||team.primary||fallback);
+  return normalize(team.primary||fallback);
 }
 
-export function getPostseasonColorsByAbbr(abbr) {
-  const fallback = {
-    main: "#071739",
-    alt: "#2f66ff",
-    border: "#2f66ff",
-    text: "#ffffff",
-    gradient: false,
-  };
+export function hasPostseasonPalette(abbr){
+  const team=TEAM_COLORS[abbr];
+  if(!team) return false;
+  return Boolean(POSTSEASON_PALETTES[abbr])||(team.alternates||[]).some(look=>String(look?.name||"").trim().toLowerCase()==="post");
+}
 
-  if (!abbr || !TEAM_COLORS[abbr]) {
-    return fallback;
-  }
-
-  const team = TEAM_COLORS[abbr];
-
-  // Prefer the compact postseason edit zone above. Older `Post` alternates
-  // remain supported so existing team files keep working.
-  const compactPost = expandPostseasonPalette(POSTSEASON_PALETTES[abbr]);
-  const legacyPost = (team.alternates || []).find(
-    (look) => String(look?.name || "").trim().toLowerCase() === "post"
-  );
-
-  const colors = compactPost || legacyPost || team.primary || fallback;
-
+export function getPostseasonColorsByAbbr(abbr){
+  const fallback={main:"#071739",alt:"#2f66ff",border:"#2f66ff",text:"#ffffff",gradient:false};
+  if(!abbr||!TEAM_COLORS[abbr]) return fallback;
+  const team=TEAM_COLORS[abbr];
+  const compactPost=expandPostseasonPalette(POSTSEASON_PALETTES[abbr]);
+  const legacyPost=(team.alternates||[]).find(look=>String(look?.name||"").trim().toLowerCase()==="post");
+  const colors=compactPost||legacyPost||team.primary||fallback;
   return {
-    main: colors.main || fallback.main,
-    alt: colors.alt || colors.main || fallback.alt,
-    border:
-      colors.border ||
-      colors.alt ||
-      colors.main ||
-      fallback.border,
-    text: colors.text || fallback.text,
-    gradient: Boolean(colors.gradient),
+    main:colors.main||fallback.main,
+    alt:colors.alt||colors.main||fallback.alt,
+    border:colors.border||colors.alt||colors.main||fallback.border,
+    text:colors.text||fallback.text,
+    gradient:Boolean(colors.gradient),
   };
 }
