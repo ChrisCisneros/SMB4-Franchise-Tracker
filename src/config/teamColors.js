@@ -43,6 +43,21 @@ const A=(name,main,alt,text="#ffffff",border=null,gradient=false)=>({name,...C(m
 export const POSTSEASON_PALETTES={
   CHC: ["#0442b5", "#c40404", "#ffffff", "#000679", false],
   LAA: ["#a30303", "#ffffff", "#a30303", "#000679", true],
+  STL: ["#ffffff", "#000000", "#d60000", "#d60000", false],
+  SF: ["#fcf5eb", "#000000", "#FD5a1e", "#000000", false],
+  MIA: ["#ffffff", "#dc1f70", "#0e80cc", "#000000", false],
+  SD: ["#e3ac17", "#302505", "#e3ac17", "#FFFFFF", false],
+  WSH: ["#ffffff", "#04003b", "#cf0c0c", "#04003b", false],
+  ATL: ["#8c1204", "#01105c", "#ffffff", "#01105c", false],
+  CIN: ["#c40404", "#ffffff", "#c40404", "#c40404", false],
+  LAD: ["#001994", "#ffffff", "#001994", "#001994", false],
+  BOS: ["#010238", "#b0110e", "#010238", "#b0110e", false],
+  ATH: ["#f5d01b", "#2e700f", "#f5d01b", "#2e700f", false],
+  CWS: ["#ffffff", "#000000", "#ffffff", "#ffffff", false],
+  TOR: ["#0026ff", "#c91414", "#ffffff", "#0026ff", false],
+  TB: ["#ffffff", "#f1da09", "#0077d8", "#040041", false],
+  DET: ["#cf5804", "#ffffff", "#010017", "#cf5804", false],
+  BAL: ["#d94804", "#d94804", "#000000", "#ffffff", false],
 };
 
 const expandPostseasonPalette=(entry)=>{
