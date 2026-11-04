@@ -31,6 +31,20 @@ export const TEAM_COLOR_BASE_MAP = {
   WSH: { primary: "#AB0003", accent: "#14225A" },
 };
 
+// EASY EDIT ZONE — postseason palettes only.
+// Format: TEAM: [main, alt, border, text, gradient]
+// Add/edit one line per postseason team; Theme Lab can generate the line for you.
+export const POSTSEASON_PALETTES = {
+  CHC: ["#0442b5", "#c40404", "#ffffff", "#000679", false],
+  LAA: ["#a30303", "#ffffff", "#a30303", "#000679", true],
+};
+
+const expandPostseasonPalette = (entry) => {
+  if (!Array.isArray(entry)) return null;
+  const [main, alt, border, text, gradient = false] = entry;
+  return { main, alt, border, text, gradient: Boolean(gradient), name: "Post" };
+};
+
 export const TEAM_COLORS = Object.fromEntries(
   Object.entries(TEAM_COLOR_BASE_MAP).map(([abbr, colors]) => [
     abbr,
@@ -344,12 +358,14 @@ export function getPostseasonColorsByAbbr(abbr) {
 
   const team = TEAM_COLORS[abbr];
 
-  const postLook = (team.alternates || []).find(
-    (look) =>
-      String(look?.name || "").trim().toLowerCase() === "post"
+  // Prefer the compact postseason edit zone above. Older `Post` alternates
+  // remain supported so existing team files keep working.
+  const compactPost = expandPostseasonPalette(POSTSEASON_PALETTES[abbr]);
+  const legacyPost = (team.alternates || []).find(
+    (look) => String(look?.name || "").trim().toLowerCase() === "post"
   );
 
-  const colors = postLook || team.primary || fallback;
+  const colors = compactPost || legacyPost || team.primary || fallback;
 
   return {
     main: colors.main || fallback.main,
