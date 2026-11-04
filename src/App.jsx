@@ -79,7 +79,6 @@ const [playoffHomeScore, setPlayoffHomeScore] = useState("");
 const [recentlyUpdatedTeamId, setRecentlyUpdatedTeamId] = useState("");
 const recentlyUpdatedTimerRef = useRef(null);
 const fieldBallResetTimerRef = useRef(null);
-const fieldPlayLogTimerRef = useRef(null);
 const [expandedHistorySeasonIds, setExpandedHistorySeasonIds] = useState([]);
 const chronicleAutoKeyRef = useRef("");
 
@@ -439,7 +438,7 @@ useEffect(() => {
     setData((prev) => ({ ...prev, leagueExtras: nextExtras }));
   }, [data.activeSeasonName, data.games?.length, data.leagueExtras?.seasonCalendar, teams, playoffPicture, syncLeagueExtrasToFirebase]);
 
-  function commitGameUpdate(mutator) {
+  function commitGameUpdate(mutator, playerMutator = null) {
   setData((prev) => {
     const game = makeSafeGame(prev.currentGame);
     const next = safeCloneSnapshot(game);
@@ -449,13 +448,14 @@ useEffect(() => {
       safeCloneSnapshot(game),
     ];
 
-    mutator(next);
-
+    mutator(next, prev);
     next.playLog = (next.playLog || []).slice(0, MAX_PLAY_LOG);
 
+    const nextPlayers = playerMutator ? playerMutator(prev.players || [], next, prev) : prev.players;
     syncCurrentGameToFirebase(next);
+    if (playerMutator && nextPlayers !== prev.players) syncPlayersToFirebase(nextPlayers);
 
-    return { ...prev, currentGame: next };
+    return playerMutator ? { ...prev, currentGame: next, players: nextPlayers } : { ...prev, currentGame: next };
   });
 }
 
@@ -659,27 +659,17 @@ function resetLiveCountAndBases() {
 
   function changePitcher(side, pitcherId) {
   clearBanner();
-  setData((prev) => {
-    const next = makeSafeGame(prev.currentGame);
+  commitGameUpdate((next) => {
     next.inningStatus = "";
-
     if (side === "away") {
-      if (next.awayPitcherId && next.awayPitcherId !== pitcherId) {
-        next.awayPitcherHistory = [...next.awayPitcherHistory, next.awayPitcherId];
-      }
-
+      if (next.awayPitcherId && next.awayPitcherId !== pitcherId) next.awayPitcherHistory = [...next.awayPitcherHistory, next.awayPitcherId];
       next.awayPitcherId = pitcherId;
       next.awayPitchCount = 0;
     } else {
-      if (next.homePitcherId && next.homePitcherId !== pitcherId) {
-        next.homePitcherHistory = [...next.homePitcherHistory, next.homePitcherId];
-      }
-
+      if (next.homePitcherId && next.homePitcherId !== pitcherId) next.homePitcherHistory = [...next.homePitcherHistory, next.homePitcherId];
       next.homePitcherId = pitcherId;
       next.homePitchCount = 0;
     }
-
-    return { ...prev, currentGame: next };
   });
 }
 
@@ -906,23 +896,10 @@ function scheduleFieldBallReset(delay = 7000) {
   }, delay);
 }
 
-function fieldPlayLogDelay(type, kind) {
-  if (kind !== "batted") return kind === "pitch" || kind === "pickoff" ? 650 : kind === "runner" ? 350 : 80;
-  if (["groundout", "fielderschoice", "doubleplay", "error"].includes(type)) return 1580;
-  if (["lineout"].includes(type)) return 1480;
-  if (["single"].includes(type)) return 1620;
-  if (["double"].includes(type)) return 1720;
-  if (["triple"].includes(type)) return 1820;
-  if (["flyout", "sacfly"].includes(type)) return 1920;
-  if (["popup"].includes(type)) return 1880;
-  if (["homerun"].includes(type)) return 2060;
-  return 1620;
-}
-
 function startAnimatedFieldPlay(category, type) {
   clearBanner();
-  if (fieldPlayLogTimerRef.current) window.clearTimeout(fieldPlayLogTimerRef.current);
 
+  // Baseball state commits immediately; animation is presentation only.
   const kind = fieldAnimationKindForPlay(type);
   const baseField = currentGame.fieldState || defaultFieldState();
   const existingBall = baseField.ball || defaultFieldState().ball;
@@ -961,31 +938,17 @@ function startAnimatedFieldPlay(category, type) {
     homeScoreBefore: currentGame.homeScore,
   };
 
-  setData((prev) => {
-    const next = makeSafeGame(prev.currentGame);
-    next.fieldState = {
-      ...defaultFieldState(),
-      ...(next.fieldState || {}),
-      ball: {
-        ...defaultFieldState().ball,
-        ...(next.fieldState?.ball || {}),
-        x: target.x,
-        y: target.y,
-        visible: kind !== "log-only",
-        result: event.label,
-        eventId: event.id,
-      },
-      playEvent: event,
-    };
-    syncCurrentGameToFirebase(next);
-    return { ...prev, currentGame: next };
+  applyQuickPlay(category, type, {
+    preserveRunners: manualRunnerOverride,
+    battingSide: event.battingSide,
+    fieldingSide: event.fieldingSide,
+    beneficiarySide: event.beneficiarySide,
+    inning: event.inning,
+    half: event.half,
+    fieldEvent: event,
+    fieldBallTarget: target,
+    fieldAnimationKind: kind,
   });
-
-  const logDelay = fieldPlayLogDelay(type, kind);
-  fieldPlayLogTimerRef.current = window.setTimeout(() => {
-    applyQuickPlay(category, type, { preserveRunners: manualRunnerOverride, battingSide: event.battingSide, fieldingSide: event.fieldingSide, beneficiarySide: event.beneficiarySide, inning: event.inning, half: event.half });
-    fieldPlayLogTimerRef.current = null;
-  }, logDelay);
 
   if (kind !== "log-only") scheduleFieldBallReset(7000);
 }
@@ -1102,8 +1065,9 @@ function clearFieldBall() {
     setData((prev) => {
       const history = prev.currentGame.history || [];
       if (!history.length) return prev;
-      const restored = safeCloneSnapshot(history[history.length - 1]);
+      const restored = makeSafeGame(safeCloneSnapshot(history[history.length - 1]));
       restored.history = history.slice(0, -1);
+      syncCurrentGameToFirebase(restored);
       return { ...prev, currentGame: restored };
     });
   }
@@ -1123,7 +1087,9 @@ function clearFieldBall() {
 
   function updateCount(action, delta = 1) {
     clearBanner();
-    commitGameUpdate((next) => {
+    let strikeoutBatterId = null;
+    let strikeoutType = null;
+    commitGameUpdate((next, prev) => {
       next.inningStatus = "";
       if (action === "balls") {
         next.balls = Math.max(0, Math.min(4, next.balls + delta));
@@ -1131,69 +1097,45 @@ function clearFieldBall() {
         if (delta > 0) setFieldCue(next, "BALL", "ball");
         return;
       }
-
       if (action === "strikes") {
         next.strikes = Math.max(0, Math.min(3, next.strikes + delta));
         addPitchToCurrentPitcher(next);
         return;
       }
-
       if (action === "outs") {
         next.outs = Math.max(0, next.outs + delta);
         if (delta > 0) clearCount(next);
         maybeAdvanceHalfInning(next);
         return;
       }
-
       if (action === "foul") {
         if (next.strikes < 2) next.strikes += 1;
         addPitchToCurrentPitcher(next);
         setFieldCue(next, "FOUL", "foul");
         return;
       }
-
       if (action === "swinging" || action === "called") {
         addPitchToCurrentPitcher(next);
         setFieldCue(next, action === "swinging" ? "SWING" : "CALLED STRIKE", action);
         if (next.strikes >= 2) {
-          setFieldCue(next, action === "swinging" ? "K" : "ꓘ", action === "swinging" ? "strikeout" : "calledstrikeout");
-          next.latestPlay = action === "swinging" ? `${currentBatter ? currentBatter.name : "Batter"} struck out swinging.` : `${currentBatter ? currentBatter.name : "Batter"} struck out looking.`;
-          next.playLog = [next.latestPlay, ...next.playLog];
+          const lineup = next.half === "Top" ? next.awayLineup : next.homeLineup;
+          const batterIndex = next.half === "Top" ? next.awayBatterIndex : next.homeBatterIndex;
+          strikeoutBatterId = lineup?.[batterIndex] || null;
+          strikeoutType = action === "swinging" ? "strikeout" : "calledstrikeout";
+          const batterName = prev.players?.find((p) => p.id === strikeoutBatterId)?.name || "Batter";
+          setFieldCue(next, action === "swinging" ? "K" : "ꓘ", strikeoutType);
+          next.latestPlay = action === "swinging" ? `${batterName} struck out swinging.` : `${batterName} struck out looking.`;
+          next.playLog = [next.latestPlay, ...(next.playLog || [])];
           clearCount(next);
           next.outs += 1;
-          if (currentBatter?.id) {
-  setData((prev) => {
-    const nextPlayers = prev.players.map((player) =>
-      player.id === currentBatter.id
-        ? {
-            ...player,
-            ab: (player.ab || 0) + 1,
-            seasonAB: Number(player.seasonAB || 0) + 1,
-            careerAB: Number(player.careerAB || 0) + 1,
-            seasonStrikeouts: Number(player.seasonStrikeouts || 0) + 1,
-            careerStrikeouts: Number(player.careerStrikeouts || 0) + 1,
-            lastAB: "K",
-          }
-        : player
-    );
-
-    syncPlayersToFirebase(nextPlayers);
-
-    return {
-      ...prev,
-      players: nextPlayers,
-    };
-  });
-}
           stepBatter(next);
           maybeAdvanceHalfInning(next);
         } else {
           next.strikes += 1;
         }
       }
-    });
+    }, (players) => strikeoutType ? updateBatterStatsForPlay(players, strikeoutBatterId, "out", strikeoutType) : players);
   }
-
 
   function incrementPitchCount(delta) {
     clearBanner();
@@ -1213,19 +1155,9 @@ function clearFieldBall() {
   }
 }
   function updateChallenges(side, delta) {
-    setData((prev) => {
-      const next = makeSafeGame(prev.currentGame);
-
-      if (side === "away") {
-        next.awayChallenges = Math.max(0, Math.min(2, (next.awayChallenges || 0) + delta));
-      } else {
-        next.homeChallenges = Math.max(0, Math.min(2, (next.homeChallenges || 0) + delta));
-      }
-
-      return {
-        ...prev,
-        currentGame: next,
-      };
+    commitGameUpdate((next) => {
+      if (side === "away") next.awayChallenges = Math.max(0, Math.min(2, (next.awayChallenges || 0) + delta));
+      else next.homeChallenges = Math.max(0, Math.min(2, (next.homeChallenges || 0) + delta));
     });
   }
 
@@ -1373,81 +1305,105 @@ function isWorldSeriesGame(game) {
     });
   }
 
+  function updateBatterStatsForPlay(players, batterId, category, type) {
+    if (!batterId) return players;
+    let changed = false;
+    const nextPlayers = players.map((p) => {
+      if (p.id !== batterId) return p;
+      if (category === "hit") {
+        changed = true;
+        return {
+          ...p,
+          ab: Number(p.ab || 0) + 1,
+          hits: Number(p.hits || 0) + 1,
+          seasonAB: Number(p.seasonAB || 0) + 1,
+          seasonHits: Number(p.seasonHits || 0) + 1,
+          careerAB: Number(p.careerAB || 0) + 1,
+          careerHits: Number(p.careerHits || 0) + 1,
+          seasonDoubles: Number(p.seasonDoubles || 0) + (type === "double" ? 1 : 0),
+          careerDoubles: Number(p.careerDoubles || 0) + (type === "double" ? 1 : 0),
+          seasonTriples: Number(p.seasonTriples || 0) + (type === "triple" ? 1 : 0),
+          careerTriples: Number(p.careerTriples || 0) + (type === "triple" ? 1 : 0),
+          seasonHR: Number(p.seasonHR || 0) + (type === "homerun" ? 1 : 0),
+          careerHR: Number(p.careerHR || 0) + (type === "homerun" ? 1 : 0),
+          lastAB: type === "single" ? "1B" : type === "double" ? "2B" : type === "triple" ? "3B" : type === "homerun" ? "HR" : "",
+        };
+      }
+      if (category === "out" && type !== "caughtstealing") {
+        changed = true;
+        return {
+          ...p,
+          ab: Number(p.ab || 0) + 1,
+          seasonAB: Number(p.seasonAB || 0) + 1,
+          careerAB: Number(p.careerAB || 0) + 1,
+          seasonStrikeouts: Number(p.seasonStrikeouts || 0) + (["strikeout", "calledstrikeout"].includes(type) ? 1 : 0),
+          careerStrikeouts: Number(p.careerStrikeouts || 0) + (["strikeout", "calledstrikeout"].includes(type) ? 1 : 0),
+          lastAB: type === "flyout" ? "FO" : type === "groundout" ? "GO" : type === "lineout" ? "LO" : type === "popup" ? "POP" : type === "strikeout" ? "K" : type === "calledstrikeout" ? "ꓘ" : "OUT",
+        };
+      }
+      if (category === "other" && ["walk", "hitbypitch", "error"].includes(type)) {
+        changed = true;
+        const isWalk = type === "walk", isHbp = type === "hitbypitch", isError = type === "error";
+        return {
+          ...p,
+          ab: Number(p.ab || 0) + (isError ? 1 : 0),
+          seasonAB: Number(p.seasonAB || 0) + (isError ? 1 : 0),
+          careerAB: Number(p.careerAB || 0) + (isError ? 1 : 0),
+          seasonWalks: Number(p.seasonWalks || 0) + (isWalk ? 1 : 0),
+          careerWalks: Number(p.careerWalks || 0) + (isWalk ? 1 : 0),
+          seasonHBP: Number(p.seasonHBP || 0) + (isHbp ? 1 : 0),
+          careerHBP: Number(p.careerHBP || 0) + (isHbp ? 1 : 0),
+          lastAB: isWalk ? "BB" : isHbp ? "HBP" : "E",
+        };
+      }
+      return p;
+    });
+    return changed ? nextPlayers : players;
+  }
+
   function applyQuickPlay(category, type, options = {}) {
     clearBanner();
     const preserveRunners = Boolean(options.preserveRunners);
-    const batterId = currentBatter?.id;
-    commitGameUpdate((next) => {
+    let resolvedBatterId = null;
+
+    commitGameUpdate((next, prev) => {
+      const lineup = next.half === "Top" ? next.awayLineup : next.homeLineup;
+      const batterIndex = next.half === "Top" ? next.awayBatterIndex : next.homeBatterIndex;
+      resolvedBatterId = lineup?.[batterIndex] || null;
+      const batterName = prev.players?.find((p) => p.id === resolvedBatterId)?.name || "Batter";
       const socialBattingSide = options.battingSide || (next.half === "Top" ? "away" : "home");
       const socialFieldingSide = options.fieldingSide || (socialBattingSide === "away" ? "home" : "away");
       const offensiveTypes = new Set(["single","double","triple","homerun","walk","hitbypitch","error","sacfly"]);
       const defensiveTypes = new Set(["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"]);
       const beneficiarySide = options.beneficiarySide || (offensiveTypes.has(type) ? socialBattingSide : defensiveTypes.has(type) ? socialFieldingSide : socialBattingSide);
       const socialEventId = Date.now();
+      const existingField = { ...defaultFieldState(), ...(next.fieldState || {}) };
       next.fieldState = {
-        ...defaultFieldState(),
-        ...(next.fieldState || {}),
+        ...existingField,
+        ...(options.fieldEvent ? {
+          ball: {
+            ...defaultFieldState().ball,
+            ...(existingField.ball || {}),
+            x: Number(options.fieldBallTarget?.x ?? existingField.ball?.x ?? 50),
+            y: Number(options.fieldBallTarget?.y ?? existingField.ball?.y ?? 34),
+            visible: options.fieldAnimationKind !== "log-only",
+            result: options.fieldEvent.label,
+            eventId: options.fieldEvent.id,
+          },
+          playEvent: options.fieldEvent,
+        } : {}),
         socialEvent: { id: socialEventId, type, category, side: socialBattingSide, battingSide: socialBattingSide, fieldingSide: socialFieldingSide, beneficiarySide, inning: options.inning || next.inning, half: options.half || next.half, outsBefore: next.outs, awayScoreBefore: next.awayScore, homeScoreBefore: next.homeScore },
       };
-      const pitchCountTypes = new Set([
-  "single",
-  "double",
-  "triple",
-  "homerun",
-  "flyout",
-  "groundout",
-  "lineout",
-  "popup",
-  "fielderschoice",
-  "doubleplay",
-  "sacfly",
-]);
 
-if (pitchCountTypes.has(type)) {
-  addPitchToCurrentPitcher(next);
-}
+      const pitchCountTypes = new Set(["single","double","triple","homerun","flyout","groundout","lineout","popup","fielderschoice","doubleplay","sacfly"]);
+      if (pitchCountTypes.has(type)) addPitchToCurrentPitcher(next);
       next.inningStatus = "";
       const custom = playInput.trim();
-      const batterName = currentBatter ? currentBatter.name : "Batter";
       let text = custom || type;
 
       if (category === "hit") {
-        setData((prev) => {
-  const nextPlayers = prev.players.map((p) => {
-    if (p.id !== batterId) return p;
-
-    return {
-      ...p,
-      ab: (p.ab || 0) + 1,
-      hits: (p.hits || 0) + 1,
-      seasonAB: Number(p.seasonAB || 0) + 1,
-      seasonHits: Number(p.seasonHits || 0) + 1,
-      careerAB: Number(p.careerAB || 0) + 1,
-      careerHits: Number(p.careerHits || 0) + 1,
-      seasonDoubles: Number(p.seasonDoubles || 0) + (type === "double" ? 1 : 0),
-      careerDoubles: Number(p.careerDoubles || 0) + (type === "double" ? 1 : 0),
-      seasonTriples: Number(p.seasonTriples || 0) + (type === "triple" ? 1 : 0),
-      careerTriples: Number(p.careerTriples || 0) + (type === "triple" ? 1 : 0),
-      seasonHR: Number(p.seasonHR || 0) + (type === "homerun" ? 1 : 0),
-      careerHR: Number(p.careerHR || 0) + (type === "homerun" ? 1 : 0),
-      lastAB:
-        type === "single" ? "1B" :
-        type === "double" ? "2B" :
-        type === "triple" ? "3B" :
-        type === "homerun" ? "HR" :
-        ""
-    };
-  });
-
-  syncPlayersToFirebase(nextPlayers);
-
-  return { ...prev, players: nextPlayers };
-});
-        const hadFirst = next.bases.first;
-        const hadSecond = next.bases.second;
-        const hadThird = next.bases.third;
+        const hadFirst = next.bases.first, hadSecond = next.bases.second, hadThird = next.bases.third;
         let runs = 0;
-
         const map = {
           single: `${batterName} hit a single${fielderName ? ` to ${fielderName}` : ""}.`,
           double: `${batterName} hit a double${fielderName ? ` to ${fielderName}` : ""}.`,
@@ -1455,86 +1411,24 @@ if (pitchCountTypes.has(type)) {
           homerun: `${batterName} hit a home run${fielderName ? ` to ${fielderName}` : ""}.`,
         };
         text = custom || map[type] || text;
-
-        const infoOnlyTypes = new Set([
-          "pickoff1",
-          "pickoff2",
-          "pickoff3",
-          "awayballupheld",
-          "awayballoverturned",
-          "awaystrikeupheld",
-          "awaystrikeoverturned",
-          "homeballupheld",
-          "homeballoverturned",
-          "homestrikeupheld",
-          "homestrikeoverturned",
-        ]);
         recordHit(next);
-
         if (!preserveRunners) {
-          if (type === "single") {
-            if (hadThird) runs += 1;
-            next.bases = { first: true, second: hadFirst, third: hadSecond };
-          }
-          if (type === "double") {
-            if (hadThird) runs += 1;
-            if (hadSecond) runs += 1;
-            next.bases = { first: false, second: true, third: hadFirst };
-          }
-          if (type === "triple") {
-            if (hadThird) runs += 1;
-            if (hadSecond) runs += 1;
-            if (hadFirst) runs += 1;
-            next.bases = { first: false, second: false, third: true };
-          }
-          if (type === "homerun") {
-            if (hadThird) runs += 1;
-            if (hadSecond) runs += 1;
-            if (hadFirst) runs += 1;
-            runs += 1;
-            next.bases = { first: false, second: false, third: false };
-          }
+          if (type === "single") { if (hadThird) runs += 1; next.bases = { first: true, second: hadFirst, third: hadSecond }; }
+          if (type === "double") { if (hadThird) runs += 1; if (hadSecond) runs += 1; next.bases = { first: false, second: true, third: hadFirst }; }
+          if (type === "triple") { if (hadThird) runs += 1; if (hadSecond) runs += 1; if (hadFirst) runs += 1; next.bases = { first: false, second: false, third: true }; }
+          if (type === "homerun") { if (hadThird) runs += 1; if (hadSecond) runs += 1; if (hadFirst) runs += 1; runs += 1; next.bases = { first: false, second: false, third: false }; }
           scoreRuns(next, runs);
         } else {
-          // The operator already handled existing runners. Only apply the batter's result.
           if (type === "single") next.bases = { ...next.bases, first: true };
           if (type === "double") next.bases = { ...next.bases, second: true };
           if (type === "triple") next.bases = { ...next.bases, third: true };
           if (type === "homerun") scoreRuns(next, 1);
         }
-        if (!infoOnlyTypes.has(type)) {
-          clearCount(next);
-        }
+        clearCount(next);
         stepBatter(next);
       }
 
       if (category === "out") {
-
-        setData((prev) => {
-  const nextPlayers = prev.players.map((p) => {
-    if (p.id !== batterId || type === "caughtstealing") return p;
-    return {
-      ...p,
-      ab: (p.ab || 0) + 1,
-      seasonAB: Number(p.seasonAB || 0) + 1,
-      careerAB: Number(p.careerAB || 0) + 1,
-      seasonStrikeouts: Number(p.seasonStrikeouts || 0) + ((type === "strikeout" || type === "calledstrikeout") ? 1 : 0),
-      careerStrikeouts: Number(p.careerStrikeouts || 0) + ((type === "strikeout" || type === "calledstrikeout") ? 1 : 0),
-      lastAB:
-        type === "flyout" ? "FO" :
-        type === "groundout" ? "GO" :
-        type === "lineout" ? "LO" :
-        type === "popup" ? "POP" :
-        type === "strikeout" ? "K" :
-        type === "calledstrikeout" ? "ꓘ" :
-        "OUT"
-    };
-  });
-
-  syncPlayersToFirebase(nextPlayers);
-
-  return { ...prev, players: nextPlayers };
-});
         const map = {
           flyout: `${batterName} flied out${fielderName ? ` to ${fielderName}` : ""}.`,
           groundout: `${batterName} grounded out${fielderName ? ` to ${fielderName}` : ""}.`,
@@ -1557,85 +1451,31 @@ if (pitchCountTypes.has(type)) {
           }
           next.bases = { ...next.bases, first: true };
           stepBatter(next);
-          maybeAdvanceHalfInning(next);
         } else {
           next.outs += type === "doubleplay" ? 2 : 1;
           clearCount(next);
           if (type === "caughtstealing") {
-          if (!preserveRunners) {
-            if (next.bases.third) next.bases.third = false;
-            else if (next.bases.second) next.bases.second = false;
-            else if (next.bases.first) next.bases.first = false;
-          }
-        } else {
-          stepBatter(next);
-          }
-          maybeAdvanceHalfInning(next);
+            if (!preserveRunners) {
+              if (next.bases.third) next.bases.third = false;
+              else if (next.bases.second) next.bases.second = false;
+              else if (next.bases.first) next.bases.first = false;
+            }
+          } else stepBatter(next);
         }
+        maybeAdvanceHalfInning(next);
       }
 
       if (category === "other") {
-  if (batterId && ["walk", "hitbypitch", "error"].includes(type)) {
-    setData((prev) => {
-      const nextPlayers = prev.players.map((p) => {
-        if (p.id !== batterId) return p;
-        const isWalk = type === "walk";
-        const isHbp = type === "hitbypitch";
-        const isError = type === "error";
-        return {
-          ...p,
-          ab: Number(p.ab || 0) + (isError ? 1 : 0),
-          seasonAB: Number(p.seasonAB || 0) + (isError ? 1 : 0),
-          careerAB: Number(p.careerAB || 0) + (isError ? 1 : 0),
-          seasonWalks: Number(p.seasonWalks || 0) + (isWalk ? 1 : 0),
-          careerWalks: Number(p.careerWalks || 0) + (isWalk ? 1 : 0),
-          seasonHBP: Number(p.seasonHBP || 0) + (isHbp ? 1 : 0),
-          careerHBP: Number(p.careerHBP || 0) + (isHbp ? 1 : 0),
-          lastAB: isWalk ? "BB" : isHbp ? "HBP" : "E",
+        const map = {
+          walk: `${batterName} walked.`, hitbypitch: `${batterName} was hit by pitch.`, error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`, sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
+          pickoff1: "Pickoff attempt at 1B.", pickoff2: "Pickoff attempt at 2B.", pickoff3: "Pickoff attempt at 3B.",
+          awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`, awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`, awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`, awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
+          homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`, homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`, homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`, homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
         };
-      });
-      syncPlayersToFirebase(nextPlayers);
-      return { ...prev, players: nextPlayers };
-    });
-  }
-  const map = {
-    walk: `${batterName} walked.`,
-    hitbypitch: `${batterName} was hit by pitch.`,
-    error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`,
-    sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
-    pickoff1: "Pickoff attempt at 1B.",
-    pickoff2: "Pickoff attempt at 2B.",
-    pickoff3: "Pickoff attempt at 3B.",
-    awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`,
-    awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`,
-    awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`,
-    awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
-    homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`,
-    homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`,
-    homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`,
-    homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
-  };
-  text = custom || map[type] || text;
-
-  const infoOnlyTypes = new Set([
-    "pickoff1",
-    "pickoff2",
-    "pickoff3",
-    "awayballupheld",
-    "awayballoverturned",
-    "awaystrikeupheld",
-    "awaystrikeoverturned",
-    "homeballupheld",
-    "homeballoverturned",
-    "homestrikeupheld",
-    "homestrikeoverturned",
-  ]);
-
-  if (!infoOnlyTypes.has(type)) {
-    clearCount(next);
-  }
-
-        if (type === "walk" || type === "hitbypitch" || type === "error") {
+        text = custom || map[type] || text;
+        const infoOnlyTypes = new Set(["pickoff1","pickoff2","pickoff3","awayballupheld","awayballoverturned","awaystrikeupheld","awaystrikeoverturned","homeballupheld","homeballoverturned","homestrikeupheld","homestrikeoverturned"]);
+        if (!infoOnlyTypes.has(type)) clearCount(next);
+        if (["walk","hitbypitch","error"].includes(type)) {
           if (type === "error") recordError(next);
           if (!preserveRunners) {
             if (next.bases.first && next.bases.second && next.bases.third) scoreRuns(next, 1);
@@ -1645,45 +1485,22 @@ if (pitchCountTypes.has(type)) {
           next.bases = { ...next.bases, first: true };
           stepBatter(next);
         }
-
         if (type === "sacfly") {
-          if (!preserveRunners && next.bases.third) {
-            next.bases.third = false;
-            scoreRuns(next, 1);
-          }
+          if (!preserveRunners && next.bases.third) { next.bases.third = false; scoreRuns(next, 1); }
           next.outs += 1;
           stepBatter(next);
           maybeAdvanceHalfInning(next);
         }
       }
 
-      const noLatestPlayTypes = new Set([
-        "swinging",
-        "called",
-        "foul",
-      ]);
-      if (!noLatestPlayTypes.has(type)) {
-        next.latestPlay = text;
-        next.playLog = [text, ...next.playLog];
-      }
-      if (category !== "out" || !text.includes("Score update")) {
-        next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
-      }
+      next.latestPlay = text;
+      next.playLog = [text, ...(next.playLog || [])];
+      next.lastAnnouncement = next.lastAnnouncement || "No scoring update yet.";
       if (next.fieldState?.socialEvent?.id === socialEventId) {
-        next.fieldState.socialEvent = {
-          ...next.fieldState.socialEvent,
-          outsAfter: next.outs,
-          awayScoreAfter: next.awayScore,
-          homeScoreAfter: next.homeScore,
-        };
+        next.fieldState.socialEvent = { ...next.fieldState.socialEvent, outsAfter: next.outs, awayScoreAfter: next.awayScore, homeScoreAfter: next.homeScore };
       }
-      next.fieldState = {
-        ...defaultFieldState(),
-        ...(next.fieldState || {}),
-        ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) },
-        manualRunnerOverride: false,
-      };
-    });
+      next.fieldState = { ...defaultFieldState(), ...(next.fieldState || {}), ball: { ...defaultFieldState().ball, ...(next.fieldState?.ball || {}) }, manualRunnerOverride: false };
+    }, (players) => updateBatterStatsForPlay(players, resolvedBatterId, category, type));
 
     setPlayInput("");
     setFielderName("");
@@ -1715,10 +1532,12 @@ if (pitchCountTypes.has(type)) {
   function addPlayLog() {
     if (!playInput.trim()) return;
     clearBanner();
-    setData((prev) => ({
-      ...prev,
-      currentGame: { ...makeSafeGame(prev.currentGame), inningStatus: "", latestPlay: playInput, playLog: [playInput, ...prev.currentGame.playLog] },
-    }));
+    const text = playInput.trim();
+    commitGameUpdate((next) => {
+      next.inningStatus = "";
+      next.latestPlay = text;
+      next.playLog = [text, ...(next.playLog || [])];
+    });
     setPlayInput("");
   }
 
@@ -1924,7 +1743,7 @@ const dashboardStories = [
       : 'season-atmosphere-regular'
     : 'season-atmosphere-finale';
 
-  const pageContext = { setPage, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncTeamsToFirebase, syncLastFinalGameToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
+  const pageContext = { setPage, syncCurrentGameToFirebase, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncTeamsToFirebase, syncLastFinalGameToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
 
   return (
     <div className={`app-shell wide-shell nmlb-app ${seasonAtmosphereClass}`}>
@@ -1932,9 +1751,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
-    <span className="version-pill version-pill-v3">v6.4.11</span>
+    <span className="version-pill version-pill-v3">v6.4.12</span>
   </div>
-  <p>NMLB · Nicky's Major League Baseball · Version 6.4.11 · Final Weeks Takeover & Theme Lab</p>
+  <p>NMLB · Nicky's Major League Baseball · Version 6.4.12 · Final Weeks Takeover & Theme Lab</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (

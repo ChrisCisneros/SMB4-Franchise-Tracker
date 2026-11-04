@@ -288,17 +288,20 @@ setLosingPitcherId("");
     hits: 0,
     lastAB: ""
   }));
+  const resetGame = {
+    ...defaultCurrentGame(),
+    date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
+    awayTeamId: prev.currentGame?.awayTeamId || "",
+    homeTeamId: prev.currentGame?.homeTeamId || "",
+    status: "Not Started",
+  };
+  syncPlayersToFirebase(resetPlayers);
+  syncCurrentGameToFirebase(resetGame);
 
   return {
     ...prev,
     players: resetPlayers,
-    currentGame: {
-      ...defaultCurrentGame(),
-      date: prev.currentGame?.date || new Date().toISOString().slice(0, 10),
-      awayTeamId: prev.currentGame?.awayTeamId || "",
-      homeTeamId: prev.currentGame?.homeTeamId || "",
-      status: "Not Started",
-    },
+    currentGame: resetGame,
   };
 });
   }

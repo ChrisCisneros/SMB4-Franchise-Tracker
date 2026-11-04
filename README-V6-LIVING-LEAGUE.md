@@ -201,3 +201,20 @@ Pennant Race / Race Control received a full NMLB presentation pass for the Seaso
 - Added postseason series memory, series ratings, turning-point context, team postseason mythology, rivalry temperature, historical comparisons, analyst prediction reputation, memory cards, and NMLB Postseason Tonight coverage.
 - Dashboard, News, and Bracket now surface postseason memory generated from every live-scored playoff final, giving non-anchor clubs the same cultural footprint as the favorite club.
 - Ceremony completions preserve the speech/fan script used for that event so the ceremony itself becomes part of league history.
+
+## V6.4.12 — Postseason Operator Readiness
+V6.4.12 is a deep stability and operator-workflow pass ahead of the NMLB postseason.
+
+### Live scoring reliability
+- Field Mode results now commit immediately when the operator starts a play; ball-flight animation is presentation-only and can no longer cancel a hit/out before it is recorded.
+- Game state and batter-stat updates are applied in the same React transaction for hits, outs, walks, HBP and errors.
+- Direct-count strikeouts use the same atomic player/game update path.
+- Undo now syncs its restored state to Firebase instead of remaining local-only.
+- Pitcher changes, challenge changes, manual play-log entries, and full-game reset now use the guarded current-game sync path.
+- Reset Current Match now publishes both the reset player stats and reset live game so stale cloud state cannot resurrect the previous game.
+
+### Operator workflow
+- Live Scoring adds an Instant Plays rail for one-tap 1B, 2B, 3B, HR, GO, FO, K, BB and DP entry.
+- Quick Record Editor places AL and NL side-by-side, with each league's divisions stacked vertically for less scrolling during bulk postseason prep.
+- Bracket Admin adds active/finished counts, Next Active Series navigation, a stronger series-control meter, a denser series board, and a one-click Load Series into Live Scoring action.
+- Visible NMLB version labels are normalized to V6.4.12 across the runtime source.

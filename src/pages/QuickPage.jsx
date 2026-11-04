@@ -103,6 +103,7 @@ export default function QuickPage({ ctx }) {
         )}
       </div>
 
+      <div className="quick-leagues-side-by-side">
       {data.leagues.map((league) => {
         if (leagueFilter !== "ALL" && leagueFilter !== league) return null;
         const leagueHasVisible = visibleTeams.some((team) => team.league === league);
@@ -204,6 +205,8 @@ export default function QuickPage({ ctx }) {
           </div>
         );
       })}
+
+      </div>
 
       {!visibleTeams.length && (
         <div className="card operator-empty-state">

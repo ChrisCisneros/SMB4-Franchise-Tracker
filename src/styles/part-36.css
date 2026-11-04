@@ -1,0 +1,59 @@
+/* V6.4.12 — Postseason operator readiness */
+
+.live-instant-play-strip{
+  margin:12px 0 14px;
+  padding:12px 14px;
+  border:1px solid rgba(139,92,246,.34);
+  background:linear-gradient(135deg,rgba(31,5,84,.92),rgba(7,10,24,.96));
+}
+.live-instant-play-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px;min-width:0}
+.live-instant-play-head>div{display:flex;align-items:center;gap:10px;min-width:0}
+.live-instant-play-head strong{font-size:13px;letter-spacing:.03em}
+.live-instant-play-head small{color:#aab5ca;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.live-instant-play-buttons{display:grid;grid-template-columns:repeat(9,minmax(54px,1fr));gap:8px}
+.live-instant-play-buttons button{min-height:46px;font-weight:900;border-radius:12px;border:1px solid rgba(255,255,255,.14)}
+.live-instant-play-buttons .instant-hit{background:linear-gradient(180deg,#14532d,#0f3f23)}
+.live-instant-play-buttons .instant-homer{background:linear-gradient(180deg,#9a3412,#7c2d12)}
+.live-instant-play-buttons .instant-out{background:linear-gradient(180deg,#334155,#1e293b)}
+.live-instant-play-buttons .instant-k{background:linear-gradient(180deg,#5b21b6,#3b1680)}
+.live-instant-play-buttons .instant-walk{background:linear-gradient(180deg,#1d4ed8,#173a9f)}
+.live-instant-play-buttons .instant-dp{background:linear-gradient(180deg,#991b1b,#6f1515)}
+
+.quick-leagues-side-by-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.quick-leagues-side-by-side>.quick-league-block{margin:0;min-width:0}
+.quick-leagues-side-by-side .quick-division-grid{grid-template-columns:1fr!important;gap:12px}
+.quick-leagues-side-by-side .quick-league-title{position:sticky;top:8px;z-index:5;background:linear-gradient(180deg,rgba(31,5,84,.98),rgba(15,8,38,.96));border:1px solid rgba(139,92,246,.28);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.quick-leagues-side-by-side .quick-division-card{margin:0}
+.quick-leagues-side-by-side .quick-operator-row{grid-template-columns:minmax(140px,1.3fr) auto minmax(150px,.9fr);gap:8px}
+.quick-leagues-side-by-side .quick-record-stack,
+.quick-leagues-side-by-side .quick-streak-control,
+.quick-leagues-side-by-side .quick-rd-compact{grid-column:1/-1}
+.quick-leagues-side-by-side .quick-record-stack{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick-leagues-side-by-side .quick-rd-buttons{justify-content:flex-start;flex-wrap:wrap}
+
+.bracket-admin-hero-actions{display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.bracket-admin-summary-chips{display:flex;gap:7px;flex-wrap:wrap}
+.bracket-admin-summary-chips span{display:flex;align-items:center;gap:5px;padding:7px 9px;border-radius:999px;border:1px solid rgba(139,92,246,.3);background:rgba(31,5,84,.55);font-size:11px;letter-spacing:.08em;color:#cbd5e1}
+.bracket-admin-summary-chips b{color:#fff;font-size:13px}
+.bracket-series-control-meter{display:flex;align-items:stretch;min-height:48px;margin:12px 0 4px;border:1px solid rgba(148,163,184,.18);border-radius:13px;overflow:hidden;background:#080b16}
+.bracket-series-control-meter>div{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 10px;transition:flex .25s ease}
+.bracket-series-control-meter .away-control{background:linear-gradient(90deg,rgba(31,5,84,.92),rgba(67,56,202,.48));justify-content:flex-start}
+.bracket-series-control-meter .home-control{background:linear-gradient(270deg,rgba(31,5,84,.92),rgba(126,34,206,.48));justify-content:flex-end}
+.bracket-series-control-meter .series-control-target{flex:0 0 auto!important;background:#05070e;color:#d8b4fe;font-size:10px;letter-spacing:.12em;font-weight:900}
+.bracket-series-control-meter b{font-size:18px}
+.bracket-admin-series-click-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bracket-admin-series-button{min-height:74px}
+
+@media(max-width:1180px){
+  .live-instant-play-buttons{grid-template-columns:repeat(5,minmax(60px,1fr))}
+  .quick-leagues-side-by-side{grid-template-columns:1fr}
+  .quick-leagues-side-by-side .quick-league-title{position:static}
+}
+@media(max-width:760px){
+  .live-instant-play-head{align-items:flex-start;flex-direction:column}
+  .live-instant-play-head small{max-width:100%;text-align:left}
+  .live-instant-play-buttons{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .bracket-admin-series-click-list{grid-template-columns:1fr}
+  .bracket-admin-hero-actions{justify-content:flex-start}
+}
+.bracket-entry-actions .bracket-load-live{background:linear-gradient(135deg,#1f0554,#5b21b6);border-color:rgba(196,181,253,.55);font-weight:900}

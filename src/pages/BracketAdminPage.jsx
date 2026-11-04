@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { getPlayoffSeries, getWinsNeededForSeries } from "../utils/playoffUtils";
+import { defaultCurrentGame } from "../utils/gameState";
 
 export default function BracketAdminPage({ ctx }) {
   const {
@@ -7,7 +8,7 @@ export default function BracketAdminPage({ ctx }) {
     playoffAwayScore, playoffBracket, playoffHomeScore, playoffSeriesDropdownLabel,
     playoffSeriesOptions, resetSelectedPlayoffSeries, selectedPlayoffSeriesId,
     seriesStatusText, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedPlayoffSeriesId,
-    teamAbbr,
+    teamAbbr, setData, setPage, syncCurrentGameToFirebase,
   } = ctx;
   const [viewFilter, setViewFilter] = useState("active");
 
@@ -17,6 +18,35 @@ export default function BracketAdminPage({ ctx }) {
   const winsNeeded = getWinsNeededForSeries(selectedPlayoffSeriesId);
   const gameNumber = (selectedSeries.games?.length || 0) + 1;
   const scoreReady = playoffAwayScore !== "" && playoffHomeScore !== "" && Number(playoffAwayScore) !== Number(playoffHomeScore);
+  const activeSeries = useMemo(() => playoffSeriesOptions.filter((option) => {
+    const series = getPlayoffSeries(playoffBracket, option.id);
+    return Boolean(series.awayTeamId && series.homeTeamId && !series.winnerTeamId);
+  }), [playoffBracket, playoffSeriesOptions]);
+  const finishedCount = playoffSeriesOptions.filter((option) => getPlayoffSeries(playoffBracket, option.id).winnerTeamId).length;
+  const jumpToNextActive = () => {
+    if (!activeSeries.length) return;
+    const index = activeSeries.findIndex((option) => option.id === selectedPlayoffSeriesId);
+    const next = activeSeries[(index + 1 + activeSeries.length) % activeSeries.length];
+    if (next) setSelectedPlayoffSeriesId(next.id);
+    setPlayoffAwayScore("");
+    setPlayoffHomeScore("");
+  };
+
+  const loadSelectedSeriesIntoLive = () => {
+    if (!selectedSeries.awayTeamId || !selectedSeries.homeTeamId || selectedSeries.winnerTeamId) return;
+    const nextGame = {
+      ...defaultCurrentGame(),
+      awayTeamId: selectedSeries.awayTeamId,
+      homeTeamId: selectedSeries.homeTeamId,
+      gameType: "playoff",
+      playoffSeriesId: selectedPlayoffSeriesId,
+      status: "Warmup",
+      date: new Date().toISOString().slice(0, 10),
+    };
+    syncCurrentGameToFirebase?.(nextGame);
+    setData?.((prev) => ({ ...prev, currentGame: nextGame }));
+    setPage?.("live");
+  };
 
   const filteredSeries = useMemo(() => playoffSeriesOptions.filter((option) => {
     const series = getPlayoffSeries(playoffBracket, option.id);
@@ -34,7 +64,15 @@ export default function BracketAdminPage({ ctx }) {
           <h2>Bracket Admin</h2>
           <p className="muted">Pick a series, enter the final score, and the bracket advances automatically.</p>
         </div>
-        <button onClick={initializeBracketFromCurrentSeeds}>Initialize From Current Seeds</button>
+        <div className="bracket-admin-hero-actions">
+          <div className="bracket-admin-summary-chips">
+            <span><b>{activeSeries.length}</b> ACTIVE</span>
+            <span><b>{finishedCount}</b> FINISHED</span>
+            <span><b>{playoffSeriesOptions.length}</b> TOTAL</span>
+          </div>
+          <button onClick={jumpToNextActive} disabled={!activeSeries.length}>Next Active Series →</button>
+          <button onClick={initializeBracketFromCurrentSeeds}>Initialize From Current Seeds</button>
+        </div>
       </div>
 
       <div className="bracket-admin-layout">
@@ -77,6 +115,12 @@ export default function BracketAdminPage({ ctx }) {
             </div>
           </div>
 
+          <div className="bracket-series-control-meter" aria-label="Series control">
+            <div className="away-control" style={{flex: Math.max(1, Number(selectedSeries.awayWins || 0) + 1)}}><span>{awayAbbr}</span><b>{selectedSeries.awayWins || 0}</b></div>
+            <div className="series-control-target"><span>FIRST TO {winsNeeded}</span></div>
+            <div className="home-control" style={{flex: Math.max(1, Number(selectedSeries.homeWins || 0) + 1)}}><b>{selectedSeries.homeWins || 0}</b><span>{homeAbbr}</span></div>
+          </div>
+
           <div className="bracket-score-console">
             <div>
               <label>{awayAbbr !== "TBD" ? awayAbbr : "Away"} Score</label>
@@ -98,6 +142,7 @@ export default function BracketAdminPage({ ctx }) {
           </div>
 
           <div className="bracket-entry-actions">
+            <button className="bracket-load-live" disabled={!selectedSeries.awayTeamId || !selectedSeries.homeTeamId || selectedSeries.winnerTeamId} onClick={loadSelectedSeriesIntoLive}>▶ Load Series into Live Scoring</button>
             <button className="bracket-submit-result" disabled={!scoreReady || selectedSeries.winnerTeamId} onClick={addPlayoffGameResult}>
               {scoreReady ? `Record ${awayAbbr} ${playoffAwayScore} – ${homeAbbr} ${playoffHomeScore}` : "Enter Final Score"}
             </button>

@@ -82,6 +82,24 @@ export default function LivePage({ ctx }) {
             </div>
           </div>
 
+          <div className="live-instant-play-strip card">
+            <div className="live-instant-play-head">
+              <div><span className="operator-label">Instant Plays</span><strong>One tap = committed immediately</strong></div>
+              <small>{currentGame.latestPlay || "No play recorded yet."}</small>
+            </div>
+            <div className="live-instant-play-buttons">
+              <button className="instant-hit" onClick={() => startAnimatedFieldPlay("hit", "single")}>1B</button>
+              <button className="instant-hit" onClick={() => startAnimatedFieldPlay("hit", "double")}>2B</button>
+              <button className="instant-hit" onClick={() => startAnimatedFieldPlay("hit", "triple")}>3B</button>
+              <button className="instant-homer" onClick={() => startAnimatedFieldPlay("hit", "homerun")}>HR</button>
+              <button className="instant-out" onClick={() => startAnimatedFieldPlay("out", "groundout")}>GO</button>
+              <button className="instant-out" onClick={() => startAnimatedFieldPlay("out", "flyout")}>FO</button>
+              <button className="instant-k" onClick={() => startAnimatedFieldPlay("out", "strikeout")}>K</button>
+              <button className="instant-walk" onClick={() => startAnimatedFieldPlay("other", "walk")}>BB</button>
+              <button className="instant-dp" onClick={() => startAnimatedFieldPlay("out", "doubleplay")}>DP</button>
+            </div>
+          </div>
+
           <div className="big-moment-slot">
       {bigMomentBanner && (
         <div className={`big-moment-banner ${scoreFlashSide ? `big-moment-${scoreFlashSide}` : ""}`}>

@@ -423,5 +423,5 @@
 }
 @media(prefers-reduced-motion:reduce){.dashboard-theme-night-fireworks .dashboard-theme-canvas i{animation:none}.dashboard-theme-ceremony .dashboard-theme-canvas:after{animation:none}}
 
-/* V6.4.11 — keep the live fan wire visually stable while a shared ceremony is on stage */
+/* V6.4.12 — keep the live fan wire visually stable while a shared ceremony is on stage */
 .game-day-social.is-feed-paused .gds-post,.game-day-social.is-feed-paused .gds-post.is-new,.game-day-social.is-feed-paused .gds-watching{animation:none!important;transition:none!important;transform:none!important}
