@@ -8,7 +8,7 @@ import { makeSafePlayoffBracket } from "../utils/playoffUtils";
 const LEAGUE_EXTRAS_BACKUP_KEY = `${STORAGE_KEY}.leagueExtras.v5`;
 const PROTECTED_SNAPSHOT_PATH = "leagueProtected/v5Snapshot";
 const LIVE_GAME_BACKUP_KEY = `${STORAGE_KEY}.currentGame.v5`;
-const LIVE_GAME_SYNC_VERSION = 6;
+const LIVE_GAME_SYNC_VERSION = 7;
 
 function hasOwn(obj,key){return Object.prototype.hasOwnProperty.call(obj||{},key)}
 function hasMeaningfulLeagueExtras(extras={}){
@@ -57,30 +57,43 @@ function readLiveGameBackupRecord(){
     return parsed?.game?parsed:null;
   }catch{return null}
 }
-function writeLiveGameBackup(game,updatedAt=Date.now(),revision=0){
-  try{localStorage.setItem(LIVE_GAME_BACKUP_KEY,JSON.stringify({version:LIVE_GAME_SYNC_VERSION,updatedAt,revision:Number(revision||0),game:makeSafeGame(game||{})}))}catch{}
+function writeLiveGameBackup(game,updatedAt=Date.now(),revision=0,commitId=""){
+  try{localStorage.setItem(LIVE_GAME_BACKUP_KEY,JSON.stringify({version:LIVE_GAME_SYNC_VERSION,updatedAt,revision:Number(revision||0),commitId:String(commitId||""),game:makeSafeGame(game||{})}))}catch{}
 }
 function sameMatchup(a={},b={}){return Boolean(a?.awayTeamId&&a?.homeTeamId&&a.awayTeamId===b?.awayTeamId&&a.homeTeamId===b?.homeTeamId)}
 function gameProgressScore(game={}){
   const inning=Math.max(1,Number(game?.inning||1)); const half=game?.half==='Bottom'?1:0;
   return inning*10000+half*5000+Number(game?.outs||0)*1000+Number(game?.awayScore||0)*120+Number(game?.homeScore||0)*120+(game?.playLog?.length||0)*4+(game?.history?.length||0);
 }
-function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0,remoteRevision=0){
+function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0,remoteRevision=0,remoteCommitId=""){
   const local=localRecord?.game;
   if(!local)return false;
   const localUpdatedAt=Number(localRecord?.updatedAt||0);
   const localRevision=Number(localRecord?.revision||0);
+  const localCommitId=String(localRecord?.commitId||"");
+  const localFingerprint=gameFingerprint(local);
+  const remoteFingerprint=gameFingerprint(remoteGame);
 
-  // Revision order is authoritative even when the matchup changes. Finalizing a game
-  // intentionally replaces the live matchup with a blank reset/tombstone. An older
-  // Firebase echo from the finished matchup must never be allowed to resurrect it.
-  if(localRevision>0&&remoteRevision>0&&localRevision!==remoteRevision)return localRevision>remoteRevision;
+  // V7 rule: revision order is absolute. Once this browser has committed N, no
+  // older Firebase echo may replace it, regardless of inning/matchup/timestamps.
+  if(localRevision>0&&remoteRevision>0){
+    if(localRevision!==remoteRevision)return localRevision>remoteRevision;
 
+    // Equal revisions should describe the same commit. If they do not, prefer the
+    // operator's local commit rather than letting an ambiguous echo rewind the UI.
+    if(localFingerprint!==remoteFingerprint){
+      if(localCommitId&&remoteCommitId)return localCommitId!==remoteCommitId;
+      return true;
+    }
+    return false;
+  }
+
+  // Legacy migration fallback for snapshots written before revisions existed.
   if(remoteGame?.status==='Final')return false;
   if(!sameMatchup(local,remoteGame))return false;
   if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
-  if(remoteUpdatedAt>0&&localUpdatedAt>0&&gameFingerprint(local)!==gameFingerprint(remoteGame))return localUpdatedAt>remoteUpdatedAt;
-  return ['Live','Delay'].includes(local?.status||'')&&gameFingerprint(local)!==gameFingerprint(remoteGame)&&gameProgressScore(local)>=gameProgressScore(remoteGame);
+  if(remoteUpdatedAt>0&&localUpdatedAt>0&&localFingerprint!==remoteFingerprint)return localUpdatedAt>remoteUpdatedAt;
+  return ['Live','Delay'].includes(local?.status||'')&&localFingerprint!==remoteFingerprint&&gameProgressScore(local)>=gameProgressScore(remoteGame);
 }
 
 function mergeRemoteExtras(prevExtras={},remoteExtras={}){
@@ -124,8 +137,9 @@ export default function usePersistence({ data, setData }) {
     const existing=readLiveGameBackupRecord();
     const updatedAt=Date.now();
     const revision=Math.max(0,Number(existing?.revision||0))+1;
-    writeLiveGameBackup(safeGame,updatedAt,revision);
-    const payload={...safeGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision}};
+    const commitId=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():`${updatedAt}-${revision}-${Math.random().toString(36).slice(2)}`;
+    writeLiveGameBackup(safeGame,updatedAt,revision,commitId);
+    const payload={...safeGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision,commitId}};
     set(ref(db, "currentGame"), payload).catch((error) => console.error("[Firebase Debug] WRITE currentGame failed", error));
   }
 
@@ -202,7 +216,7 @@ export default function usePersistence({ data, setData }) {
       lastLocalGameFingerprint.current=currentFingerprint;
     }else if(currentFingerprint!==lastLocalGameFingerprint.current){
       const existing=readLiveGameBackupRecord();
-      writeLiveGameBackup(data.currentGame||{},Date.now(),Number(existing?.revision||0));
+      writeLiveGameBackup(data.currentGame||{},Date.now(),Number(existing?.revision||0),String(existing?.commitId||""));
       lastLocalGameFingerprint.current=currentFingerprint;
     }
     try {
@@ -286,19 +300,25 @@ export default function usePersistence({ data, setData }) {
     return onValue(gameRef, (snapshot) => {
       const value = snapshot.val();
       if (!value) { hasLoadedFirebaseGame.current = true; return; }
-      const remoteGame=makeSafeGame(value); const remoteUpdatedAt=Number(value?._sync?.updatedAt||0); const remoteRevision=Number(value?._sync?.revision||0);
+      const remoteGame=makeSafeGame(value);
+      const remoteUpdatedAt=Number(value?._sync?.updatedAt||0);
+      const remoteRevision=Number(value?._sync?.revision||0);
+      const remoteCommitId=String(value?._sync?.commitId||"");
       const localRecord=readLiveGameBackupRecord();
-      if(shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt,remoteRevision)){
-        const localGame=makeSafeGame(localRecord.game); const updatedAt=Number(localRecord.updatedAt||Date.now()); const revision=Number(localRecord.revision||1);
-        set(gameRef,{...localGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision,recovered:true}}).catch((error)=>console.error("[Firebase Debug] RECOVER currentGame failed",error));
-        setData((prev)=>({...prev,currentGame:localGame}));
+      if(shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt,remoteRevision,remoteCommitId)){
+        const localGame=makeSafeGame(localRecord.game);
+        // Re-publish through the normal writer so recovery itself receives a fresh,
+        // higher revision. That makes the correction unambiguously newer than the
+        // stale echo that triggered it.
+        syncCurrentGameToFirebase(localGame);
+        setData((prev)=>gameFingerprint(prev.currentGame)===gameFingerprint(localGame)?prev:{...prev,currentGame:localGame});
         hasLoadedFirebaseGame.current=true; return;
       }
       const cleanRemote=makeSafeGame(remoteGame); const fp=gameFingerprint(cleanRemote);
       applyingRemoteGameFingerprint.current=fp;
       lastLocalGameFingerprint.current=fp;
-      writeLiveGameBackup(cleanRemote,remoteUpdatedAt||Date.now(),remoteRevision);
-      setData((prev) => ({ ...prev, currentGame: cleanRemote }));
+      writeLiveGameBackup(cleanRemote,remoteUpdatedAt||Date.now(),remoteRevision,remoteCommitId);
+      setData((prev) => gameFingerprint(prev.currentGame)===fp ? prev : ({ ...prev, currentGame: cleanRemote }));
       hasLoadedFirebaseGame.current = true;
     });
   }, [setData]);
