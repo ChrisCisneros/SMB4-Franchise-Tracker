@@ -5,6 +5,7 @@ import {
   advancePlayoffWinner, getPlayoffSeries, getWinsNeededForSeries,
   makeSafePlayoffBracket, setPlayoffSeries
 } from "../utils/playoffUtils";
+import { captureRaceTransitions } from "../utils/v65LifeUtils";
 
 export default function createGameFinalizationController({
   data, setData, currentGame, winningPitcherId, losingPitcherId,
@@ -252,15 +253,19 @@ syncPlayersToFirebase(resetPlayers);
 const nextGames = [finishedGame, ...(prev.games || [])];
 syncGamesToFirebase(nextGames);
 let nextExtras=prev.leagueExtras||{};
+const raceEvents=captureRaceTransitions(prev,prev.teams||[],nextTeams);
+if(raceEvents.length){
+  nextExtras={...nextExtras,raceEvents:[...raceEvents,...(nextExtras.raceEvents||[])].slice(0,160)};
+}
 if(anchorGame&&seasonGameNumber){
   const finishedSlot=buildSeasonCalendar(prev,prev.teams||[]).find(s=>Number(s.gameNumber)===Number(seasonGameNumber));
   if(finishedSlot){
     const currentIndex=inferredLeagueDayIndex(prev,prev.teams||[]);
     const nextIndex=Math.min(55,Math.max(currentIndex,finishedSlot.slotIndex+1));
     nextExtras={...nextExtras,seasonDayIndex:nextIndex};
-    syncLeagueExtrasToFirebase?.(nextExtras);
   }
 }
+if(nextExtras!==prev.leagueExtras) syncLeagueExtrasToFirebase?.(nextExtras);
 
 return {
   ...prev,

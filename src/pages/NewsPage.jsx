@@ -13,6 +13,7 @@ import NMLBUniverseHub from '../components/NMLBUniverseHub';
 import { buildNMLBCulture, predictionSnapshot } from '../utils/nmlbCultureUtils';
 import { buildPostseasonNightlyShow, buildPostseasonSeriesMemory, buildAnalystReputation, buildHistoricalComparisons, buildPostseasonMemoryCards, buildPostseasonRivalryHeat } from '../utils/postseasonMemoryUtils';
 import { buildStretchRunBoard } from '../utils/finalWeeksUtils';
+import { buildFinalWeekCommand, buildLeaguePulse65, buildWeeklyRituals65 } from '../utils/v65LifeUtils';
 
 const FILTERS = ["All", "Current", "Facts", "Postseason", "Record Book", "Archive"];
 const FEATURE_ROTATE_MS = 120000;
@@ -113,6 +114,9 @@ export default function NewsPage({ ctx }) {
   const postseasonMemories=useMemo(()=>buildPostseasonMemoryCards(data,teams),[data.games,data.activeSeasonName,teams]);
   const postseasonRivalries=useMemo(()=>buildPostseasonRivalryHeat(data,teams),[data.games,data.seasonHistory,teams]);
   const stretchRun=useMemo(()=>buildStretchRunBoard(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const v65Command=useMemo(()=>buildFinalWeekCommand(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const v65Pulse=useMemo(()=>buildLeaguePulse65(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
+  const v65Rituals=useMemo(()=>buildWeeklyRituals65(data,teams,ctx.playoffPicture||[]),[data,teams,ctx.playoffPicture]);
   const todaySlot = useMemo(()=>currentLeagueDay(data,teams),[data,teams]);
   const todayCeremonies = useMemo(()=>todaySlot?.gameNumber?ceremonyForGame(data,teams,todaySlot.gameNumber):[],[data,teams,todaySlot?.gameNumber]);
   const filtered = filter === "All" ? stories : stories.filter((story) => storyBucket(story) === filter);
@@ -160,11 +164,12 @@ export default function NewsPage({ ctx }) {
   return (
     <div className="news-page">
       <section className="news-masthead card">
-        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.4.13 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
+        <div className="news-brand-block"><div className="news-network-mark">NMLB</div><div><div className="news-kicker">NICKY’S MAJOR LEAGUE BASEBALL · NMLB NETWORK</div><h2>League News</h2><p>Version 6.5 newsroom: headlines, recurring shows, city mood, receipts, culture, history and the stories that keep moving after the final out.</p></div></div>
         <div className="news-masthead-stats"><div><strong>{stories.length}</strong><span>Story Pool</span></div><div><strong>{factCount}</strong><span>Facts</span></div><div><strong>{historyCount}</strong><span>History</span></div></div>
       </section>
 
 
+      {v65Command.events.length>0&&<section className="v65-clinching-night"><article className="card"><small>CLINCHING NIGHT · WHAT CHANGED?</small><h2>{v65Command.events[0].headline}</h2><p>{v65Command.events[0].detail}</p><strong>{v65Command.events[0].record}</strong></article><article className="card"><small>FIELD COUNTER</small><h2>{v65Command.claimed}/{v65Command.totalSpots} CLAIMED</h2><p>{v65Command.unresolved?`${v65Command.unresolved} postseason spots are still unresolved.`:'THE FIELD IS SET.'}</p></article><article className="card"><small>LEAGUE PULSE</small><h2>{v65Pulse.leagueMood}</h2><p>{v65Pulse.hottestStory}</p></article><article className="card"><small>WEEKLY RITUAL</small><h2>{v65Rituals[0]?.value||'—'}</h2><p>{v65Rituals[0]?.label} · {v65Rituals[0]?.detail}</p></article></section>}
       {stretchRun.phase.id!=='regular'&&<section className={`nmlb6411-news-stretch ${stretchRun.phase.id}`}><article><small>NMLB STRETCH RUN DESK · {stretchRun.phase.tag}</small><h2>{stretchRun.phase.label}</h2><p>{stretchRun.phase.detail}</p></article><article><small>BUBBLE WATCH</small>{stretchRun.bubble.slice(0,5).map(x=><span key={x.team.id}><b>{x.team.abbr}</b><strong>DIV E# {x.divE} · WC E# {x.wcE}</strong></span>)}</article><article><small>RACE NIGHT</small><h3>{stretchRun.raceNight.pressureTeams} pressure clubs</h3><p>{stretchRun.raceNight.possibleClinches} possible one-result decisions are sitting on the board.</p></article></section>}
       {postseasonPredictions.phase.id!=='preview'&&<section className="nmlb64-news-ramp">
         <article><small>NMLB NETWORK · ROAD TO OCTOBER</small><h2>{postseasonPredictions.phase.label}</h2><p>{postseasonPredictions.phase.detail}</p><div className="nmlb64-culture-tags"><span>WEEK {postseasonPredictions.phase.week||culture.week}</span><span>{postseasonPredictions.phase.locked?'🔒 PICKS LOCKED':'PICKS CAN STILL MOVE'}</span>{postseasonPredictions.consensus&&<span>CONSENSUS · {postseasonPredictions.consensus.abbr}</span>}</div></article>

@@ -30,6 +30,7 @@ import { buildNMLBCulture } from "../utils/nmlbCultureUtils";
 import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
 import { buildPostseasonNightlyShow, buildPostseasonMythology, buildPostseasonMemoryCards, buildPostseasonSeriesMemory } from "../utils/postseasonMemoryUtils";
 import { buildStretchRunBoard, postseasonGamePressure } from "../utils/finalWeeksUtils";
+import { buildFinalWeekCommand, buildLeaguePulse65, buildPostseasonReadiness, buildWeeklyRituals65 } from "../utils/v65LifeUtils";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -64,6 +65,10 @@ export default function DashboardPage({ ctx }) {
   const postseasonMemories = useMemo(()=>buildPostseasonMemoryCards(data,teams),[data.games,data.activeSeasonName,teams]);
   const postseasonSeriesMemory = useMemo(()=>buildPostseasonSeriesMemory(data,teams),[data.games,data.playoffBracket,data.activeSeasonName,teams]);
   const stretchRun = useMemo(()=>buildStretchRunBoard({...data,currentGame},teams,playoffPicture||[]),[data,teams,playoffPicture,currentGame]);
+  const v65Command = useMemo(()=>buildFinalWeekCommand(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
+  const v65Pulse = useMemo(()=>buildLeaguePulse65(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
+  const v65Ready = useMemo(()=>buildPostseasonReadiness(data,teams,playoffPicture||[]).slice(0,5),[data,teams,playoffPicture]);
+  const v65Rituals = useMemo(()=>buildWeeklyRituals65(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const playoffPressure = useMemo(()=>postseasonGamePressure(currentGame,postseasonSeriesMemory),[currentGame,postseasonSeriesMemory]);
   const divisionEliminated = useMemo(() => (playoffPicture || []).flatMap((picture) => (picture.leagueTeams || []).filter((team) => isDivisionEliminated(team, picture)).map((team) => ({ team, picture }))), [playoffPicture]);
   const ticketForecast = useMemo(()=>buildTicketForecast(data,teams,playoffPicture),[data,teams,playoffPicture]);
@@ -133,7 +138,7 @@ export default function DashboardPage({ ctx }) {
     const ceremonies=(extras.ceremonies||[]).map(c=>c.id===ceremony.id?{...c,status:'completed',completedAt:new Date().toISOString()}:c);
     const ceremonyTeam=teams.find(t=>t.id===ceremony.teamId||t.abbr===ceremony.teamAbbr)||null;
     const ceremonyScript=ceremonyTeam?buildCeremonyScript(ceremony,ceremonyTeam):null;
-    const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,script:ceremonyScript?{commissioner:ceremonyScript.commissioner,commissionerExtra:ceremonyScript.commissionerExtra,manager:ceremonyScript.manager,managerSecond:ceremonyScript.managerSecond,fans:ceremonyScript.fans}:null,ceremonyVersion:'6.4.13',completedAt:new Date().toISOString()};
+    const completion={id:`complete-${ceremony.id}`,ceremonyId:ceremony.id,teamId:ceremony.teamId||'',teamAbbr:ceremony.teamAbbr||'',originSeasonName:ceremony.originSeasonName||ceremony.seasonName||'',revealed,script:ceremonyScript?{commissioner:ceremonyScript.commissioner,commissionerExtra:ceremonyScript.commissionerExtra,manager:ceremonyScript.manager,managerSecond:ceremonyScript.managerSecond,fans:ceremonyScript.fans}:null,ceremonyVersion:'6.5',completedAt:new Date().toISOString()};
     const ceremonyCompletions=[completion,...(extras.ceremonyCompletions||[]).filter(x=>x.ceremonyId!==ceremony.id)];
     const memory={id:`glory-${ceremony.id}`,type:'LEGACY',icon:'🏆',title:`${ceremony.teamAbbr||'League'} ceremony enters the Museum & Hall of Glory`,detail:`${ceremony.title} was completed and its championship hardware is now permanently unveiled.`,createdAt:new Date().toISOString()};
     const worldMoments=[memory,...(extras.worldMoments||[]).filter(x=>x.id!==memory.id)];
@@ -237,6 +242,9 @@ export default function DashboardPage({ ctx }) {
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444',...broadcastThemeStyle(broadcastTheme)}}>
+    {v65Command.pulse.week>=7&&<section className="v65-final-week-hero card"><div><small>NMLB V6.5 · FINAL WEEK COMMAND</small><h2>{v65Command.selectionReady?'THE FIELD IS SET':v65Command.pulse.week>=8?'FINAL WEEK':'THE PUSH'}</h2><p>{v65Command.unresolved?`${v65Command.unresolved} postseason spot${v65Command.unresolved===1?'':'s'} still unresolved. Every final can change the map.`:'October has its field. The league is ready for the Selection Show.'}</p></div><div className="v65-field-meter"><strong>{v65Command.claimed}/{v65Command.totalSpots}</strong><span>SPOTS CLAIMED</span><i><b style={{width:`${v65Command.totalSpots?Math.round(v65Command.claimed/v65Command.totalSpots*100):0}%`}}/></i></div><div className="v65-tonight-stakes">{v65Command.pressure.slice(0,4).map(x=><span className={`tone-${x.tone}`} key={x.team.id}><b>{x.team.abbr}</b><strong>{x.label}</strong><em>{x.detail}</em></span>)}</div></section>}
+    {v65Command.events.length>0&&<section className="v65-changed-tonight card"><div><small>WHAT CHANGED TONIGHT?</small><h3>{v65Command.events[0].headline}</h3><p>{v65Command.events[0].detail}</p></div><div>{v65Command.events.slice(0,4).map(e=><span key={e.id}><b>{e.teamAbbr}</b>{e.label}</span>)}</div></section>}
+    <section className="v65-dashboard-life"><article className="card"><small>LEAGUE PULSE</small><h3>{v65Pulse.leagueMood}</h3><p>{v65Pulse.hottestStory}</p><div className="v65-pulse-tags"><span>Loudest · {v65Pulse.loudest?.team?.abbr||'—'}</span><span>Pressure · {v65Pulse.pressure?.team?.abbr||'—'}</span><span>Underdog · {v65Pulse.underdog?.team?.abbr||'—'}</span></div></article><article className="card"><small>POSTSEASON READINESS</small>{v65Ready.map(x=><div className="v65-ready-row" key={x.team.id}><b>{x.team.abbr}</b><i><u style={{width:`${x.readiness}%`}}/></i><strong>{x.readiness}</strong><span>{x.label}</span></div>)}</article><article className="card"><small>WEEKLY RITUALS</small>{v65Rituals.slice(0,3).map(x=><p key={x.label}><b>{x.label}</b><strong>{x.value}</strong><span>{x.detail}</span></p>)}</article></section>
     {activeCeremony&&<ChampionshipCeremony ceremony={activeCeremony} team={teams.find(t=>t.id===activeCeremony.teamId)||teams.find(t=>t.abbr===activeCeremony.teamAbbr)} sharedStep={sharedCeremonySession?.status==='active'&&sharedCeremonySession?.ceremonyId===activeCeremony.id?Number(sharedCeremonySession.step||0):null} onSharedStepChange={setSharedCeremonyStep} operator={Boolean(controlsUnlocked)} onClose={()=>setActiveCeremony(null)} onComplete={(revealed)=>completeCeremony(activeCeremony,revealed)}/>}
     <div className="dashboard-theme-canvas" data-icon={broadcastTheme.icon||"⚾"} data-label={broadcastTheme.label||"BASEBALL NIGHT"} aria-hidden="true"><i/><i/><i/><i/><i/><i/></div>
     {v4ShowBunting && <div className={`dashboard-v4-bunting dashboard-v4-bunting-top ${v4BuntingTheme}`} aria-hidden="true">{Array.from({length:11},(_,i)=><i key={i}/>)}</div>}
@@ -244,7 +252,7 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.4.13</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.5</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
@@ -261,7 +269,7 @@ export default function DashboardPage({ ctx }) {
     <section className="v3-dashboard-main-grid">
       <div className="v3-dashboard-primary">
         {readyCeremony&&<section className="ceremony-ready-card"><span>{readyCeremony.type==='championship-opening'?'💍🏆🎏':'🎏'}</span><div><small>CEREMONY READY · {readyCeremony.timing||'PREGAME'}</small><strong>{readyCeremony.title}</strong><p>{readyCeremony.detail}</p></div>{controlsUnlocked?<button type="button" onClick={()=>startSharedCeremony(readyCeremony)}>Begin Ceremony for Everyone</button>:<span className="ceremony-waiting-pill">WAITING FOR OPERATOR</span>}</section>}
-        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.4.13 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
+        {!readyCeremony&&completedCeremony&&controlsUnlocked&&<section className="ceremony-ready-card ceremony-restart-card"><span>🎆</span><div><small>GRAND CEREMONY · RESTART AVAILABLE</small><strong>{completedCeremony.title}</strong><p>Restart this ceremony with the V6.5 presentation. This resets the completion and reruns the shared live ceremony for everyone.</p></div><button type="button" onClick={()=>startSharedCeremony(completedCeremony,{restart:true})}>Restart Grand Ceremony</button></section>}
         <section className="card dashboard-v4-intel">
           <div><span>Broadcast Theme</span><strong>{broadcastTheme.icon} {broadcastTheme.label}</strong></div>
           <div><span>Win Probability</span><strong>{v4Prob.away}% / {v4Prob.home}%</strong></div>

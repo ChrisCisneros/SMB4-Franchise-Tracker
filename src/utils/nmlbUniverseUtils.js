@@ -67,7 +67,25 @@ export function buildNMLBNetwork(data={},teams=[],playoffPicture=[]){
   const v6=buildV6LivingLeague(data,teams,playoffPicture,Date.now());
   const leader=power[0]?.team;
   const race=power.find(x=>!['z','y','w','x','e'].includes(x.marker));
-  const slots=[
+  const pulse=v6?.pulse||{};
+  const week=Number(pulse.week||0);
+  const postseason=String(pulse.phase||'').toLowerCase().includes('postseason')||String(pulse.phase||'').toLowerCase().includes('october');
+  const stretch=week>=7&&!postseason;
+  const slots=postseason?[
+    ['6:00 AM','Morning After','What changed last night, series turning points and the first word on tonight.','Mara Vega · Theo Grant'],
+    ['10:00 AM','October Board','Series leverage, matchup pressure and postseason readiness.','Nina Vale · Marcus Reed'],
+    ['1:00 PM','Clubhouse October','City reports, road atmospheres, rituals and fan culture.','Jo Santos · rotating local desks'],
+    ['4:00 PM','Postseason Tonight','Every series, every pressure point, one national desk.','Cole Briggs · panel'],
+    ['7:00 PM','NMLB Primetime','Live postseason look-ins, elimination-game watch and series control.','National booth'],
+    ['11:00 PM','The Night Cap','Finals, call-ins, receipts and the stories October just created.','Vince Calder'],
+  ]:stretch?[
+    ['6:00 AM','Morning After','Overnight finals, seed movement and what changed in the race.','Mara Vega · Theo Grant'],
+    ['10:00 AM','Bubble Watch','The cut line, paths to clinch and the teams running out of room.','Nina Vale · Marcus Reed'],
+    ['1:00 PM','Clubhouse Live','City reports, ballpark life, road trips and fan pressure.','Jo Santos · rotating local desks'],
+    ['4:00 PM','Clinching Central','Magic numbers, elimination paths and every scenario that can lock tonight.','Cole Briggs · panel'],
+    ['7:00 PM','NMLB Race Night','Scoreboard watching, live look-ins, clinch math and seed swings.','National booth'],
+    ['11:00 PM','The Night Cap','Finals, call-ins, receipts and the updated postseason picture.','Vince Calder'],
+  ]:[
     ['6:00 AM','NMLB First Pitch','Morning headlines, overnight receipts and the day ahead.','Mara Vega · Theo Grant'],
     ['10:00 AM','The Power Board','Power Index movement, fraud alerts and contender checks.','Nina Vale · Marcus Reed'],
     ['1:00 PM','Clubhouse Live','City reports, ballpark life, road trips and fan culture.','Jo Santos · rotating local desks'],

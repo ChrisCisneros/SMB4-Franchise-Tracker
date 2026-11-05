@@ -13,6 +13,7 @@ import { buildPlayerFanPages } from '../utils/livingWorldUtils';
 import { buildRivalryTimeline,buildSeasonScrapbook,buildTeamVibes } from '../utils/mediaMemoryUtils';
 import { buildDefiningMoments,buildFranchiseReputations,buildStadiumFolklore,buildTeamTraditionFiles } from '../utils/lifeSystemsUtils';
 import { achievementsForTeam, awardsForTeam, SEASON_AWARD_TYPES } from '../utils/playerLegacyUtils';
+import { buildFranchiseScrapbook65, buildLeaguePulse65, buildWeeklyRituals65 } from '../utils/v65LifeUtils';
 
 const TABS = [
   ['profiles','Team Profiles'],['scrapbook','Season Scrapbook'],['living-lore','Living Lore'],['culture','Culture & Lore'],['power','Power Rankings'],['games','Game Archive'],['careers','Player Careers'],
@@ -92,6 +93,9 @@ export default function LeagueHubPage({ ctx }) {
   const selectedTeam=teams.find(t=>t.id===teamId)||null;
   const teamAchievements=useMemo(()=>achievementsForTeam(data,teams,teamId),[data,teams,teamId]);
   const teamAwards=useMemo(()=>awardsForTeam(data,selectedTeam?.abbr||''),[data,selectedTeam?.abbr]);
+  const v65Pulse=useMemo(()=>buildLeaguePulse65(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const v65Rituals=useMemo(()=>buildWeeklyRituals65(data,teams,playoffPicture),[data,teams,playoffPicture]);
+  const v65Scrapbook=useMemo(()=>buildFranchiseScrapbook65(data,teams),[data,teams]);
   useEffect(()=>{ if (!playerId && careerBoard[0]?.id) setPlayerId(careerBoard[0].id); },[playerId,careerBoard]);
   const selectedCareer = careerBoard.find(p=>p.id===playerId) || null;
   const selectedPlayerSeasons = history.flatMap(season => (season.players || []).filter(p=>p.id===playerId).map(p=>({...p,seasonName:season.name,seasonId:season.id})));
@@ -156,10 +160,11 @@ export default function LeagueHubPage({ ctx }) {
 
   return <div className="universe-page v3-universe">
     <div className="card universe-hero v3-universe-hero">
-      <div><div className="universe-kicker">NMLB · VERSION 6.4.13</div><h2>NMLB Almanac</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
+      <div><div className="universe-kicker">NMLB · VERSION 6.5</div><h2>NMLB Almanac</h2><p>The permanent baseball database: games, careers, franchises, trophies, records, people and league history.</p></div>
       <div className="universe-hero-stats"><Pill>{records.summary.seasonsArchived} archived seasons</Pill><Pill>{gameRecords.games.length} permanent games</Pill><Pill>{records.summary.teamsTracked} franchises</Pill><Pill>{careerBoard.length} tracked players</Pill></div>
     </div>
     <div className="universe-tabs v3-tab-rail">{TABS.map(([id,label])=><button key={id} className={tab===id?'active-tab':''} onClick={()=>setTab(id)}>{label}</button>)}</div>
+    <section className="v65-almanac-life card"><div><small>LEAGUE PULSE</small><strong>{v65Pulse.leagueMood}</strong><span>{v65Pulse.hottestStory}</span></div>{v65Rituals.slice(0,3).map(x=><div key={x.label}><small>{x.label}</small><strong>{x.value}</strong><span>{x.detail}</span></div>)}</section>
 
     {tab==='profiles' && <div className="universe-section">
       <div className="card profile-selector"><div><h3>Franchise Profile</h3><p className="muted">Permanent franchise history plus V4 living-league data.</p></div><select value={teamId} onChange={(e)=>setTeamId(e.target.value)}>{[...teams].sort((a,b)=>a.abbr.localeCompare(b.abbr)).map(t=><option key={t.id} value={t.id}>{t.abbr} — {t.city} {t.name}</option>)}</select><div className="profile-team-picker">{[...teams].sort((a,b)=>a.abbr.localeCompare(b.abbr)).map(t=><button key={t.id} className={teamId===t.id?'active-tab':''} onClick={()=>setTeamId(t.id)}>{t.abbr}</button>)}</div></div>

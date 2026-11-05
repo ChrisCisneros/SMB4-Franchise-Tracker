@@ -14,6 +14,7 @@ import {
   wildCardGamesBack,
 } from "../utils/standingsUtils";
 import { buildV4TeamMetrics } from "../utils/v4Utils";
+import { buildFinalWeekCommand, buildPostseasonReadiness } from "../utils/v65LifeUtils";
 
 function rdText(value) {
   const number = Number(value || 0);
@@ -196,13 +197,15 @@ export default function StandingsPage({ ctx }) {
   const biggestMover=[...v4Metrics].filter(m=>m.previousRank).sort((a,b)=>Math.abs(b.movement)-Math.abs(a.movement))[0];
 
   const nmlbPower=buildNMLBPowerIndex(data,allTeams,playoffPicture);
+  const v65Command=buildFinalWeekCommand(data,allTeams,playoffPicture);
+  const v65Ready=buildPostseasonReadiness(data,allTeams,playoffPicture);
   const divisionOut = playoffPicture.flatMap((picture) => (picture.leagueTeams || []).filter((team) => isDivisionEliminated(team, picture)).map((team) => ({ team, picture })));
   const postseasonOut = playoffPicture.flatMap((picture) => (picture.leagueTeams || []).filter((team) => getPlayoffMarker(team, picture) === "e").map((team) => ({ team, picture })));
   return (
     <div className="standings-v3-page standings-v4-page">
       <section className="standings-hero card">
         <div>
-          <div className="standings-hero-eyebrow">NMLB · V6.4.13 · PENNANT RACE COMMAND</div>
+          <div className="standings-hero-eyebrow">NMLB · V6.5 · FINAL WEEK RACE COMMAND</div>
           <h1>NMLB Pennant Race</h1>
           <p>{data.activeSeasonName || "Season 4"} is entering the pressure zone. Division control, Wild Card survival, clinches and elimination paths all live here.</p>
         </div>
@@ -213,6 +216,21 @@ export default function StandingsPage({ ctx }) {
         </div>
       </section>
 
+      {v65Command.pulse.week>=7&&<section className="v65-race-command card">
+        <div>
+          <small>FINAL WEEK RACE CONTROL</small>
+          <h2>{v65Command.claimed}/{v65Command.totalSpots} postseason spots claimed</h2>
+          <p>{v65Command.unresolved?`${v65Command.unresolved} remain unresolved. Paths below update with the same math as the standings markers.`:'The field is mathematically set.'}</p>
+          <div className="v65-magic-board">
+            {v65Command.rows.filter(x=>x.divisionMagic!=null||x.berthMagic!=null).sort((a,b)=>Math.min(a.divisionMagic??99,a.berthMagic??99)-Math.min(b.divisionMagic??99,b.berthMagic??99)).slice(0,5).map(x=><span key={`magic-${x.team.id}`}><b>{x.team.abbr}</b><em>{x.divisionMagic!=null?`DIV MAGIC ${x.divisionMagic}`:`BERTH MAGIC ${x.berthMagic}`}</em></span>)}
+          </div>
+        </div>
+        <div>
+          <div className="v65-race-stakes">{v65Command.pressure.slice(0,6).map(x=><span key={x.team.id} className={`tone-${x.tone}`}><b>{x.team.abbr}</b><strong>{x.label}</strong><em>DIV E# {x.divE} · WC E# {x.wcE}</em></span>)}</div>
+          <div className="v65-scoreboard-watch"><small>SCOREBOARD WATCHING</small>{v65Command.pressure.slice(0,4).map(x=><span key={`watch-${x.team.id}`}><b>{x.team.abbr}</b><em>{x.watchTeam?`Keep an eye on ${x.watchTeam.abbr}`:'Controls its own next move'} · {x.gamesLeft} game{x.gamesLeft===1?'':'s'} left</em></span>)}</div>
+        </div>
+        <div className="v65-ready-mini">{v65Ready.slice(0,5).map(x=><span key={x.team.id}><b>{x.team.abbr}</b><strong>{x.readiness}%</strong><em>{x.label}</em></span>)}</div>
+      </section>}
       <section className="card nmlb63-standings-power"><div><small>NMLB POWER INDEX</small><h2>Who is dangerous right now?</h2><p>Record, run differential, recent form, streak and postseason position rolled into one league pulse.</p></div><div className="nmlb63-power-mini">{nmlbPower.slice(0,5).map(x=><article key={x.team.id}><b>#{x.rank}</b><strong>{x.team.abbr}</strong><span>{x.score}</span><em>{x.label}</em></article>)}</div></section>
       <section className="nmlb646-race-control">
         <article className="card nmlb646-race-card"><small>DIVISION RACE STATUS</small><strong>{divisionOut.length}</strong><span>clubs mathematically out of their division race</span><div>{divisionOut.slice(0,8).map(({team,picture})=><b key={team.id}>{team.abbr} · {getPlayoffMarker(team,picture)==='e'?'POSTSEASON OUT':'DIVISION E'}</b>)}</div></article>

@@ -232,3 +232,33 @@ V6.4.13 removes the dual-authority live-game persistence system and returns Live
 - The temporary Copy Sync Trace control is removed from Live Scoring.
 
 This is a stability-first postseason release: one live game, one persisted authority, fewer recovery layers, and less work on every scoring input.
+
+## V6.5 — Final Week & Living League Expansion
+
+V6.5 turns the final stretch of the regular season into a league-wide event while expanding the everyday culture of the NMLB beyond standings and scores.
+
+### Final Week, clinches & the postseason race
+- Added a finalized race-event ledger. Division titles, No. 1 seeds, playoff berths, Wild Cards, division elimination and full postseason elimination are recorded as league events when a regular-season final changes the race.
+- Division and No. 1 seed clinches are now independent achievements, so a club that earns both can receive both stories instead of the `z` marker hiding a division-title article.
+- News promotes persisted clinch/elimination events and also derives current clinch stories from the exact same race math used by Standings.
+- Added Final Week Command presentation across Dashboard, Standings, News, NMLB Center and Bracket.
+- Added What Changed Tonight, postseason-field progress, high-pressure clubs, postseason readiness, Selection Show readiness and Final Week ambient presentation.
+- Race Control now includes division/berth magic numbers, elimination numbers and a Scoreboard Watching strip identifying the rival that matters most to a pressure club.
+- Bracket adds a Selection Show readiness board before the field is fully locked.
+- NMLB Network changes programming during Weeks 7–8 with Bubble Watch, Clinching Central and NMLB Race Night, then shifts to Morning After, October Board and Postseason Tonight once October begins.
+- Awards Race gains a Final Ballot presentation without falsely declaring live leaders as award winners.
+
+### A more inhabited league
+- Added League Pulse: current league mood, hottest story, loudest fanbase, pressure club, underdog energy, hottest merchandise and rivalry heat.
+- Added recurring fan personas, postgame call-in reactions and fan reaction counters generated from the league state already being tracked.
+- Added weekly league rituals including Team of the Week, Moment of the Week, Heartbreak of the Week, Cold Take of the Week and Quote of the Week.
+- Expanded the merchandise world with moment tees, replica scorecards, ticket stubs, game posters, commemorative balls and race-event collector pins.
+- Added Franchise Scrapbook / artifact browsing so current finals, race events and franchise identity have a place to live outside the schedule.
+- Almanac and Fandom now surface current cultural artifacts alongside the permanent historical universe.
+
+### Historical continuity
+- Existing weekly Chronicle snapshots continue automatically through Week 7 and the Week 8 regular-season-final checkpoint.
+- New race events are persisted in `leagueExtras`, allowing clinches and eliminations to survive later standings changes and become usable by News, Dashboard, Center and future historical systems.
+- Visible app branding is updated to V6.5 — Final Week & Living League Expansion.
+
+V6.5 intentionally builds on the V6.4.13 single-source Live Scoring architecture; it does not reintroduce local live-game authority, revision arbitration or reconnect resurrection logic.

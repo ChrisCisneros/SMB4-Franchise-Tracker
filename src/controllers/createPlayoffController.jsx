@@ -5,7 +5,7 @@ import {
   advancePlayoffWinner, defaultBracketSeries, defaultPlayoffBracket,
   getPlayoffSeries, getWinsNeededForSeries, makeSafePlayoffBracket, setPlayoffSeries
 } from "../utils/playoffUtils";
-import { sortStandingsTeams } from "../utils/standingsUtils";
+import { buildPlayoffPictureFromTeams } from "../utils/v65LifeUtils";
 
 export default function createPlayoffController({
   data, teams, currentGame, setData,
@@ -13,44 +13,7 @@ export default function createPlayoffController({
   setPlayoffAwayScore, setPlayoffHomeScore,
   syncPlayoffBracketToFirebase,
 }) {
-  const playoffPicture = data.leagues.map((league) => {
-  const leagueTeams = teams.filter((team) => team.league === league);
-
-  
-
-  const divisionLeaders = data.divisions
-    .map((division) => {
-      const divisionTeams = sortStandingsTeams(
-        leagueTeams.filter((team) => team.division === division)
-      );
-
-      return divisionTeams[0]
-        ? {
-            ...divisionTeams[0],
-            division,
-          }
-        : null;
-    })
-    .filter(Boolean);
-
-  const seededDivisionLeaders = sortStandingsTeams(divisionLeaders);
-
-const divisionLeaderIds = new Set(seededDivisionLeaders.map((team) => team.id));
-
-const wildcardTeams = sortStandingsTeams(
-  leagueTeams.filter((team) => !divisionLeaderIds.has(team.id))
-);
-
-const cutoffTeam = wildcardTeams[WILD_CARD_TEAMS_PER_LEAGUE - 1] || null;
-
-return {
-  league,
-  leagueTeams,
-  divisionLeaders: seededDivisionLeaders,
-  wildcardTeams,
-  cutoffTeam,
-};
-});
+  const playoffPicture = buildPlayoffPictureFromTeams(data, teams);
 
 const playoffBracket = makeSafePlayoffBracket(data.playoffBracket);
 

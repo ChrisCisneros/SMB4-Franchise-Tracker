@@ -2,7 +2,7 @@ import { makeSafePlayoffBracket } from "./playoffUtils";
 import { buildLeagueRecords, formatPct } from "./recordsUtils";
 import { buildGameRecords, buildHeadToHead, buildTeamHistoryLeaders } from "./historyUtils";
 import { buildHistoricGameAlerts } from "./ballparkLifeUtils";
-import { getPostseasonStatus, isDivisionEliminated, maxPossibleWins } from "./standingsUtils";
+import { getPostseasonStatus, isDivisionEliminated, maxPossibleWins, hasClinchedDivision, hasClinchedTopLeagueSeed } from "./standingsUtils";
 
 function gamePct(team) {
   const wins = Number(team?.wins || 0);
@@ -65,6 +65,24 @@ export function buildNewsFeed(data, teams, playoffPicture = []) {
   const seasonHistory = Array.isArray(data?.seasonHistory) ? data.seasonHistory : [];
   const teamById = (id) => activeTeams.find((team) => team.id === id);
 
+  // V6.5 race-event ledger: finalized clinches/eliminations are preserved as actual league events,
+  // so a major moment cannot disappear simply because a later render reorders the inferred story pool.
+  (data?.leagueExtras?.raceEvents || []).slice(0, 24).forEach((event, index) => {
+    const category = ['z','y','x','w'].includes(event.marker) ? 'Clinched' : event.marker === 'e' ? 'Eliminated' : 'Division Race';
+    stories.push({
+      id: `race-event-${event.id || index}`,
+      kind: 'race-event',
+      category,
+      tone: event.marker === 'e' ? 'archive' : 'postseason',
+      dateLabel: event.createdAt ? new Date(event.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'Clinching Night',
+      badge: event.label || 'RACE UPDATE',
+      headline: event.headline || `${event.teamAbbr || 'NMLB'} race status changed`,
+      dek: `${event.detail || 'The pennant race changed after the latest final.'}${event.record ? ` · Record: ${event.record}.` : ''}`,
+      teams: event.teamAbbr ? [event.teamAbbr] : [],
+      priority: event.major ? 100 : 90,
+    });
+  });
+
   // Pennant-race status stories use the exact same clinch/elimination math as Standings.
   // This keeps the News desk, Dashboard and standings markers from disagreeing.
   (Array.isArray(playoffPicture) ? playoffPicture : []).forEach((picture) => {
@@ -97,17 +115,19 @@ export function buildNewsFeed(data, teams, playoffPicture = []) {
         badge: status.label.toUpperCase(),
       };
 
-      if (status.marker === "z") stories.push({
-        ...base, id: `clinch-z-${team.id}`, category: "Clinched",
+      // Clinch achievements are independent. A No. 1 seed can also be a division clinch,
+      // so do not let the single standings marker hide a major article.
+      if (hasClinchedTopLeagueSeed(team, picture)) stories.push({
+        ...base, badge: "NO. 1 SEED", id: `clinch-z-${team.id}`, category: "Clinched",
         headline: `${team.abbr} locks up the ${picture.league} No. 1 seed`,
         dek: `${teamName(team)} is ${record}. No other ${picture.league} club can reach its current win total, so home-field positioning is mathematically secured with ${remaining} game${remaining === 1 ? "" : "s"} left.`,
       });
-      else if (status.marker === "y") stories.push({
-        ...base, id: `clinch-y-${team.id}`, category: "Clinched",
+      if (hasClinchedDivision(team, picture)) stories.push({
+        ...base, badge: "DIVISION CHAMPIONS", id: `clinch-y-${team.id}`, category: "Clinched",
         headline: `${team.abbr} clinches the ${picture.league} ${team.division}`,
         dek: `${teamName(team)} has ${Number(team.wins || 0)} wins, more than every division rival can still reach. The division race is officially over.`,
       });
-      else if (status.marker === "w") stories.push({
+      if (status.marker === "w") stories.push({
         ...base, id: `clinch-w-${team.id}`, category: "Clinched",
         headline: `${team.abbr} clinches a ${picture.league} Wild Card berth`,
         dek: `${teamName(team)} has punched its postseason ticket. Even the first club currently outside the field cannot reach ${team.abbr}'s current win total.`,
