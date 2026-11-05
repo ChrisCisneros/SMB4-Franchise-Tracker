@@ -13,17 +13,6 @@ export default function LivePage({ ctx }) {
   const { adjustLiveInning, setData, syncLeagueExtrasToFirebase, awayColors, awayTeam, battingBaseColors, bigMomentBanner, changeBoxStat, changeScore, clearFieldBall, currentGame, cycleLiveLook, dropFieldBall, finalizeGame, homeColors, homeTeam, isPlayoffLiveGame, isWorldSeriesGame, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, numberedTeams, playoffBroadcastVars, playoffSeriesDropdownLabel, playoffSeriesOptions, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, scoreFlashSide, setLiveHalf, setMidEndInningStatus, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateFieldBallResult } = ctx;
   const activePark = useMemo(()=>buildBallparkProfile(ctx.data||{}, homeTeam),[homeTeam,ctx.data?.leagueExtras?.ballparks]);
 
-  const copyLiveSyncTrace = async () => {
-    const trace = Array.isArray(window.__NMLB_LIVE_SYNC_TRACE__) ? window.__NMLB_LIVE_SYNC_TRACE__ : [];
-    const text = JSON.stringify(trace, null, 2);
-    try {
-      await navigator.clipboard.writeText(text);
-      window.alert(`Copied ${trace.length} live-sync events.`);
-    } catch {
-      window.prompt("Copy the live-sync trace below:", text);
-    }
-  };
-
   const fieldPlayGroups = {
     hit: [
       ["single", "Single"], ["double", "Double"], ["triple", "Triple"], ["homerun", "Home Run"],
@@ -71,9 +60,6 @@ export default function LivePage({ ctx }) {
             </div>
     
             <div className="inline-buttons">
-      <button type="button" onClick={copyLiveSyncTrace} title="Copy the last live-sync events for debugging">
-        Copy Sync Trace
-      </button>
       <button className="danger-lite" onClick={resetCurrentMatch}>
         Reset Full Game
       </button>

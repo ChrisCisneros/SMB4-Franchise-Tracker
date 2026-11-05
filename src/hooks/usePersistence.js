@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { onValue, ref, set } from "firebase/database";
 import { db } from "../firebase";
-import { MAX_HISTORY, MAX_PLAY_LOG, STORAGE_KEY } from "../config/constants";
+import { STORAGE_KEY } from "../config/constants";
 import { defaultLeagueExtras, makeSafeGame } from "../utils/gameState";
 import { makeSafePlayoffBracket } from "../utils/playoffUtils";
 
 const LEAGUE_EXTRAS_BACKUP_KEY = `${STORAGE_KEY}.leagueExtras.v5`;
 const PROTECTED_SNAPSHOT_PATH = "leagueProtected/v5Snapshot";
-const LIVE_GAME_BACKUP_KEY = `${STORAGE_KEY}.currentGame.v5`;
-const LIVE_GAME_SYNC_VERSION = 8;
-const LIVE_SYNC_TRACE_KEY = `${STORAGE_KEY}.currentGame.syncTrace.v8`;
+const LEGACY_LIVE_KEYS = [
+  `${STORAGE_KEY}.currentGame.v5`,
+  `${STORAGE_KEY}.currentGame.syncTrace.v8`,
+];
 
 function hasOwn(obj,key){return Object.prototype.hasOwnProperty.call(obj||{},key)}
 function hasMeaningfulLeagueExtras(extras={}){
@@ -40,84 +41,20 @@ function safeParseSnapshot(value){
     return parsed&&typeof parsed==='object'?{extras:parsed,updatedAt:Number(value?.updatedAt||0)}:null;
   }catch{return null}
 }
-function gameFingerprint(game={}){
-  const g=makeSafeGame(game||{}); const fs=g.fieldState||{};
-  return JSON.stringify([
-    g.awayTeamId||'',g.homeTeamId||'',g.status||'',g.gameType||'',g.playoffSeriesId||'',
-    Number(g.inning||1),g.half||'Top',Number(g.outs||0),Number(g.balls||0),Number(g.strikes||0),
-    Number(g.awayScore||0),Number(g.homeScore||0),Number(g.awayHits||0),Number(g.homeHits||0),
-    Number(g.awayErrors||0),Number(g.homeErrors||0),Boolean(g.bases?.first),Boolean(g.bases?.second),Boolean(g.bases?.third),
-    Number(g.awayBatterIndex||0),Number(g.homeBatterIndex||0),String(g.latestPlay||''),String(g.lastAnnouncement||''),
-    Array.isArray(g.playLog)?g.playLog.length:0,Array.isArray(g.history)?g.history.length:0,
-    Number(fs.playEvent?.id||0),Number(fs.runnerEvent?.id||0),Number(fs.cueEvent?.id||0),Number(fs.socialEvent?.id||0)
-  ]);
+function stripLiveGame(data={}){
+  const { currentGame: _currentGame, ...persistable } = data || {};
+  return persistable;
 }
-function readLiveGameBackupRecord(){
+function clearLegacyLivePersistence(){
   try{
-    const raw=localStorage.getItem(LIVE_GAME_BACKUP_KEY); const parsed=raw?JSON.parse(raw):null;
-    return parsed?.game?parsed:null;
-  }catch{return null}
-}
-function writeLiveGameBackup(game,updatedAt=Date.now(),revision=0,commitId=""){
-  try{localStorage.setItem(LIVE_GAME_BACKUP_KEY,JSON.stringify({version:LIVE_GAME_SYNC_VERSION,updatedAt,revision:Number(revision||0),commitId:String(commitId||""),game:makeSafeGame(game||{})}))}catch{}
-}
-function sameMatchup(a={},b={}){return Boolean(a?.awayTeamId&&a?.homeTeamId&&a.awayTeamId===b?.awayTeamId&&a.homeTeamId===b?.homeTeamId)}
-function gameProgressScore(game={}){
-  const inning=Math.max(1,Number(game?.inning||1)); const half=game?.half==='Bottom'?1:0;
-  return inning*10000+half*5000+Number(game?.outs||0)*1000+Number(game?.awayScore||0)*120+Number(game?.homeScore||0)*120+(game?.playLog?.length||0)*4+(game?.history?.length||0);
-}
-function shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt=0,remoteRevision=0,remoteCommitId=""){
-  const local=localRecord?.game;
-  if(!local)return false;
-  const localUpdatedAt=Number(localRecord?.updatedAt||0);
-  const localRevision=Number(localRecord?.revision||0);
-  const localCommitId=String(localRecord?.commitId||"");
-  const localFingerprint=gameFingerprint(local);
-  const remoteFingerprint=gameFingerprint(remoteGame);
-
-  // V7 rule: revision order is absolute. Once this browser has committed N, no
-  // older Firebase echo may replace it, regardless of inning/matchup/timestamps.
-  if(localRevision>0&&remoteRevision>0){
-    if(localRevision!==remoteRevision)return localRevision>remoteRevision;
-
-    // Equal revisions should describe the same commit. If they do not, prefer the
-    // operator's local commit rather than letting an ambiguous echo rewind the UI.
-    if(localFingerprint!==remoteFingerprint){
-      if(localCommitId&&remoteCommitId)return localCommitId!==remoteCommitId;
-      return true;
+    LEGACY_LIVE_KEYS.forEach((key)=>localStorage.removeItem(key));
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const parsed=JSON.parse(raw);
+    if(parsed&&typeof parsed==='object'&&hasOwn(parsed,'currentGame')){
+      delete parsed.currentGame;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed));
     }
-    return false;
-  }
-
-  // Legacy migration fallback for snapshots written before revisions existed.
-  if(remoteGame?.status==='Final')return false;
-  if(!sameMatchup(local,remoteGame))return false;
-  if(!['Live','Delay','Warmup','Not Started'].includes(local?.status||''))return false;
-  if(remoteUpdatedAt>0&&localUpdatedAt>0&&localFingerprint!==remoteFingerprint)return localUpdatedAt>remoteUpdatedAt;
-  return ['Live','Delay'].includes(local?.status||'')&&localFingerprint!==remoteFingerprint&&gameProgressScore(local)>=gameProgressScore(remoteGame);
-}
-
-
-function compactGameState(game={}){
-  const g=makeSafeGame(game||{});
-  return {
-    matchup:`${g.awayTeamId||"?"}@${g.homeTeamId||"?"}`,
-    status:g.status||"", inning:Number(g.inning||1), half:g.half||"Top", outs:Number(g.outs||0),
-    balls:Number(g.balls||0), strikes:Number(g.strikes||0),
-    score:`${Number(g.awayScore||0)}-${Number(g.homeScore||0)}`,
-    hits:`${Number(g.awayHits||0)}-${Number(g.homeHits||0)}`,
-    plays:Array.isArray(g.playLog)?g.playLog.length:0, history:Array.isArray(g.history)?g.history.length:0,
-    latestPlay:String(g.latestPlay||"").slice(0,80),
-  };
-}
-function recordLiveSyncTrace(kind,{game=null,revision=0,commitId="",remoteRevision=0,remoteCommitId="",note=""}={}){
-  try{
-    const raw=localStorage.getItem(LIVE_SYNC_TRACE_KEY);
-    const prev=raw?JSON.parse(raw):[];
-    const row={at:new Date().toISOString(),kind,revision:Number(revision||0),commitId:String(commitId||"").slice(0,16),remoteRevision:Number(remoteRevision||0),remoteCommitId:String(remoteCommitId||"").slice(0,16),note,...(game?compactGameState(game):{})};
-    const next=[row,...(Array.isArray(prev)?prev:[])].slice(0,80);
-    localStorage.setItem(LIVE_SYNC_TRACE_KEY,JSON.stringify(next));
-    if(typeof window!=="undefined") window.__NMLB_LIVE_SYNC_TRACE__=next;
   }catch{}
 }
 
@@ -131,8 +68,6 @@ function mergeRemoteExtras(prevExtras={},remoteExtras={}){
     const remoteStamp=Date.parse(remoteSession.updatedAt||remoteSession.completedAt||remoteSession.startedAt||0)||0;
     if(prevStamp>remoteStamp)merged.ceremonySession=prevSession;
   }
-  // Realtime Database can omit empty arrays/objects. Missing remote fields must never
-  // silently erase a locally saved calendar, ceremony plan, museum, or commissioner data.
   for(const key of Object.keys(defaultLeagueExtras)){
     if(!hasOwn(remoteExtras,key)){
       if(hasOwn(prevExtras,key))merged[key]=prevExtras[key];
@@ -143,49 +78,38 @@ function mergeRemoteExtras(prevExtras={},remoteExtras={}){
 }
 
 export default function usePersistence({ data, setData }) {
-  const hasLoadedFirebaseGame = useRef(false);
-  const hasLoadedFirebaseTeams = useRef(false);
-  const hasLoadedFirebasePlayers = useRef(false);
-  const lastLocalGameFingerprint = useRef('');
-  const applyingRemoteGameFingerprint = useRef('');
-
   function syncTeamsToFirebase(nextTeams) {
-    set(ref(db, "teams"), nextTeams).catch((error) => console.error("[Firebase Debug] WRITE teams failed", error));
+    return set(ref(db, "teams"), nextTeams).catch((error) => console.error("[Firebase Debug] WRITE teams failed", error));
   }
 
   function syncPlayersToFirebase(nextPlayers) {
-    set(ref(db, "players"), nextPlayers).catch((error) => console.error("[Firebase Debug] WRITE players failed", error));
+    return set(ref(db, "players"), nextPlayers).catch((error) => console.error("[Firebase Debug] WRITE players failed", error));
   }
 
+  // V6.4.13: Firebase is the only persisted authority for the live game.
+  // React may render an optimistic local update, but no localStorage copy,
+  // recovery revision, reconnect republish, or local-vs-remote arbitration exists.
   function syncCurrentGameToFirebase(nextCurrentGame) {
     const safeGame=makeSafeGame(nextCurrentGame);
-    const existing=readLiveGameBackupRecord();
-    const updatedAt=Date.now();
-    const revision=Math.max(0,Number(existing?.revision||0))+1;
-    const commitId=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():`${updatedAt}-${revision}-${Math.random().toString(36).slice(2)}`;
-    writeLiveGameBackup(safeGame,updatedAt,revision,commitId);
-    recordLiveSyncTrace("LOCAL_WRITE",{game:safeGame,revision,commitId});
-    const payload={...safeGame,_sync:{version:LIVE_GAME_SYNC_VERSION,updatedAt,revision,commitId}};
-    set(ref(db, "currentGame"), payload).catch((error) => {
-      recordLiveSyncTrace("WRITE_FAILED",{game:safeGame,revision,commitId,note:String(error?.message||error)});
+    return set(ref(db, "currentGame"), safeGame).catch((error) => {
       console.error("[Firebase Debug] WRITE currentGame failed", error);
     });
   }
 
   function syncLastFinalGameToFirebase(nextLastFinalGame) {
-    set(ref(db, "lastFinalGame"), nextLastFinalGame).catch((error) => console.error("[Firebase Debug] WRITE lastFinalGame failed", error));
+    return set(ref(db, "lastFinalGame"), nextLastFinalGame).catch((error) => console.error("[Firebase Debug] WRITE lastFinalGame failed", error));
   }
 
   function syncPlayoffBracketToFirebase(nextBracket) {
-    set(ref(db, "playoffBracket"), nextBracket).catch((error) => console.error("[Firebase Debug] WRITE playoffBracket failed", error));
+    return set(ref(db, "playoffBracket"), nextBracket).catch((error) => console.error("[Firebase Debug] WRITE playoffBracket failed", error));
   }
 
   function syncDailyResultsRowsToFirebase(nextRows) {
-    set(ref(db, "dailyResultsRows"), nextRows).catch((error) => console.error("[Firebase Debug] WRITE dailyResultsRows failed", error));
+    return set(ref(db, "dailyResultsRows"), nextRows).catch((error) => console.error("[Firebase Debug] WRITE dailyResultsRows failed", error));
   }
 
   function syncSeasonHistoryToFirebase(nextHistory) {
-    set(ref(db, "seasonHistory"), nextHistory).catch((error) => console.error("[Firebase Debug] WRITE seasonHistory failed", error));
+    return set(ref(db, "seasonHistory"), nextHistory).catch((error) => console.error("[Firebase Debug] WRITE seasonHistory failed", error));
   }
 
   function syncLeagueExtrasToFirebase(nextExtras) {
@@ -195,30 +119,35 @@ export default function usePersistence({ data, setData }) {
     const updatedAt=Date.now();
     writeLeagueExtrasBackup(canonical,updatedAt);
     const snapshot={version:5,updatedAt,json:JSON.stringify(canonical)};
-    Promise.all([
+    return Promise.all([
       set(ref(db, "leagueExtras"), canonical),
       set(ref(db, PROTECTED_SNAPSHOT_PATH), snapshot),
     ]).catch((error) => console.error("[Firebase Debug] WRITE leagueExtras/V5 backup failed", error));
   }
 
   function syncGamesToFirebase(nextGames) {
-    set(ref(db, "games"), nextGames).catch((error) => console.error("[Firebase Debug] WRITE games failed", error));
+    return set(ref(db, "games"), nextGames).catch((error) => console.error("[Firebase Debug] WRITE games failed", error));
   }
 
   function syncActiveSeasonNameToFirebase(nextName) {
-    set(ref(db, "activeSeasonName"), nextName).catch((error) => console.error("[Firebase Debug] WRITE activeSeasonName failed", error));
+    return set(ref(db, "activeSeasonName"), nextName).catch((error) => console.error("[Firebase Debug] WRITE activeSeasonName failed", error));
   }
 
   function syncAllDataToFirebase() {
+    // Intentionally exclude currentGame. Bulk sync must never overwrite a live game
+    // with whatever happens to be in this browser's React state.
     syncTeamsToFirebase(data.teams);
     syncPlayersToFirebase(data.players);
-    syncCurrentGameToFirebase(data.currentGame);
     syncLastFinalGameToFirebase(data.lastFinalGame || null);
     syncGamesToFirebase(data.games || []);
     syncLeagueExtrasToFirebase(data.leagueExtras || {});
     syncActiveSeasonNameToFirebase(data.activeSeasonName || "Season 4");
-    alert("Synced local data to Firebase. V5 protected league backup refreshed.");
+    alert("Synced franchise data to Firebase. Live game was left untouched.");
   }
+
+  useEffect(() => {
+    clearLegacyLivePersistence();
+  }, []);
 
   useEffect(() => {
     const seasonHistoryRef = ref(db, "seasonHistory");
@@ -229,38 +158,29 @@ export default function usePersistence({ data, setData }) {
     });
   }, [setData]);
 
+  // Local safety persistence is for the franchise universe only. currentGame is
+  // deliberately omitted, and this effect does not depend on currentGame, so a
+  // pitch/play no longer serializes the whole app into localStorage.
   useEffect(() => {
-    const safeData = {
-      ...data,
-      currentGame: {
-        ...data.currentGame,
-        history: (data.currentGame.history || []).slice(-MAX_HISTORY),
-        playLog: (data.currentGame.playLog || []).slice(0, MAX_PLAY_LOG),
-      },
-    };
+    const persistable=stripLiveGame(data);
     if(hasMeaningfulLeagueExtras(data.leagueExtras||{}))writeLeagueExtrasBackup(data.leagueExtras||{});
-    const currentFingerprint=gameFingerprint(data.currentGame||{});
-    if(applyingRemoteGameFingerprint.current===currentFingerprint){
-      applyingRemoteGameFingerprint.current='';
-      lastLocalGameFingerprint.current=currentFingerprint;
-    }else if(currentFingerprint!==lastLocalGameFingerprint.current){
-      const existing=readLiveGameBackupRecord();
-      writeLiveGameBackup(data.currentGame||{},Date.now(),Number(existing?.revision||0),String(existing?.commitId||""));
-      lastLocalGameFingerprint.current=currentFingerprint;
-    }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(safeData));
-    } catch (error) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
+    } catch {
       try {
         const smallerData = {
-          ...safeData,
-          currentGame: { ...safeData.currentGame, history: [], playLog: (safeData.currentGame.playLog || []).slice(0, 40) },
-          games: (safeData.games || []).slice(0, 200),
+          ...persistable,
+          games: (persistable.games || []).slice(0, 200),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(smallerData));
       } catch {}
     }
-  }, [data]);
+  }, [
+    data.leagues, data.divisions, data.teams, data.players, data.games,
+    data.lastFinalGame, data.dailyResultsDate, data.dailyResultsRows,
+    data.runsScored, data.runsAllowed, data.playoffBracket, data.seasonHistory,
+    data.activeSeasonName, data.leagueExtras,
+  ]);
 
   useEffect(() => {
     const extrasRef = ref(db, "leagueExtras");
@@ -271,15 +191,12 @@ export default function usePersistence({ data, setData }) {
     });
   }, [setData]);
 
-  // V5 redundancy layer: this JSON snapshot preserves empty arrays/objects exactly,
-  // which Firebase's normal tree representation can otherwise omit.
   useEffect(() => {
     const protectedRef = ref(db, PROTECTED_SNAPSHOT_PATH);
     return onValue(protectedRef, (snapshot) => {
       const protectedCopy=safeParseSnapshot(snapshot.val());
       if(!protectedCopy)return;
       const localRecord=readLeagueExtrasBackupRecord();
-      // Never let an older cloud safety copy roll a newer local universe backward.
       if(localRecord?.updatedAt&&protectedCopy.updatedAt<localRecord.updatedAt)return;
       writeLeagueExtrasBackup(protectedCopy.extras,protectedCopy.updatedAt);
       setData((prev)=>({...prev,leagueExtras:mergeRemoteExtras(prev.leagueExtras||{},protectedCopy.extras)}));
@@ -308,9 +225,8 @@ export default function usePersistence({ data, setData }) {
     const teamsRef = ref(db, "teams");
     return onValue(teamsRef, (snapshot) => {
       const value = snapshot.val();
-      if (!Array.isArray(value)) { hasLoadedFirebaseTeams.current = true; return; }
+      if (!Array.isArray(value)) return;
       setData((prev) => ({ ...prev, teams: value }));
-      hasLoadedFirebaseTeams.current = true;
     });
   }, [setData]);
 
@@ -318,9 +234,8 @@ export default function usePersistence({ data, setData }) {
     const playersRef = ref(db, "players");
     return onValue(playersRef, (snapshot) => {
       const value = snapshot.val();
-      if (!Array.isArray(value)) { hasLoadedFirebasePlayers.current = true; return; }
+      if (!Array.isArray(value)) return;
       setData((prev) => ({ ...prev, players: value }));
-      hasLoadedFirebasePlayers.current = true;
     });
   }, [setData]);
 
@@ -328,39 +243,11 @@ export default function usePersistence({ data, setData }) {
     const gameRef = ref(db, "currentGame");
     return onValue(gameRef, (snapshot) => {
       const value = snapshot.val();
-      if (!value) { hasLoadedFirebaseGame.current = true; return; }
-      const remoteGame=makeSafeGame(value);
-      const remoteUpdatedAt=Number(value?._sync?.updatedAt||0);
-      const remoteRevision=Number(value?._sync?.revision||0);
-      const remoteCommitId=String(value?._sync?.commitId||"");
-      const localRecord=readLiveGameBackupRecord();
-      if(shouldPreferLocalGame(localRecord,remoteGame,remoteUpdatedAt,remoteRevision,remoteCommitId)){
-        // IMPORTANT: listeners are read-only. Never manufacture a newer Firebase
-        // revision from a local backup. A stale tab/viewer must not be able to fight
-        // the scoring operator simply because it received an older snapshot.
-        recordLiveSyncTrace("REMOTE_REJECTED",{
-          game:remoteGame,
-          revision:Number(localRecord?.revision||0),
-          commitId:String(localRecord?.commitId||""),
-          remoteRevision,
-          remoteCommitId,
-          note:"Local operator state is newer or same-revision/different-commit.",
-        });
-        hasLoadedFirebaseGame.current=true; return;
-      }
-      const cleanRemote=makeSafeGame(remoteGame); const fp=gameFingerprint(cleanRemote);
-      recordLiveSyncTrace("REMOTE_ACCEPTED",{game:cleanRemote,revision:Number(localRecord?.revision||0),commitId:String(localRecord?.commitId||""),remoteRevision,remoteCommitId});
-      applyingRemoteGameFingerprint.current=fp;
-      lastLocalGameFingerprint.current=fp;
-      writeLiveGameBackup(cleanRemote,remoteUpdatedAt||Date.now(),remoteRevision,remoteCommitId);
-      setData((prev) => gameFingerprint(prev.currentGame)===fp ? prev : ({ ...prev, currentGame: cleanRemote }));
-      hasLoadedFirebaseGame.current = true;
+      if (!value) return;
+      const cleanRemote=makeSafeGame(value);
+      setData((prev) => ({ ...prev, currentGame: cleanRemote }));
     });
   }, [setData]);
-
-  // Firebase queues offline writes itself. Do not auto-republish a local backup on
-  // reconnect: another tab/device may have advanced the game while this browser was
-  // offline, and turning that backup into a fresh revision can rewind the operator.
 
   useEffect(() => {
     const lastFinalGameRef = ref(db, "lastFinalGame");

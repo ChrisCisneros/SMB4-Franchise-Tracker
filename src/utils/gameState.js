@@ -201,7 +201,8 @@ export function getInitialData() {
       return {
   ...defaultData,
   ...parsed,
-  currentGame: makeSafeGame(parsed.currentGame),
+  // Live scoring is Firebase-authoritative. Never resurrect a cached local game.
+  currentGame: defaultCurrentGame(),
   playoffBracket: makeSafePlayoffBracket(parsed.playoffBracket),
   dailyResultsRows: parsed.dailyResultsRows?.length ? parsed.dailyResultsRows : Array.from({ length: DAILY_ROWS }, emptyDailyRow),
   activeSeasonName: parsed.activeSeasonName || defaultData.activeSeasonName,

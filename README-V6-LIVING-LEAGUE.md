@@ -202,8 +202,8 @@ Pennant Race / Race Control received a full NMLB presentation pass for the Seaso
 - Dashboard, News, and Bracket now surface postseason memory generated from every live-scored playoff final, giving non-anchor clubs the same cultural footprint as the favorite club.
 - Ceremony completions preserve the speech/fan script used for that event so the ceremony itself becomes part of league history.
 
-## V6.4.12 — Postseason Operator Readiness
-V6.4.12 is a deep stability and operator-workflow pass ahead of the NMLB postseason.
+## V6.4.13 — Postseason Operator Readiness
+V6.4.13 is a deep stability and operator-workflow pass ahead of the NMLB postseason.
 
 ### Live scoring reliability
 - Field Mode results now commit immediately when the operator starts a play; ball-flight animation is presentation-only and can no longer cancel a hit/out before it is recorded.
@@ -217,4 +217,18 @@ V6.4.12 is a deep stability and operator-workflow pass ahead of the NMLB postsea
 - Live Scoring adds an Instant Plays rail for one-tap 1B, 2B, 3B, HR, GO, FO, K, BB and DP entry.
 - Quick Record Editor places AL and NL side-by-side, with each league's divisions stacked vertically for less scrolling during bulk postseason prep.
 - Bracket Admin adds active/finished counts, Next Active Series navigation, a stronger series-control meter, a denser series board, and a one-click Load Series into Live Scoring action.
-- Visible NMLB version labels are normalized to V6.4.12 across the runtime source.
+- Visible NMLB version labels are normalized to V6.4.13 across the runtime source.
+
+
+## V6.4.13 — Live State Simplification & Postseason Readiness
+V6.4.13 removes the dual-authority live-game persistence system and returns Live Scoring to a single source of truth: Firebase Realtime Database.
+
+- `currentGame` is no longer restored from the general local app snapshot.
+- Dedicated live-game local backups, revision arbitration, commit IDs, reconnect republishing, and sync traces are removed.
+- Old live-game backup/sync-trace keys are cleared automatically.
+- Firebase listeners are read-only consumers; only deliberate operator actions write the live game.
+- Bulk franchise sync intentionally leaves `currentGame` untouched so it cannot overwrite an active game.
+- Local franchise backups continue for non-live data, but live scoring no longer serializes the full app to localStorage on every pitch/play.
+- The temporary Copy Sync Trace control is removed from Live Scoring.
+
+This is a stability-first postseason release: one live game, one persisted authority, fewer recovery layers, and less work on every scoring input.
