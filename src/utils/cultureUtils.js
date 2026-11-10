@@ -1,6 +1,6 @@
 import { getSeasonPulse, buildFanUniverse } from './fandomUtils';
 import { getCurrentGameNight } from './gameNightUtils';
-import { currentSeasonDay, normalizeSeasonCalendar } from './seasonCalendarUtils';
+import { calendarNumbers, currentSeasonDay, normalizeSeasonCalendar } from './seasonCalendarUtils';
 
 const safe=n=>Number(n||0);
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
@@ -44,7 +44,7 @@ export function buildGiveawayMarket(data={},teams=[],options={}){
   const current=currentSeasonDay(data,teams);
   const currentSlot=current?.slotIndex;
   const slotForGame=new Map();
-  calendar.forEach((gameNumber,slotIndex)=>{if(gameNumber)slotForGame.set(Number(gameNumber),slotIndex)});
+  calendar.forEach((cell,slotIndex)=>calendarNumbers(cell).forEach(gameNumber=>slotForGame.set(Number(gameNumber),slotIndex)));
   const currentSeason=String(data.activeSeasonName||'Current Season');
 
   const scheduled=Object.values(schedule).filter(Boolean).map(p=>({...p,seasonName:currentSeason,archived:false}));

@@ -47,6 +47,7 @@ import createDailyResultsController from "./controllers/createDailyResultsContro
 import createGameFinalizationController from "./controllers/createGameFinalizationController";
 import { currentSeasonDay, isCalendarAnchorGame } from "./utils/seasonCalendarUtils";
 import { buildChronicleSnapshot, getChronicleWeek } from "./utils/seasonChronicleUtils";
+import { getCurrentGameNight } from "./utils/gameNightUtils";
 
 export default function App() {
   const [data, setData] = useState(getInitialData);
@@ -1735,6 +1736,8 @@ const dashboardStories = [
     },
 ].filter(Boolean);
   const seasonAtmosphereDay = currentSeasonDay(data, teams);
+  const currentGameNight = getCurrentGameNight(data, teams);
+  const gameNightThemeClass = currentGameNight?.id ? `game-night-${String(currentGameNight.id).replace(/[^a-z0-9]+/gi, '-')}` : '';
   const seasonAtmosphereClass = seasonAtmosphereDay
     ? seasonAtmosphereDay.week === 1 ? 'season-atmosphere-opening'
       : seasonAtmosphereDay.week === 4 ? 'season-atmosphere-allstar'
@@ -1746,14 +1749,14 @@ const dashboardStories = [
   const pageContext = { setPage, syncCurrentGameToFirebase, syncLeagueExtrasToFirebase, syncGamesToFirebase, syncTeamsToFirebase, syncLastFinalGameToFirebase, syncActiveSeasonNameToFirebase, addDailyRows, addPlayer, addPlayoffGameResult, addTeam, adjustLiveInning, adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, applyBulkResultsInput, applyDailyResults, archiveCurrentSeason, awayColors, awayTeam, battingBaseColors, bestRecordTeam, bestRunDiff, bigMomentBanner, bulkResultsInput, bulkWarnings, bumpPlayoffScore, changeBoxStat, changeScore, clearDailyRow, clearFieldBall, controlsUnlocked, currentGame, cycleLiveLook, dashboardScoreboardAwayTeam, dashboardScoreboardGame, dashboardScoreboardHomeTeam, dashboardStories, data, deletePlayer, deleteSeasonSnapshot, editTeam, expandedHistorySeasonIds, favoriteDivisionChaser, favoriteDivisionLeader, favoriteDivisionRank, favoriteGamesLeft, favoriteMarker, favoriteTeam, finalizeGame, gameTeamRecordLabel, getDailyRowIssue, homeColors, homeTeam, initializeBracketFromCurrentSeeds, isPlayoffLiveGame, isWorldSeriesGame, lastFinalAwayTeam, lastFinalGame, lastFinalHomeTeam, liveAwayLookLabel, liveHomeLookLabel, liveLeaderClass, liveTeamRecordLabel, newPlayer, newTeam, numberedTeams, playerNameInputRef, playoffAwayScore, playoffBracket, playoffBroadcastVars, playoffGameTitle, playoffHomeScore, playoffPicture, playoffSeedForTeam, playoffSeriesDropdownLabel, playoffSeriesOptions, recentlyUpdatedTeamId, renderBracketSeries, resetBallStrikeCount, resetCurrentMatch, resetLiveCountAndBases, resetLeague, resetRegularSeasonStats, resetSelectedPlayoffSeries, scoreFlashSide, selectedAdminRoster, selectedAdminTeam, selectedAdminTeamId, selectedDeletePlayerId, selectedPlayoffSeriesId, seriesStatusText, setBulkResultsInput, setData, setLiveHalf, setMidEndInningStatus, setNewPlayer, setNewTeam, setPlayoffAwayScore, setPlayoffHomeScore, setSelectedAdminTeamId, setSelectedDeletePlayerId, setSelectedPlayoffSeriesId, standings, teamAbbr, teamById, teams, tightestDivisionRace, toggleHistorySeason, toggleOutDot, triggerLiveMoment, undoLastPlay, updateBases, updateCount, updateCurrentGame, updateDailyRow, updateFieldBallResult, dropFieldBall, moveFieldRunner, removeFieldRunner, stealFieldRunner, startAnimatedFieldPlay, advanceAllFieldRunners, worstRecordTeam };
 
   return (
-    <div className={`app-shell wide-shell nmlb-app ${seasonAtmosphereClass}`}>
+    <div className={`app-shell wide-shell nmlb-app ${seasonAtmosphereClass} ${gameNightThemeClass}`}>
       <div className="topbar">
        <div>
   <div className="title-row">
     <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
-    <span className="version-pill version-pill-v3">v6.6</span>
+    <span className="version-pill version-pill-v3">v6.7</span>
   </div>
-  <p>NMLB · Nicky's Major League Baseball · Version 6.6 · The Postseason Push</p>
+  <p>NMLB · Nicky's Major League Baseball · Version 6.7 · The NMLB Classic Ecosystem</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (

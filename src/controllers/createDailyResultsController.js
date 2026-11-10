@@ -22,10 +22,6 @@ export default function createDailyResultsController({
 
     const warnings = [];
     const parsedRows = [];
-    const usedTeamIds = new Set(
-      data.dailyResultsRows.flatMap((row) => [row.awayTeamId, row.homeTeamId]).filter(Boolean)
-    );
-
     lines.forEach((line, index) => {
       const parts = line.split(/\s+/).filter(Boolean);
       if (parts.length < 4 || parts.length > 5) {
@@ -62,19 +58,6 @@ export default function createDailyResultsController({
         warnings.push(`Line ${index + 1} skipped: innings must be a whole number from 1 to 30.`);
         return;
       }
-      if (usedTeamIds.has(awayTeamId)) {
-        const team = teams.find((t) => t.id === awayTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || awayToken} already used earlier.`);
-        return;
-      }
-      if (usedTeamIds.has(homeTeamId)) {
-        const team = teams.find((t) => t.id === homeTeamId);
-        warnings.push(`Line ${index + 1} skipped: ${team?.abbr || homeToken} already used earlier.`);
-        return;
-      }
-
-      usedTeamIds.add(awayTeamId);
-      usedTeamIds.add(homeTeamId);
       parsedRows.push({
         id: crypto.randomUUID(),
         awayTeamId,
@@ -121,8 +104,6 @@ export default function createDailyResultsController({
   function getDailyRowIssue(row, allRows) {
     if (!row.awayTeamId && !row.homeTeamId && row.awayScore === "" && row.homeScore === "") return "empty";
     if (row.awayTeamId && row.awayTeamId === row.homeTeamId) return "same-team";
-    const usedTeams = allRows.filter((r) => r.id !== row.id).flatMap((r) => [r.awayTeamId, r.homeTeamId]).filter(Boolean);
-    if ((row.awayTeamId && usedTeams.includes(row.awayTeamId)) || (row.homeTeamId && usedTeams.includes(row.homeTeamId))) return "duplicate-team";
     if (row.awayScore !== "" && row.homeScore !== "" && Number(row.awayScore) === Number(row.homeScore)) return "tie";
     if (!row.awayTeamId || !row.homeTeamId || row.awayScore === "" || row.homeScore === "") return row.applied ? "applied" : "incomplete";
     if (row.applied) return "applied";

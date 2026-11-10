@@ -6,7 +6,7 @@ import BracketAdminPage from './BracketAdminPage';
 import AdminPage from './AdminPage';
 import SeasonCalendar from '../components/SeasonCalendar';
 import { GAME_NIGHT_BANK,autoFillGameNights,autoGameNightFor,getScheduledGameNight,gameEventDisplayName } from '../utils/gameNightUtils';
-import { autoFiveGameWeeks,calendarSummary,currentLeagueDay,currentSeasonDay,canAdvanceLeagueDay,nextLeagueDayIndex,leagueDayMeta,normalizeSeasonCalendar,parseCompactSchedule,scheduleEntryLabel,toggleCalendarGameDay } from '../utils/seasonCalendarUtils';
+import { autoFiveGameWeeks,calendarNumbers,calendarSummary,currentLeagueDay,currentSeasonDay,canAdvanceLeagueDay,nextLeagueDayIndex,leagueDayMeta,normalizeSeasonCalendar,parseCompactSchedule,scheduleEntryLabel,toggleCalendarGameDay } from '../utils/seasonCalendarUtils';
 import { CEREMONY_TYPES,buildCeremonyTimeline,seedOpeningCeremonies } from '../utils/ceremonyUtils';
 import { buildHeadToHead } from '../utils/historyUtils';
 import { buildMilestoneCeremonySuggestions } from '../utils/mediaMemoryUtils';
@@ -40,7 +40,7 @@ export default function ModeratorHubPage({ctx}){
   const milestoneSuggestions=useMemo(()=>buildMilestoneCeremonySuggestions(data,teams),[data,teams]);
   const ballparkLife=useMemo(()=>buildBallparkLife(data,teams,ctx.playoffPicture||[],Date.now()),[data,teams,ctx.playoffPicture]);
   const ballparkDirectory=useMemo(()=>buildBallparkDirectory(data,teams),[data,teams]);
-  const selectedSlot=useMemo(()=>normalizeSeasonCalendar(data).map((x,i)=>({slotIndex:i,gameNumber:Number(x||0)})).find(x=>x.gameNumber===Number(gameNumber)),[data,gameNumber]);
+  const selectedSlot=useMemo(()=>normalizeSeasonCalendar(data).map((x,i)=>({slotIndex:i,gameNumber:calendarNumbers(x)[0]||0})).find(x=>x.gameNumber===Number(gameNumber)),[data,gameNumber]);
   const selectedSchedule=(extras.seasonSchedule||[]).find(x=>Number(x.gameNumber)===Number(gameNumber));
   const selectedMeta=extras.gameDayMeta?.[String(gameNumber)]||{timeType:'NIGHT'};
   const selectedDay=leagueDayMeta(selectedDayIndex);
@@ -61,7 +61,7 @@ export default function ModeratorHubPage({ctx}){
   const setGameDayMeta=(patch)=>savePatch({gameDayMeta:{...(extras.gameDayMeta||{}),[String(gameNumber)]:{...(extras.gameDayMeta?.[String(gameNumber)]||{}),...patch}}});
   const setGameTimeFor=(gameNo,timeType)=>{setGameNumber(Number(gameNo));savePatch({gameDayMeta:{...(extras.gameDayMeta||{}),[String(gameNo)]:{...(extras.gameDayMeta?.[String(gameNo)]||{}),timeType}}})};
   const autoFill=()=>saveExtras({...extras,gameNightSchedule:autoFillGameNights(data,teams)});
-  const toggleSlot=slotIndex=>{const before=normalizeSeasonCalendar(data)[slotIndex];const nextCal=toggleCalendarGameDay(data,slotIndex);savePatch({seasonCalendar:nextCal});if(before)setGameNumber(before);else{const assigned=nextCal[slotIndex];if(assigned)setGameNumber(assigned)}};
+  const toggleSlot=slotIndex=>{const before=calendarNumbers(normalizeSeasonCalendar(data)[slotIndex])[0];const nextCal=toggleCalendarGameDay(data,slotIndex);savePatch({seasonCalendar:nextCal});if(before)setGameNumber(before);else{const assigned=calendarNumbers(nextCal[slotIndex])[0];if(assigned)setGameNumber(assigned)}};
   const autoLayout=()=>savePatch({seasonCalendar:autoFiveGameWeeks()});
   const clearCalendar=()=>{if(window.confirm('Clear all 40 Game Day placements? Promotions, off-day events and matchup order will stay saved.'))savePatch({seasonCalendar:[],seasonDayIndex:null})};
   const renumberSchedule=list=>(list||[]).slice(0,40).map((x,i)=>({...x,gameNumber:i+1}));

@@ -34,18 +34,23 @@ export function anchorRegularFinals(data={},teams=[]){
 }
 
 export function emptySeasonCalendar(){return Array.from({length:SEASON_SLOTS},()=>null)};
+export function calendarNumbers(value){
+  if(value&&typeof value==='object'&&Array.isArray(value.gameNumbers))return value.gameNumbers.map(Number).filter(n=>n>=1&&n<=SEASON_GAMES);
+  if(value&&typeof value==='object'&&value.gameNumber)return [Number(value.gameNumber)].filter(n=>n>=1&&n<=SEASON_GAMES);
+  const n=Number(value||0); return n>=1&&n<=SEASON_GAMES?[n]:[];
+}
 export function normalizeSeasonCalendar(data={}){
   const raw=data.leagueExtras?.seasonCalendar;
   const out=emptySeasonCalendar();
-  if(Array.isArray(raw)) raw.slice(0,SEASON_SLOTS).forEach((v,i)=>{const n=safe(typeof v==='object'?v?.gameNumber:v);if(n>=1&&n<=SEASON_GAMES)out[i]=n});
-  else if(raw&&typeof raw==='object') Object.entries(raw).forEach(([k,v])=>{const idx=safe(k);const n=safe(typeof v==='object'?v?.gameNumber:v);if(idx>=0&&idx<SEASON_SLOTS&&n>=1&&n<=SEASON_GAMES)out[idx]=n});
+  if(Array.isArray(raw)) raw.slice(0,SEASON_SLOTS).forEach((v,i)=>{const nums=calendarNumbers(v);if(nums.length)out[i]=nums.length>1?{gameNumbers:nums}:nums[0]});
+  else if(raw&&typeof raw==='object') Object.entries(raw).forEach(([k,v])=>{const idx=safe(k);const nums=calendarNumbers(v);if(idx>=0&&idx<SEASON_SLOTS&&nums.length)out[idx]=nums.length>1?{gameNumbers:nums}:nums[0]});
   return out;
 }
-export function scheduledGameCount(data={}){return normalizeSeasonCalendar(data).filter(Boolean).length}
-export function nextUnscheduledGame(data={}){const used=new Set(normalizeSeasonCalendar(data).filter(Boolean));for(let n=1;n<=SEASON_GAMES;n++)if(!used.has(n))return n;return null}
+export function scheduledGameCount(data={}){return normalizeSeasonCalendar(data).reduce((sum,cell)=>sum+calendarNumbers(cell).length,0)}
+export function nextUnscheduledGame(data={}){const used=new Set(normalizeSeasonCalendar(data).flatMap(calendarNumbers));for(let n=1;n<=SEASON_GAMES;n++)if(!used.has(n))return n;return null}
 export function resequenceSeasonCalendar(calendar=[]){
   let game=1;
-  return Array.from({length:SEASON_SLOTS},(_,i)=>calendar[i]?game++:null).map(n=>n<=SEASON_GAMES?n:null);
+  return Array.from({length:SEASON_SLOTS},(_,i)=>{const count=calendarNumbers(calendar[i]).length;if(!count)return null;const nums=Array.from({length:count},()=>game++).filter(n=>n<=SEASON_GAMES);return nums.length>1?{gameNumbers:nums}:nums[0]||null});
 }
 export function toggleCalendarGameDay(data={},slotIndex){
   const calendar=normalizeSeasonCalendar(data); const idx=Number(slotIndex);
@@ -58,9 +63,11 @@ export function toggleCalendarGameDay(data={},slotIndex){
 }
 export function autoFiveGameWeeks(){
   const out=emptySeasonCalendar(); let game=1;
-  // Five games each week, varied rest days so the calendar looks organic.
-  const patterns=[[0,1,3,4,5],[0,2,3,5,6],[1,2,3,4,6],[0,1,2,4,5],[1,2,4,5,6],[0,2,3,4,6],[0,1,3,5,6],[1,2,3,5,6]];
-  patterns.forEach((days,w)=>days.forEach(day=>{if(game<=SEASON_GAMES)out[w*7+day]=game++}));
+  // V6.7 uses calendar weeks with varied density and two true doubleheaders.
+  // Thirty-eight occupied dates plus two doubleheader dates still produce 40 games.
+  const patterns=[[0,2,4,6],[0,1,3,4,6],[0,1,2,4,5],[1,2,4,6],[0,1,3,4,5],[0,2,3,4,5],[0,1,3,5,6],[1,2,3,5,6]];
+  const doubleDays=new Set(['2-4','6-2']);
+  patterns.forEach((days,w)=>days.forEach(day=>{if(game<=SEASON_GAMES){const count=doubleDays.has(`${w+1}-${day}`)?2:1;out[w*7+day]=count===2?{gameNumbers:[game,game+1]}:game;game+=count;}}));
   return out;
 }
 export function getScheduleEntry(data={},gameNumber){
@@ -90,12 +97,12 @@ export function buildSeasonCalendar(data={},teams=[]){
     .slice(0,SEASON_GAMES)
     .forEach((g,i)=>resultByNumber.set(i+1,g));
   return Array.from({length:SEASON_SLOTS},(_,slotIndex)=>{
-    const week=Math.floor(slotIndex/7)+1,dayIndex=slotIndex%7,gameNumber=calendar[slotIndex];
+    const week=Math.floor(slotIndex/7)+1,dayIndex=slotIndex%7,gameNumbers=calendarNumbers(calendar[slotIndex]),gameNumber=gameNumbers[0]||null,extraGameNumbers=gameNumbers.slice(1);
     const schedule=gameNumber?getScheduleEntry(data,gameNumber):null; const promo=gameNumber?promoMap[String(gameNumber)]||null:null; const result=gameNumber?resultByNumber.get(gameNumber)||null:null;
     const date=start?addDays(start,slotIndex):'';
     const leagueDay=leagueDayMeta(slotIndex);
     const dayEvent=dayEventMap[String(slotIndex)]||null;
-    return {slotIndex,week,dayIndex,weekday:WEEKDAYS[dayIndex],date,dateLabel:fmtDate(date),gameNumber,schedule,promo,result,dayEvent,...leagueDay};
+    return {slotIndex,week,dayIndex,weekday:WEEKDAYS[dayIndex],date,dateLabel:fmtDate(date),gameNumber,gameNumbers,extraGameNumbers,schedule,extraSchedules:extraGameNumbers.map(n=>getScheduleEntry(data,n)),promo,promoEntries:gameNumbers.map(n=>promoMap[String(n)]||null).filter(Boolean),result,extraResults:extraGameNumbers.map(n=>resultByNumber.get(n)||null),dayEvent,...leagueDay};
   });
 }
 export function inferredLeagueDayIndex(data={},teams=[]){
@@ -138,4 +145,4 @@ export function currentSeasonSlotIndex(data={},teams=[]){
 export function currentLeagueSlotIndex(data={},teams=[]){
   return currentLeagueDay(data,teams)?.slotIndex ?? null;
 }
-export function calendarSummary(data={}){const cal=normalizeSeasonCalendar(data);return {scheduled:cal.filter(Boolean).length,remaining:SEASON_GAMES-cal.filter(Boolean).length,openDays:SEASON_SLOTS-cal.filter(Boolean).length}}
+export function calendarSummary(data={}){const cal=normalizeSeasonCalendar(data);const scheduled=cal.reduce((sum,cell)=>sum+calendarNumbers(cell).length,0);return {scheduled,remaining:SEASON_GAMES-scheduled,openDays:SEASON_SLOTS-cal.filter(Boolean).length,doubleheaders:cal.filter(cell=>calendarNumbers(cell).length>1).length}}

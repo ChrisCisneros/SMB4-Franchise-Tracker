@@ -18,7 +18,7 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 
 export function getLeagueBrand(data={}){
   return {
-    name:data.leagueExtras?.officialLeagueName||'Super Mega Baseball League',
+    name:data.leagueExtras?.officialLeagueName||"Nicky's Major League Baseball",
     abbr:data.leagueExtras?.officialLeagueAbbr||'NMLB',
     handle:`@${data.leagueExtras?.officialLeagueAbbr||'NMLB'}`,
   };
@@ -411,7 +411,7 @@ function liveWatchingCount(phase,game,awayState,homeState,rivalry,bucket,promo,d
 
 
 function ambientGameDayPost(team,foe,phase,bucket,slot,promo){
-  const categories=['stadium','home','work','food','merch','family','travel','casual','oldhead','newfan','superstition','pets','parking','gates','seats','vendor','localbiz','mascot','foulball','watchparty','transit','uniforms','autograph','seasonticket','photos','wave','scoreboard','callin','concourse','restroom','scorekeeper','optimism','doomer','neighbors','commuteHome','memories','friends','heckler','broadcast','tickets','offbeat','quiet'];
+  const categories=['stadium','home','work','food','merch','family','travel','casual','oldhead','newfan','superstition','pets','parking','gates','seats','vendor','localbiz','mascot','foulball','watchparty','transit','uniforms','autograph','seasonticket','photos','wave','scoreboard','callin','concourse','restroom','scorekeeper','optimism','doomer','neighbors','commuteHome','memories','friends','heckler','broadcast','tickets','offbeat','quiet','postseason','clinching','elimination','record','selection','classic'];
   let category=categories[(hash(`${team.id}-${bucket}-${slot}`)+bucket+slot)%categories.length];
   if(promo?.id==='dog')category='pets';
   if(promo?.type==='giveaway')category=slot%3===0?'reseller':slot%3===1?'collector':'merch';
@@ -461,6 +461,12 @@ function ambientGameDayPost(team,foe,phase,bucket,slot,promo){
     promo:['Promo Night People',`@GiveawayLine`,'PROMO NIGHT'],
     offbeat:['Baseball Side Quest',`@BetweenInnings`,'OFFBEAT'],
     quiet:['The Cheap Seats',`@CheapSeatsChat`,'FAN CHAT'],
+    postseason:['October Desk',`@OctoberEverywhere`,'POSTSEASON FAN'],
+    clinching:['Clinching Central',`@ClinchingCentral`,'CLINCH WATCH'],
+    elimination:['The Long Season',`@StillHereNextYear`,'ELIMINATION WATCH'],
+    record:['Record Book Watch',`@NMLBRecordBook`,'HISTORY DESK'],
+    selection:['Selection Show Chat',`@BracketArguer`,'BRACKET TALK'],
+    classic:['Instant Classic Society',`@SaveTheScorecard`,'CLASSIC WATCH'],
   };
   const [name,handle,badge]=identities[category]||identities.quiet;
   let text=pickSocialPhrase(category,`${team.id}-${foe.id}-${slot}`,bucket);

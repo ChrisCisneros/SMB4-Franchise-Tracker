@@ -1,7 +1,7 @@
 import { pickSocialPhrase } from './socialPhraseBank';
 import { buildFanUniverse, getSeasonPulse, NETWORK_PERSONALITIES } from './fandomUtils';
 import { buildHeadToHead } from './historyUtils';
-import { currentSeasonDay, normalizeSeasonCalendar } from './seasonCalendarUtils';
+import { calendarNumbers, currentSeasonDay, normalizeSeasonCalendar } from './seasonCalendarUtils';
 
 const hash=(s='')=>[...String(s)].reduce((n,c)=>((n*33)^c.charCodeAt(0))>>>0,5381);
 const seeded=(s='')=>{const x=Math.sin(hash(s))*10000;return x-Math.floor(x)};
@@ -197,8 +197,8 @@ export function buildLivingFeed(data={},teams=[],playoffPicture=[],now=Date.now(
   const currentSlot=currentSeasonDay(data,teams)?.slotIndex;
   const calendar=normalizeSeasonCalendar(data);
   const promoSchedule=data.leagueExtras?.gameNightSchedule||{};
-  const resellerWindowOpen=Number.isInteger(currentSlot)&&calendar.some((gameNumber,slotIndex)=>{
-    const promo=gameNumber?promoSchedule[String(gameNumber)]:null;
+  const resellerWindowOpen=Number.isInteger(currentSlot)&&calendar.some((cell,slotIndex)=>{
+    const promo=calendarNumbers(cell).map(gameNumber=>promoSchedule[String(gameNumber)]).find(Boolean);
     const age=currentSlot-slotIndex;
     return promo?.type==='giveaway'&&age>=0&&age<=2;
   });

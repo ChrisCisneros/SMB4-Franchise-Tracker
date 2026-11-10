@@ -32,6 +32,7 @@ import { buildPostseasonNightlyShow, buildPostseasonMythology, buildPostseasonMe
 import { buildStretchRunBoard, postseasonGamePressure } from "../utils/finalWeeksUtils";
 import { buildFinalWeekCommand, buildLeaguePulse65, buildPostseasonReadiness, buildWeeklyRituals65 } from "../utils/v65LifeUtils";
 import { buildPostseasonPush } from "../utils/postseasonPushUtils";
+import NMLBClassicPreflight from "../components/NMLBClassicPreflight";
 
 function MiniPill({ children, tone="" }) { return <span className={`v3-mini-pill ${tone}`}>{children}</span>; }
 function TeamMark({ team, colors = { main:"#0f172a", alt:"#1e293b", border:"#334155", text:"#ffffff", gradient:false } }) {
@@ -244,6 +245,7 @@ export default function DashboardPage({ ctx }) {
   }, [data.games, teams, favoriteTeam, activeSeason]);
 
   return <div className={`dashboard-v3 dashboard-v3-home dashboard-v4 dashboard-v4-${v4Theme} ${broadcastThemeClasses(broadcastTheme)}`} style={{'--theme-away':awayColors?.main||'#2563eb','--theme-home':homeColors?.main||'#ef4444',...broadcastThemeStyle(broadcastTheme)}}>
+    <NMLBClassicPreflight data={data} teams={teams} playoffPicture={playoffPicture||[]} />
     {v65Command.pulse.week>=7&&<section className="v65-final-week-hero card"><div><small>NMLB V6.5 · FINAL WEEK COMMAND</small><h2>{v65Command.selectionReady?'THE FIELD IS SET':v65Command.pulse.week>=8?'FINAL WEEK':'THE PUSH'}</h2><p>{v65Command.unresolved?`${v65Command.unresolved} postseason spot${v65Command.unresolved===1?'':'s'} still unresolved. Every final can change the map.`:'October has its field. The league is ready for the Selection Show.'}</p></div><div className="v65-field-meter"><strong>{v65Command.claimed}/{v65Command.totalSpots}</strong><span>SPOTS CLAIMED</span><i><b style={{width:`${v65Command.totalSpots?Math.round(v65Command.claimed/v65Command.totalSpots*100):0}%`}}/></i></div><div className="v65-tonight-stakes">{v65Command.pressure.slice(0,4).map(x=><span className={`tone-${x.tone}`} key={x.team.id}><b>{x.team.abbr}</b><strong>{x.label}</strong><em>{x.detail}</em></span>)}</div></section>}
     {v65Command.events.length>0&&<section className="v65-changed-tonight card"><div><small>WHAT CHANGED TONIGHT?</small><h3>{v65Command.events[0].headline}</h3><p>{v65Command.events[0].detail}</p></div><div>{v65Command.events.slice(0,4).map(e=><span key={e.id}><b>{e.teamAbbr}</b>{e.label}</span>)}</div></section>}
     {postseasonPush.alerts.length>0&&<section className="v66-dashboard-records card"><div><small>V6.6 · HISTORY TONIGHT</small><h2>{postseasonPush.topAlert?.headline||'The record book is moving'}</h2><p>{postseasonPush.topAlert?.detail||'Curated team and player record chases are entering the postseason conversation.'}</p></div><div className="v66-dashboard-record-grid">{postseasonPush.alerts.slice(0,4).map(x=><article key={x.id}><span>{x.badge}</span><strong>{x.headline}</strong><em>{x.category}</em></article>)}</div></section>}
@@ -255,7 +257,7 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.6</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.7 · NMLB CLASSIC BUILD</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
       <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>

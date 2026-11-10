@@ -47,7 +47,7 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
   const anchorColors=getTeamColorsByAbbr(anchor?.abbr||'SF');
   return <div className={`season-calendar-shell ${editable?'is-editable':'is-public'} ${compact?'is-compact':''}`} style={{'--calendar-home':anchorColors.main,'--calendar-home-alt':anchorColors.alt,'--calendar-home-border':anchorColors.border||anchorColors.alt,'--calendar-home-text':anchorColors.text||'#fff'}}>
     <div className="season-calendar-legend"><span className="home"><i/>HOME</span><span className="away"><i/>AWAY</span><span className="off"><i/>OFF DAY</span><span className="current"><i/>CURRENT</span><span className="special">★ SPECIAL EVENT</span></div>
-    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}</span></div>{current&&<div className="season-calendar-current-label"><span>CURRENT LEAGUE DAY</span><b>M{current.month} D{current.dayOfMonth} · {current.weekday} · {current.gameNumber?`GAME ${current.gameNumber}`:'OFF DAY'}</b></div>}<div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
+    <div className="season-calendar-status"><div><strong>{summary.scheduled} / 40 games scheduled</strong><span>{summary.remaining?`${summary.remaining} still need a date`:'Season calendar complete ✓'}{summary.doubleheaders?` · ${summary.doubleheaders} doubleheader${summary.doubleheaders===1?'':'s'}`:''}</span></div>{current&&<div className="season-calendar-current-label"><span>CURRENT LEAGUE DAY</span><b>M{current.month} D{current.dayOfMonth} · {current.weekday} · {current.gameNumber?`GAME ${current.gameNumber}`:'OFF DAY'}</b></div>}<div><span>8 WEEKS</span><b>MON → SUN</b></div></div>
     <div className="season-calendar-scroll">
       <div className="season-calendar-grid">
         <div className="season-calendar-corner">WEEK</div>{WEEKDAYS.map(d=><div key={d} className="season-calendar-dayhead">{d}</div>)}
@@ -72,7 +72,7 @@ export default function SeasonCalendar({data,teams=[],editable=false,onToggle,on
                 <div className="season-cal-top"><span>{slot.dateLabel||slot.weekday}{isCurrent?' · CURRENT':''}</span><em className="season-cal-daynum">M{slot.month} D{slot.dayOfMonth}</em>{slot.gameNumber?<b>G{slot.gameNumber} · {timeType}</b>:<b>OFF</b>}</div>
                 {slot.gameNumber?<>
                   <div className="season-cal-flags">{milestone&&<span className="season-cal-milestone">★ {milestone}</span>}{(seriesWithPrev||seriesWithNext)&&<span className="season-cal-series">SERIES</span>}</div>
-                  <strong className="season-cal-matchup">{scheduleEntryLabel(slot.schedule)}</strong>
+                  <strong className="season-cal-matchup">{scheduleEntryLabel(slot.schedule)}</strong>{slot.extraGameNumbers?.length>0&&<span className="season-cal-doubleheader">DOUBLEHEADER · {slot.extraGameNumbers.map((n,i)=>`${i?' · ':''}G${n} ${scheduleEntryLabel(slot.extraSchedules?.[i])}`).join('')}</span>}
                   <span className={`season-cal-location ${isHome?'home':'away'}`}>{isHome?'HOME':'ROAD'}</span>
                   {ceremonies.slice(0,1).map(c=><span className="season-cal-ceremony" key={c.id}>{c.type==='championship-opening'?'💍🏆🎏':'🎏'} {c.title}</span>)}
                   {slot.promo&&<span className="season-cal-promo" title={`${slot.promo.name} — ${slot.promo.giveaway||''}`}>{slot.promo.icon||'🎟️'} {gameEventDisplayName(slot.promo,timeType)}</span>}

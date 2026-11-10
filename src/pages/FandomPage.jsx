@@ -5,6 +5,7 @@ import { buildFanClubs,buildFanTraditions,buildLegacyDebates,buildLivingFeed,bui
 import { buildGameDaySocial } from '../utils/gameDaySocialUtils';
 import { getScheduledGameNight } from '../utils/gameNightUtils';
 import SeasonCalendar from '../components/SeasonCalendar';
+import { buildSeasonCalendar } from '../utils/seasonCalendarUtils';
 import MerchProductArt from '../components/MerchProductArt';
 import GameDaySocial from '../components/GameDaySocial';
 import { buildBallparkCulture,buildCultureAwards,buildCultureTrends,buildFanSurvey,buildGameThreadArchive,buildGiveawayMarket,buildLocalBusinesses,buildSocialGrowth,buildTeamCultureProfiles,buildTicketMarket,buildWorldState } from '../utils/cultureUtils';
@@ -20,7 +21,7 @@ function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,Number(value)||0))}%`}}/></div>}
 const fmtPct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const shortNum=n=>n>=1000000?`${(n/1000000).toFixed(1)}M`:n>=1000?`${(n/1000).toFixed(1)}K`:String(n||0);
-const TABS=[['v6','NMLB League Life'],['overview','Overview'],['district','Fan District'],['social','Social'],['calendar','Calendar'],['ballpark','Ballpark Life'],['rivalries','Relationships'],['media','Media'],['merch','Merch & Collectibles'],['culture','Culture & Lore']];
+const TABS=[['v6','NMLB League Life'],['calendar','Calendar'],['overview','Overview'],['district','Fan District'],['social','Social'],['ballpark','Ballpark Life'],['rivalries','Relationships'],['media','Media'],['merch','Merch & Collectibles'],['culture','Culture & Lore']];
 
 export default function FandomPage({ctx}){
   const {data,teams,playoffPicture,favoriteTeam,controlsUnlocked,setPage}=ctx;
@@ -181,7 +182,7 @@ export default function FandomPage({ctx}){
     </>}
 
     {tab==='calendar'&&<>
-      <section className="fan-week-strip card">{Array.from({length:8},(_,i)=>{const w=i+1;return <div key={w} className={w===pulse.week?'active':w<pulse.week?'done':''}><b>W{w}</b><span>Games {(w-1)*5+1}–{w*5}</span><small>{w===1?'Opening':w===4?'All-Star':w===8?'Pennant Race':w<4?'Build-up':'Second Half'}</small></div>})}</section>
+      <section className="fan-week-strip card">{Array.from({length:8},(_,i)=>{const w=i+1;const weekSlots=buildSeasonCalendar(data,teams).filter(slot=>slot.week===w&&slot.gameNumber);const first=weekSlots[0]?.gameNumber,last=weekSlots.at(-1)?.extraGameNumbers?.at(-1)||weekSlots.at(-1)?.gameNumber;const gameCount=weekSlots.reduce((sum,slot)=>sum+(slot.gameNumbers?.length||1),0);return <div key={w} className={w===pulse.week?'active':w<pulse.week?'done':''}><b>W{w}</b><span>{weekSlots.length?`Games ${first}–${last}`:'Calendar open'}</span><small>{w===1?'Opening':w===4?'All-Star':w===8?'Pennant Race':w<4?'Build-up':'Second Half'} · {gameCount} game{gameCount===1?'':'s'}</small></div>})}</section>
       <section className="card fan-game-night-planner"><div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label>{controlsUnlocked?<button onClick={()=>setPage?.('office')}>Open League Office →</button>:<span className="fan-calendar-lock">🔒 League Office controlled</span>}</div></div>{selectedGameNight&&<div className="fan-tonight-promo"><span>{selectedGameNight.icon||'🎟️'}</span><div><small>GAME {promoGame}</small><strong>{selectedGameNight.name}</strong><p>{selectedGameNight.giveaway||'Special game-day event'}</p></div></div>}<SeasonCalendar data={data} teams={teams} selectedGameNumber={promoGame} onSelectGame={setPromoGame}/><div className="fan-calendar-print-row"><span>League Office controls Game Days, matchups, promotions and ceremonies.</span><button onClick={()=>window.print()}>🖨 Print Season Calendar</button></div></section>
     </>}
 

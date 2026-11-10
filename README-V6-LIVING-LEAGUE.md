@@ -219,6 +219,26 @@ V6.4.13 is a deep stability and operator-workflow pass ahead of the NMLB postsea
 - Bracket Admin adds active/finished counts, Next Active Series navigation, a stronger series-control meter, a denser series board, and a one-click Load Series into Live Scoring action.
 - Visible NMLB version labels are normalized to V6.4.13 across the runtime source.
 
+## V6.7 — The NMLB Classic Ecosystem
+
+V6.7 is the Game 40 lock-in and postseason transition release: the league now behaves like one connected baseball ecosystem instead of a collection of isolated team screens.
+
+### NMLB Classic readiness
+- Added a Dashboard NMLB Classic Preflight checklist for colors, calendar, finals, postseason field and official NMLB identity.
+- Updated the supplied playoff palette for Seattle, Kansas City, NYY, NYM and Milwaukee.
+- Bunting now uses the NMLB brand palette rather than generic patriotic colors.
+- Added event-aware atmosphere hooks for Fan Appreciation Night, Bark at the Park, Fireworks Night, Throwback Night and Rivalry Night.
+
+### Calendar and operator flow
+- Daily simulation entry now permits the same team to appear in multiple games in one slate while still preventing a same-team matchup inside one row.
+- Calendar auto-layout now varies weekly density with four-, five- and six-game weeks, and Calendar is promoted earlier in the fan navigation.
+- Fandom’s weekly strip now reports the actual calendar games rather than assuming five games every week.
+
+### Living league and postseason voices
+- Added postseason, clinching, elimination, record-watch, Selection Show and instant-classic chatter voices to the social phrase bank.
+- Added official NMLB Classic branding and a league-wide readiness layer to the Dashboard.
+- Existing themed-night programming now has a visual class hook so each promotion can carry a full atmosphere package across the app.
+
 ## V6.6 — The Postseason Push
 V6.6 turns the final stretch into an active history chase and gives the two most visited postseason surfaces a dedicated October command layer.
 

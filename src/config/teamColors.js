@@ -58,6 +58,11 @@ export const POSTSEASON_PALETTES={
   TB: ["#ffffff", "#f1da09", "#0077d8", "#040041", false],
   DET: ["#cf5804", "#ffffff", "#010017", "#cf5804", false],
   BAL: ["#d94804", "#d94804", "#000000", "#ffffff", false],
+  SEA: ["#010046", "#e3ac17", "#106b4a", "#ffffff", false],
+  KC: ["#001b85", "#ffffff", "#001b85", "#001b85", false],
+  NYY: ["#ffffff", "#00093a", "#00093a", "#00093a", false],
+  NYM: ["#ed5f07", "#0d0d6E", "#ed5f07", "#FFFFFF", false],
+  MIL: ["#010041", "#fcf0e3", "#fffb1d", "#fffb1d", false],
 };
 
 const expandPostseasonPalette=(entry)=>{

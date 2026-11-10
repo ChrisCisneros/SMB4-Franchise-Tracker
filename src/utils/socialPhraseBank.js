@@ -147,6 +147,24 @@ const BASE_SOCIAL_PHRASE_BANK={
   ),
   quiet:bank(
     'This game has settled into that weird middle-inning hum.','Nothing dramatic happening and somehow I am still locked in.','Baseball has a lot of waiting and then suddenly none at all.','One of those innings where everyone collectively exhales.','The crowd is doing the low murmur thing. Something big is eventually going to happen.','Routine baseball is underrated until it stops being routine.','I could almost here a pin drop in here.','I feel I am breathing too loud in here'
+  ),
+  postseason:bank(
+    'October baseball has arrived and every routine out suddenly feels historic.','The regular season built the stage. Now the smallest mistake gets remembered forever.','Nobody is casually watching this anymore.','Postseason baseball has a different kind of silence before the pitch.','Every fanbase is bringing receipts, hope and at least one unreasonable prediction.','This is the part of the year where one swing can become league history.','The bracket is set and the emotional damage is scheduled.','October makes everybody a strategist and nobody a calm person.','A new postseason chapter is starting in every city at once.','The NMLB Classic is not just a tournament. It is the entire league watching together.'
+  ),
+  clinching:bank(
+    'CLINCHED. The champagne can officially enter the conversation.','That berth is no longer a projection. It belongs to them.','The magic number is gone and the celebration is real.','A season of work just became an October ticket.','The clubhouse has earned a very loud night.','One more team has officially joined the NMLB postseason field.','The bracket changed because somebody finished the job.','There is no more scoreboard watching for this club. They are in.','The fans waited all season for this exact sentence: we are going to the playoffs.','The clinch is official, the city is awake and the receipts are being printed.'
+  ),
+  elimination:bank(
+    'That is the cruelest sentence in baseball: mathematically eliminated.','The season ends here, but the memories do not.','Somebody had to miss October. That does not make this hurt less.','The scoreboard is still running, but the postseason dream is over.','A long season reduced to one final result. Baseball can be so unfair.','The fans are disappointed, proud, exhausted and already thinking about next year.','The bracket has a vacancy where this team hoped to be.','No October trip this time. The next chapter starts with the autopsy.','The last game will carry more weight now that the future is known.','This is the part of the season nobody puts on the promotional calendar.'
+  ),
+  record:bank(
+    'That number is no longer just a number. It is league history.','Somebody update the record book immediately.','The old mark survived until tonight and then it did not.','A record chase just became a record receipt.','That is the kind of statistic people will bring up seasons from now.','History did not happen quietly. The whole league noticed.','The leaderboard has a new name at the top.','A record was set, expanded or broken, and the context matters.','The record book is having a very busy week.','Somebody is going to tell this story every time these two teams meet.'
+  ),
+  selection:bank(
+    'Welcome to the Selection Show. The field is set and the arguments are not.','Every seed has a case. Every omission has a lawyer.','The bracket reveal has begun. Please secure your predictions before the chaos starts.','There are no easy paths now, only different kinds of danger.','The NMLB Classic field is official. Let the matchup debates begin.','One side of the bracket looks terrifying. The other side is pretending not to.','This is where regular-season records become postseason pressure.','The first-round series are set and every fanbase thinks the draw is perfect.','The bracket graphic is live and the group chats are already fighting.','October has names, numbers and absolutely no guaranteed outcomes.'
+  ),
+  classic:bank(
+    'That game needs a plaque, a documentary and maybe a warning label.','Fifteen innings later and nobody in the building remembers what calm felt like.','One-run finish, extra innings and a whole league holding its breath.','That was not a game. That was a full-season storyline in miniature.','The final score does not explain how stressful that was.','Somebody save the scorecard. This one belongs in the archive.','The players are exhausted, the fans are hoarse and the history desk is thrilled.','That is exactly why we keep watching baseball.','A simulated final just became an NMLB memory.','The game ended. The arguments are only getting started.'
   )
 };
 

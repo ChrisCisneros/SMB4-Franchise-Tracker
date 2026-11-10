@@ -25,7 +25,7 @@ import {
   personalityForMetric
 } from '../utils/v4Utils';
 
-const TABS=[['intelligence','League Intelligence'],['storylines','Storylines'],['players','Players & Awards'],['records','Records & Milestones'],['snapshots','Snapshots'],['theme','Theme Lab'],['museum','Museum & Hall of Glory']];
+const TABS=[['intelligence','League Intelligence'],['records','Records & Milestones'],['storylines','Storylines'],['players','Players & Awards'],['snapshots','Snapshots'],['theme','Theme Lab'],['museum','Museum & Hall of Glory']];
 const pct=n=>Number.isFinite(n)?n.toFixed(3).replace(/^0/,''):'.000';
 const rd=n=>`${Number(n||0)>0?'+':''}${Number(n||0)}`;
 function Pill({children,tone=''}){return <span className={`v4-pill ${tone}`}>{children}</span>}
