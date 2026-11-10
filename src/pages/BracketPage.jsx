@@ -7,6 +7,7 @@ import { buildPostseasonSeriesMemory, buildPostseasonNightlyShow, buildPostseaso
 import { buildStretchRunBoard } from "../utils/finalWeeksUtils";
 import { buildFinalWeekCommand, buildPostseasonReadiness } from '../utils/v65LifeUtils';
 import { buildPostseasonPush } from '../utils/postseasonPushUtils';
+import PostseasonCommandCenter from '../components/PostseasonCommandCenter';
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
@@ -64,6 +65,8 @@ export default function BracketPage({ ctx }) {
       <div className="playoff-hub-stat"><span>NMLB Network Picks</span><strong>{predictions.phase.label}</strong></div>
       <div className="playoff-hub-stat"><span>Season Phase</span><strong>{phase}</strong></div>
     </div>
+
+    <PostseasonCommandCenter data={data} teams={data.teams||[]} />
 
     {stretchRun.phase.id!=='regular'&&<section className="v65-bracket-ramp card"><div><small>NMLB V6.5 · SELECTION SHOW READINESS</small><h2>{v65Command.selectionReady?'THE FIELD IS SET':`${v65Command.unresolved} SPOT${v65Command.unresolved===1?'':'S'} STILL OPEN`}</h2><p>{v65Command.selectionReady?'All postseason seats are mathematically claimed. The official bracket reveal can begin.':'Projected seeds remain live until every berth is locked.'}</p></div><div className="v65-ready-board">{v65Ready.slice(0,8).map(x=><span key={x.team.id}><b>{x.team.abbr}</b><strong>{x.readiness}%</strong><em>{x.label}</em></span>)}</div></section>}
     {stretchRun.phase.id!=='postseason'&&stretchRun.phase.id!=='regular'&&<section className={`card nmlb6411-projected-bracket ${stretchRun.phase.id}`}><div><small>{stretchRun.phase.id==='selection'?'NMLB SELECTION SHOW':'IF THE SEASON ENDED TONIGHT'}</small><h2>{stretchRun.phase.id==='selection'?'The field is set.':'Projected postseason field'}</h2><p>{stretchRun.phase.id==='selection'?'Seeds, matchups and predictions are ready for the official bracket reveal.':'Ghosted seeds update with the live pennant race until the bracket becomes official.'}</p></div><div className="nmlb6411-projected-field">{stretchRun.field.map(l=><article key={l.league}><h3>{l.league}</h3>{l.seeds.map(x=><span key={x.team.id}><b>#{x.seed}</b><strong>{x.team.abbr}</strong><em>{x.status.marker||'LIVE'}</em></span>)}</article>)}</div></section>}

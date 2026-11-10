@@ -61,8 +61,8 @@ export default function BracketAdminPage({ ctx }) {
       <div className="card bracket-admin-hero">
         <div>
           <div className="operator-kicker">POSTSEASON CONTROL ROOM</div>
-          <h2>Bracket Admin</h2>
-          <p className="muted">Pick a series, enter the final score, and the bracket advances automatically.</p>
+          <h2>Postseason Game Desk</h2>
+          <p className="muted">Pick a series, load it into Live Scoring, or enter a final score. The bracket advances automatically.</p>
         </div>
         <div className="bracket-admin-hero-actions">
           <div className="bracket-admin-summary-chips">

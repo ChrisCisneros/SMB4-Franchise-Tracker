@@ -850,7 +850,7 @@ function fieldRunnerMovesForPlay(game, type) {
     if (bases.second) add("second", "home", { scored: true });
     if (bases.first) add("first", "home", { scored: true });
     add("home", "home", { batter: true, scored: true, fullCycle: true });
-  } else if (["walk", "hitbypitch", "error"].includes(type)) {
+  } else if (["walk", "intentionalwalk", "hitbypitch", "error"].includes(type)) {
     if (bases.first && bases.second && bases.third) add("third", "home", { scored: true });
     if (bases.first && bases.second) add("second", "third");
     if (bases.first) add("first", "second");
@@ -873,7 +873,7 @@ function fieldRunnerMovesForPlay(game, type) {
 
 function fieldAnimationKindForPlay(type) {
   if (["single", "double", "triple", "homerun", "flyout", "groundout", "lineout", "popup", "fielderschoice", "doubleplay", "error", "sacfly"].includes(type)) return "batted";
-  if (["walk", "hitbypitch", "strikeout", "calledstrikeout"].includes(type)) return "pitch";
+  if (["walk", "intentionalwalk", "hitbypitch", "strikeout", "calledstrikeout"].includes(type)) return "pitch";
   if (["pickoff1", "pickoff2", "pickoff3"].includes(type)) return "pickoff";
   if (type === "caughtstealing") return "runner";
   return "log-only";
@@ -884,7 +884,7 @@ function fieldBallResultForPlay(type) {
     single: "1B", double: "2B", triple: "3B", homerun: "HR",
     flyout: "OUT", groundout: "OUT", lineout: "OUT", popup: "OUT",
     fielderschoice: "OUT", doubleplay: "OUT", caughtstealing: "OUT",
-    error: "ERROR", sacfly: "OUT", walk: "BB", hitbypitch: "HBP", strikeout: "K", calledstrikeout: "ꓘ",
+    error: "ERROR", sacfly: "OUT", walk: "BB", intentionalwalk: "IBB", hitbypitch: "HBP", strikeout: "K", calledstrikeout: "ꓘ",
   };
   return map[type] || String(type || "PLAY").toUpperCase();
 }
@@ -1342,9 +1342,9 @@ function isWorldSeriesGame(game) {
           lastAB: type === "flyout" ? "FO" : type === "groundout" ? "GO" : type === "lineout" ? "LO" : type === "popup" ? "POP" : type === "strikeout" ? "K" : type === "calledstrikeout" ? "ꓘ" : "OUT",
         };
       }
-      if (category === "other" && ["walk", "hitbypitch", "error"].includes(type)) {
+      if (category === "other" && ["walk", "intentionalwalk", "hitbypitch", "error"].includes(type)) {
         changed = true;
-        const isWalk = type === "walk", isHbp = type === "hitbypitch", isError = type === "error";
+        const isWalk = ["walk", "intentionalwalk"].includes(type), isIbb = type === "intentionalwalk", isHbp = type === "hitbypitch", isError = type === "error";
         return {
           ...p,
           ab: Number(p.ab || 0) + (isError ? 1 : 0),
@@ -1352,9 +1352,11 @@ function isWorldSeriesGame(game) {
           careerAB: Number(p.careerAB || 0) + (isError ? 1 : 0),
           seasonWalks: Number(p.seasonWalks || 0) + (isWalk ? 1 : 0),
           careerWalks: Number(p.careerWalks || 0) + (isWalk ? 1 : 0),
+          seasonIBB: Number(p.seasonIBB || 0) + (isIbb ? 1 : 0),
+          careerIBB: Number(p.careerIBB || 0) + (isIbb ? 1 : 0),
           seasonHBP: Number(p.seasonHBP || 0) + (isHbp ? 1 : 0),
           careerHBP: Number(p.careerHBP || 0) + (isHbp ? 1 : 0),
-          lastAB: isWalk ? "BB" : isHbp ? "HBP" : "E",
+          lastAB: isIbb ? "IBB" : isWalk ? "BB" : isHbp ? "HBP" : "E",
         };
       }
       return p;
@@ -1374,7 +1376,7 @@ function isWorldSeriesGame(game) {
       const batterName = prev.players?.find((p) => p.id === resolvedBatterId)?.name || "Batter";
       const socialBattingSide = options.battingSide || (next.half === "Top" ? "away" : "home");
       const socialFieldingSide = options.fieldingSide || (socialBattingSide === "away" ? "home" : "away");
-      const offensiveTypes = new Set(["single","double","triple","homerun","walk","hitbypitch","error","sacfly"]);
+      const offensiveTypes = new Set(["single","double","triple","homerun","walk","intentionalwalk","hitbypitch","error","sacfly"]);
       const defensiveTypes = new Set(["flyout","groundout","lineout","popup","strikeout","calledstrikeout","doubleplay","caughtstealing","pickoff1","pickoff2","pickoff3"]);
       const beneficiarySide = options.beneficiarySide || (offensiveTypes.has(type) ? socialBattingSide : defensiveTypes.has(type) ? socialFieldingSide : socialBattingSide);
       const socialEventId = Date.now();
@@ -1468,7 +1470,7 @@ function isWorldSeriesGame(game) {
 
       if (category === "other") {
         const map = {
-          walk: `${batterName} walked.`, hitbypitch: `${batterName} was hit by pitch.`, error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`, sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
+          walk: `${batterName} walked.`, intentionalwalk: `${batterName} was intentionally walked.`, hitbypitch: `${batterName} was hit by pitch.`, error: `${batterName} reached on an error${fielderName ? ` by ${fielderName}` : ""}.`, sacfly: `${batterName} hit a sacrifice fly${fielderName ? ` to ${fielderName}` : ""}.`,
           pickoff1: "Pickoff attempt at 1B.", pickoff2: "Pickoff attempt at 2B.", pickoff3: "Pickoff attempt at 3B.",
           awayballupheld: `${awayTeam?.abbr || "Away"} challenged ball call - upheld.`, awayballoverturned: `${awayTeam?.abbr || "Away"} challenged ball call - overturned.`, awaystrikeupheld: `${awayTeam?.abbr || "Away"} challenged strike call - upheld.`, awaystrikeoverturned: `${awayTeam?.abbr || "Away"} challenged strike call - overturned.`,
           homeballupheld: `${homeTeam?.abbr || "Home"} challenged ball call - upheld.`, homeballoverturned: `${homeTeam?.abbr || "Home"} challenged ball call - overturned.`, homestrikeupheld: `${homeTeam?.abbr || "Home"} challenged strike call - upheld.`, homestrikeoverturned: `${homeTeam?.abbr || "Home"} challenged strike call - overturned.`,
@@ -1476,7 +1478,7 @@ function isWorldSeriesGame(game) {
         text = custom || map[type] || text;
         const infoOnlyTypes = new Set(["pickoff1","pickoff2","pickoff3","awayballupheld","awayballoverturned","awaystrikeupheld","awaystrikeoverturned","homeballupheld","homeballoverturned","homestrikeupheld","homestrikeoverturned"]);
         if (!infoOnlyTypes.has(type)) clearCount(next);
-        if (["walk","hitbypitch","error"].includes(type)) {
+        if (["walk","intentionalwalk","hitbypitch","error"].includes(type)) {
           if (type === "error") recordError(next);
           if (!preserveRunners) {
             if (next.bases.first && next.bases.second && next.bases.third) scoreRuns(next, 1);
@@ -1754,9 +1756,9 @@ const dashboardStories = [
        <div>
   <div className="title-row">
     <h1><span className="nmlb-wordmark">NMLB</span> <span className="nmlb-wordmark-long">Nicky's Major League Baseball</span></h1>
-    <span className="version-pill version-pill-v3">v6.7</span>
+    <span className="version-pill version-pill-v3">v6.8</span>
   </div>
-  <p>NMLB · Nicky's Major League Baseball · Version 6.7 · The NMLB Classic Ecosystem</p>
+  <p>NMLB · Nicky's Major League Baseball · Version 6.8 · Postseason Command Center</p>
 </div>
         <div className="topbar-actions">
   {controlsUnlocked && (
@@ -1772,7 +1774,7 @@ const dashboardStories = [
   <button className={`nav-core nav-fandom ${page === "fandom" ? "active" : ""}`} onClick={() => setPage("fandom")}>Fan Districts</button>
   <button className={`nav-core nav-league-center ${page === "v4" ? "active" : ""}`} onClick={() => setPage("v4")}>NMLB Center</button>
   <button className={`nav-core nav-standings ${page === "standings" ? "active" : ""}`} onClick={() => setPage("standings")}>Pennant Race</button>
-  <button className={`nav-core nav-bracket ${page === "bracket" ? "active" : ""}`} onClick={() => setPage("bracket")}>Bracket</button>
+  <button className={`nav-core nav-bracket ${page === "bracket" ? "active" : ""}`} onClick={() => setPage("bracket")}>Postseason</button>
   <button className={`nav-core nav-news ${page === "news" ? "active" : ""}`} onClick={() => setPage("news")}>NMLB Network</button>
   <button className={`nav-core nav-league ${page === "league" ? "active" : ""}`} onClick={() => setPage("league")}>League Almanac</button>
   <button className={`nav-core nav-history ${page === "history" ? "active" : ""}`} onClick={() => setPage("history")}>History</button>

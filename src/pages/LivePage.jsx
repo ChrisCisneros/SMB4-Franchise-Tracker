@@ -22,7 +22,7 @@ export default function LivePage({ ctx }) {
       ["fielderschoice", "Fielder's Choice"], ["doubleplay", "Double Play"], ["strikeout", "Strikeout (K)"], ["calledstrikeout", "Called K (ꓘ)"], ["caughtstealing", "Caught Stealing"],
     ],
     other: [
-      ["walk", "Walk"], ["hitbypitch", "HBP"], ["error", "Error"], ["sacfly", "Sac Fly"],
+      ["walk", "Walk"], ["intentionalwalk", "IBB"], ["hitbypitch", "HBP"], ["error", "Error"], ["sacfly", "Sac Fly"],
       ["pickoff1", "Pickoff 1B"], ["pickoff2", "Pickoff 2B"], ["pickoff3", "Pickoff 3B"],
       ["awayballupheld", "Away Ball Upheld"], ["awayballoverturned", "Away Ball Overturned"],
       ["awaystrikeupheld", "Away Strike Upheld"], ["awaystrikeoverturned", "Away Strike Overturned"],
@@ -96,6 +96,7 @@ export default function LivePage({ ctx }) {
               <button className="instant-out" onClick={() => startAnimatedFieldPlay("out", "flyout")}>FO</button>
               <button className="instant-k" onClick={() => startAnimatedFieldPlay("out", "strikeout")}>K</button>
               <button className="instant-walk" onClick={() => startAnimatedFieldPlay("other", "walk")}>BB</button>
+              <button className="instant-walk instant-ibb" onClick={() => startAnimatedFieldPlay("other", "intentionalwalk")}>IBB</button>
               <button className="instant-dp" onClick={() => startAnimatedFieldPlay("out", "doubleplay")}>DP</button>
             </div>
           </div>

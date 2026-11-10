@@ -306,3 +306,9 @@ V6.5 turns the final stretch of the regular season into a league-wide event whil
 - Visible app branding is updated to V6.5 — Final Week & Living League Expansion.
 
 V6.5 intentionally builds on the V6.4.13 single-source Live Scoring architecture; it does not reintroduce local live-game authority, revision arbitration or reconnect resurrection logic.
+## V6.8 — Postseason Command Center
+
+The postseason is now its own operating mode while the regular-season calendar remains preserved. The former Bracket destination is labeled **Postseason** and includes an October dashboard, series center, postseason calendar, and postseason record board. Active series show game-by-game slots with future games held as TBD until needed, allowing several games to share a date while each final is entered independently.
+
+Live Scoring now includes an intentional walk (IBB) quick action and animated-play option. IBB events are logged distinctly from ordinary walks and preserved in player career/season stats. The build also updates the visible app and newsroom branding to Version 6.8.
+
