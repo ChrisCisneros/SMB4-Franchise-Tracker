@@ -241,7 +241,7 @@ export function buildCulturalAwards(data={},teams=[]){
 
 const PARK_WORDS_A=['Harbor','Crown','Summit','Liberty','Foundry','Riverside','Union','Pioneer','Victory','Gateway','Heritage','Skyline','Civic','Frontier','Bayfront','Monument'];
 const PARK_WORDS_B=['Park','Field','Ballpark','Yard','Grounds','Stadium'];
-const SIGNATURE_FOODS=['Loaded garlic fries','Smoked stadium dogs','Grandstand nachos','Chili helmet fries','Caramel corn sundae','Fire-roasted sausage','Loaded tater basket','Ballpark pretzel melt','Street-taco trio','Double-stack stadium burger'];
+const SIGNATURE_FOODS=['Loaded garlic fries','Smoked stadium dogs','Grandstand nachos','Chili helmet fries','Caramel corn sundae','Fire-roasted sausage','Loaded tater basket','Ballpark pretzel melt','Street-taco trio','Double-stack stadium burger','Rally ramen cup','Extra-inning ice cream flight','Bunt-shaped bao buns','Bullpen barbecue box','The Seventh-Inning Crunchwrap','Home-run honey wings','Pennant punch slushie','Citrus foul-pole lemonade'];
 const FAMOUS_SECTIONS=['The Loud Corner','The Rail','Right Field Rowdies','The Upper Deck Crew','The Bleacher Block','The Home Run Porch','The Grandstand','The Rally Deck'];
 
 export function buildBallparkProfile(data={},team){

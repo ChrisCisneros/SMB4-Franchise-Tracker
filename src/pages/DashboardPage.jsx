@@ -60,6 +60,7 @@ export default function DashboardPage({ ctx }) {
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
+  const isPostseason = data.leagueExtras?.seasonPhase === 'postseason' || data.currentGame?.gameType === 'playoff' || (data.games||[]).some(g=>g?.gameType==='playoff');
   const nmlbCulture = useMemo(()=>buildNMLBCulture(data,teams,playoffPicture||[]),[data,teams,playoffPicture,tickerSlide]);
   const postseasonTakeover = useMemo(()=>buildNMLBPostseasonTakeover(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const postseasonTonight = useMemo(()=>buildPostseasonNightlyShow(data,teams),[data.games,data.activeSeasonName,teams]);
@@ -114,6 +115,12 @@ export default function DashboardPage({ ctx }) {
     if(sharedCeremonySession?.status==='completed'&&activeCeremony?.id===sharedCeremonySession.ceremonyId)setActiveCeremony(null);
   },[sharedCeremonySession?.ceremonyId,sharedCeremonySession?.status,sharedCeremonySession?.step,sharedCeremony?.id]);
   const saveCeremonyExtras=(next)=>{syncLeagueExtrasToFirebase?.(next);setData?.(p=>({...p,leagueExtras:next}))};
+  const beginPostseason=()=>{
+    if(!controlsUnlocked)return;
+    if(!window.confirm('Begin the postseason? The regular-season calendar will remain preserved, and the dashboard will switch to October mode.'))return;
+    const next={...(data.leagueExtras||{}),seasonPhase:'postseason',postseasonStartedAt:new Date().toISOString()};
+    syncLeagueExtrasToFirebase?.(next);setData?.(p=>({...p,leagueExtras:next}));
+  };
   const startSharedCeremony=(ceremony,{restart=false}={})=>{
     if(!ceremony||!controlsUnlocked)return;
     const extras=data.leagueExtras||{};
@@ -257,10 +264,12 @@ export default function DashboardPage({ ctx }) {
     <nav className="dashboard-v61-tabs"><button type="button" className={dashboardTab==='home'?'active':''} onClick={()=>setDashboardTab('home')}>⚾ Home</button><button type="button" className={dashboardTab==='life'?'active':''} onClick={()=>setDashboardTab('life')}>🌆 League Life</button></nav>
     {dashboardTab==='home'&&<>
     <section className="dashboard-universe-plaza dashboard-network-top">
-      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.8 · POSTSEASON COMMAND CENTER</small></div>
+      <div className="dashboard-network-brand"><span>● LIVE</span><strong>NMLB NETWORK</strong><small>{activeSeason} · VERSION 6.8 · {isPostseason?'POSTSEASON COMMAND CENTER':'REGULAR-SEASON BUILD'}</small></div>
       <div className="dashboard-universe-ticker"><b>AROUND THE LEAGUE</b><span>{tickerItems.length?tickerItems[tickerSlide%tickerItems.length]:`${activeSeason} is ready for first pitch.`}</span></div>
-      <div className="dashboard-network-status"><small>SEASON</small><strong>{seasonProgress}%</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
+      <div className="dashboard-network-status"><small>{isPostseason?'PHASE':'SEASON'}</small><strong>{isPostseason?'OCTOBER':`${seasonProgress}%`}</strong><span>{defendingChampion?`🏆 ${defendingChampion.abbr} defending champ`:'The league is live'}</span></div>
     </section>
+    {!isPostseason&&controlsUnlocked&&<section className="dashboard-postseason-switch card"><div><small>REGULAR SEASON COMPLETE?</small><h2>Ready to turn the page to October?</h2><p>Lock the regular calendar in place and move the dashboard into postseason mode.</p></div><button type="button" onClick={beginPostseason}>Begin Postseason →</button></section>}
+    {isPostseason&&<section className="dashboard-postseason-switch is-active card"><div><small>NMLB POSTSEASON MODE · REGULAR SEASON ARCHIVED</small><h2>October is now the main story.</h2><p>The 40-game calendar remains available under Regular Season. New games, schedules and live results belong to the Postseason center.</p></div><button type="button" onClick={()=>setPage?.('bracket')}>Open Postseason →</button></section>}
     {stretchRun.phase.id!=='regular'&&<section className={`nmlb6411-stretch-hero ${stretchRun.phase.id}`}><div><small>{stretchRun.phase.tag}</small><h2>{stretchRun.phase.label}</h2><p>{stretchRun.phase.detail}</p></div><div className="nmlb6411-race-night"><span>PRESSURE TEAMS <b>{stretchRun.raceNight.pressureTeams}</b></span><span>POSSIBLE DECISIONS <b>{stretchRun.raceNight.possibleClinches}</b></span><span>CLINCHED <b>{stretchRun.clinched.length}</b></span><span>ELIMINATED <b>{stretchRun.eliminated.length}</b></span></div>{stretchRun.raceNight.active&&<div className="nmlb6411-race-night-banner"><b>NMLB RACE NIGHT</b><span>{stretchRun.raceNight.pressureTeams} clubs are carrying live clinch/elimination pressure.</span></div>}</section>}
     {playoffPressure&&<section className="card nmlb6411-pressure-game"><small>NMLB POSTSEASON · GAME STATE</small><h2>{playoffPressure.label}</h2><p>{playoffPressure.detail}</p>{playoffPressure.series&&<strong>{playoffPressure.series.away?.abbr||'TBD'} {playoffPressure.series.awayWins}-{playoffPressure.series.homeWins} {playoffPressure.series.home?.abbr||'TBD'}</strong>}</section>}
     {nmlbCulture.predictions.phase.id!=='preview'&&<section className="nmlb64-dashboard-race"><div><small>NMLB POSTSEASON CENTRAL</small><h2>{postseasonTakeover.headline}</h2><p>{postseasonTakeover.detail}</p><div className="nmlb64-dashboard-race-tags"><span>{nmlbCulture.predictions.phase.label}</span><span>{postseasonTakeover.qualified.length} QUALIFIED</span><span>{postseasonTakeover.eliminated.length} ELIMINATED</span>{nmlbCulture.predictions.consensus&&<span>NETWORK PICK · {nmlbCulture.predictions.consensus.abbr}</span>}</div></div><div><small>TONIGHT ON NMLB NETWORK</small><h2>{nmlbCulture.segments[0]?.[0]}</h2><p>{nmlbCulture.segments[0]?.[1]}</p><div className="nmlb64-dashboard-race-tags">{nmlbCulture.activeTraditions.slice(0,3).map(t=><span key={t.id}>{t.name}</span>)}</div></div></section>}

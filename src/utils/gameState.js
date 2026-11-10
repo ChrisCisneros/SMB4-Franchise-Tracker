@@ -89,7 +89,7 @@ export const defaultLeagueExtras = {
   officialLeagueName: "Nicky's Major League Baseball", officialLeagueAbbr: "NMLB",
   seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
   worldMoments: [], ballparkEvents: [], rivalryNames: {}, gameNightSchedule: {},
-  dayEventSchedule: {}, seasonDayIndex: null, gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
+  dayEventSchedule: {}, seasonDayIndex: null, seasonPhase: 'regular', postseasonStartedAt: '', gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
   chronicleSnapshots: [], recordChangeHistory: [], awardRace: [],
   careerRecordWatches: [], museumArtifacts: [], ceremonyCompletions: [], ceremonySession: null,
   simulationHighlights: [],

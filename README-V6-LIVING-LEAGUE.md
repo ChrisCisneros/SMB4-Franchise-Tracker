@@ -312,3 +312,9 @@ The postseason is now its own operating mode while the regular-season calendar r
 
 Live Scoring now includes an intentional walk (IBB) quick action and animated-play option. IBB events are logged distinctly from ordinary walks and preserved in player career/season stats. The build also updates the visible app and newsroom branding to Version 6.8.
 
+## V6.8.1 — October Phase Switch & Living Commercial League
+
+The dashboard now has an explicit **Begin Postseason** control. This preserves the regular-season Game 40 calendar while switching the dashboard into October mode. League Office → Calendars now separates the **Regular Season Calendar** from an editable **Postseason Calendar** that supports multiple games on one date, broadcast windows, series labels, and TBD matchups.
+
+The living-world economy also has more fictional league-wide advertisers, food and ballpark brands, ticket bundles, travel packages, apparel drops, and NMLB Network commercial inventory so the ecosystem is not financially dependent on one franchise.
+

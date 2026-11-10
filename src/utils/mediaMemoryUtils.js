@@ -126,6 +126,11 @@ export function buildDynamicAds(data={},teams=[],playoffPicture=[]){
   if(world.promo)ads.push({id:'promo',kicker:'TONIGHT',title:`${world.promo.icon||'🎟️'} ${world.promo.name}`,copy:world.promo.giveaway||'Special ballpark event',cta:'EVENT GUIDE'});
   ads.push({id:'network',kicker:'NMLB NETWORK+',title:'Every storyline. Every argument.',copy:'Pregame, postgame, podcasts and the live fan wire.',cta:'WATCH NOW'});
   ads.push({id:'local',kicker:'DIAMOND DOG GRILL',title:'Win tonight, fries tomorrow.',copy:'A fictional local sponsor proudly fueling unreasonable baseball opinions.',cta:'GAME DAY SPECIAL'});
+  ads.push({id:'rail',kicker:'NORTHSTAR WIRELESS',title:'Stay connected through every inning.',copy:'Live scores, bullpen alerts and the group chat meltdown all in one place.',cta:'KEEP WATCHING'});
+  ads.push({id:'food',kicker:'SEVENTH-INNING KITCHEN',title:'The rally plate has arrived.',copy:'Loaded fries, smoked dogs and the league-famous extra-inning pretzel melt.',cta:'ORDER FROM THE PARK'});
+  ads.push({id:'grandstand-pass',kicker:'GRANDSTAND PASS',title:'Your seat is part of the story.',copy:'Flexible ticket bundles for rivalry nights, fireworks and October baseball.',cta:'FIND YOUR SEAT'});
+  ads.push({id:'gear',kicker:'NMLB OUTFITTERS',title:'Wear the moment before it becomes history.',copy:'Fresh city editions, fan appreciation drops and limited postseason gear.',cta:'SHOP THE DROP'});
+  ads.push({id:'travel',kicker:'SUMMIT AIR',title:'Follow your club anywhere.',copy:'Road-trip packages built for fans who refuse to watch October from home.',cta:'PLAN THE TRIP'});
   return ads;
 }
 
