@@ -95,7 +95,7 @@ export function buildSocialChatter(data={},teams=[],playoffPicture=[],now=Date.n
   top.forEach((x,i)=>lines.push({handle:["@BleacherBobby","@DiamondDiehard","@TheUpperDeck"][i],team:x.team.abbr,text:x.mood==='EUPHORIC'?`${x.team.abbr} fans are starting to talk like the parade route is already booked. 😂`:`${x.team.abbr} is getting VERY hard to ignore right now.`,tone:'up'}));
   if(cold)lines.push({handle:'@PainInThePen',team:cold.team.abbr,text:`Being a ${cold.team.abbr} fan currently builds character. Too much character.`,tone:'down'});
   if(latest){const aw=teams.find(t=>t.id===latest.awayTeamId),hm=teams.find(t=>t.id===latest.homeTeamId);lines.push({handle:'@FinalOut',team:'LEAGUE',text:`Still thinking about ${aw?.abbr||'AWY'} ${latest.awayScore} – ${hm?.abbr||'HME'} ${latest.homeScore}. Baseball, man.`,tone:'neutral'});}
-  lines.push({handle:'@SMBFanPulse',team:'LEAGUE',text:`League mood: ${leagueMood}. Nobody is normal about this season anymore.`,tone:'neutral'});
+  lines.push({handle:'@NMLBFanPulse',team:'LEAGUE',text:`League mood: ${leagueMood}. Nobody is normal about this season anymore.`,tone:'neutral'});
   const bucket=Math.floor(now/90000); return lines.sort((a,b)=>seeded(`${bucket}-${a.handle}`)-seeded(`${bucket}-${b.handle}`));
 }
 
@@ -209,7 +209,7 @@ export function buildProgramming(pulse,now=new Date()){
   const shows= daypart==='Morning'?[['First Pitch','Overnight results, standings and fan pulse'],['Numbers Desk','What changed after the latest games']]
     :daypart==='Midday'?[['Diamond Debate','Polls, hot takes and contender arguments'],['Clubhouse Live','Team mood and storylines']]
     :daypart==='Pregame'?[['Pregame Central','Games that matter, picks and rivalry heat'],['The Lineup','What fans are watching tonight']]
-    :[['SMB Tonight','Live league stories and GameCast'],['Final Out','Postgame reactions, grades and instant classics']];
+    :[['NMLB Tonight','Live league stories and GameCast'],['Final Out','Postgame reactions, grades and instant classics']];
   return {daypart,shows,headline:`Week ${pulse.week}, Day ${pulse.dayInWeek} · ${pulse.phase}`};
 }
 

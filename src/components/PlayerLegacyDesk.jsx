@@ -3,6 +3,7 @@ import { buildPlayerCareerBoard } from '../utils/historyUtils';
 import { buildSpecialAchievements } from '../utils/playerLegacyUtils';
 import { getTeamColorsByAbbr } from '../config/teamColors';
 import { recordWatchFields } from '../utils/postseasonPushUtils';
+import PlayerRecordBookPanel from './PlayerRecordBookPanel';
 
 const STAT_DEFS = [
   {id:'hits',label:'Hits',abbr:'H',icon:'⚾',careerKey:'careerHits',steps:[300,400,500,600,750,1000]},
@@ -127,6 +128,7 @@ export default function PlayerLegacyDesk({data,teams,controlsUnlocked,saveExtras
   };
 
   return <section className="card v61-player-legacy" style={{'--legacy-main':colors.main,'--legacy-alt':colors.alt}}>
+    {mode!=='profile'&&<PlayerRecordBookPanel records={records} controlsUnlocked={controlsUnlocked} saveExtras={saveExtras}/>} 
     <div className="v61-legacy-head"><div><small>NMLB 6.5 · PLAYER LEGACY DESK</small><h2>Look Up A Player. Build Their Story.</h2><p>Search tracked players and the permanent NMLB legacy directory. Historical players only need to be added once, then they stay searchable for future milestones.</p></div><div className="v61-legacy-search"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search player or team…"/><div>{results.map(p=>{const t=teams.find(x=>x.id===p.teamId)||teams.find(x=>String(x.abbr||'').toUpperCase()===String(p.teamAbbr||'').toUpperCase());return <button type="button" key={p.id} className={player?.id===p.id?'active':''} onClick={()=>setSelectedId(p.id)}><b>{p.name}</b><span>{t?.abbr||p.teamAbbr||'NMLB'}{p.number?` · #${p.number}`:''}</span></button>})}</div>{controlsUnlocked&&<button type="button" className="v61-legacy-add-player" onClick={addLegacyPlayer}>+ Add Historical Player</button>}</div></div>
     {player?<>
       <div className="v61-player-profile"><div className="v61-player-monogram">{player.name.split(/\s+/).map(x=>x[0]).slice(0,2).join('')}</div><div><small>{team?.abbr||player.teamAbbr||'NMLB'} · PLAYER LEGACY PROFILE</small><h3>{player.name}</h3><span>{owned.length} milestone{owned.length===1?'':'s'} preserved{player.isLegacyDirectory?' · legacy directory':''}</span></div><div className="v61-player-career-strip"><span><b>{player.careerHits}</b> H</span><span><b>{player.careerHR}</b> HR</span><span><b>{player.careerStrikeouts}</b> K</span><span><b>{player.careerPitchingWins}</b> W</span></div></div>

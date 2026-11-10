@@ -7,6 +7,9 @@ export const emptyDailyRow = () => ({
   homeTeamId: "",
   awayScore: "",
   homeScore: "",
+  innings: "9",
+  walkoff: false,
+  note: "",
   applied: false,
 });
 
@@ -83,12 +86,13 @@ export const defaultLeagueExtras = {
   standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
   hofBallot: [], manualClassicGames: [], commentary: [], topPlays: [],
   leagueCalendar: [], storylines: [], bracketPredictions: [],
-  officialLeagueName: "Super Mega Baseball League", officialLeagueAbbr: "SMBL",
+  officialLeagueName: "Nicky's Major League Baseball", officialLeagueAbbr: "NMLB",
   seasonCalendar: [], seasonSchedule: [], seasonStartMonday: "", ceremonies: [],
   worldMoments: [], ballparkEvents: [], rivalryNames: {}, gameNightSchedule: {},
   dayEventSchedule: {}, seasonDayIndex: null, gameDayMeta: {}, fanAwards: [], fanSurveyHistory: [], socialArchives: [],
   chronicleSnapshots: [], recordChangeHistory: [], awardRace: [],
   careerRecordWatches: [], museumArtifacts: [], ceremonyCompletions: [], ceremonySession: null,
+  simulationHighlights: [],
   v6Watchlist: [], v6CommissionerNotes: [], v6SeasonTimeCapsules: [],
   v6FanMemory: {}, v6EventTraditions: {}, v6LeagueLastVisitAt: '',
 };

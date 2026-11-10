@@ -135,7 +135,7 @@ export function buildHistoricGameAlerts(data={},teams=[]){
   const live=data.currentGame;
   if(live?.awayTeamId&&live?.homeTeamId&&(live.status==='Live'||live.status==='Delay')){
     const m=analyzeGameMagnitude(live,teams);
-    if(m.score>=50||m.maxInning>=8||m.margin>=12)rows.push({id:'live-extreme',live:true,...m,displayScore:m.score+30,ageGames:0,kicker:m.score>=74?'🚨 SMBL ALERT':'👀 DEVELOPING',detail:`${m.away?.abbr||'AWY'} ${n(live.awayScore)} – ${m.home?.abbr||'HME'} ${n(live.homeScore)} · ${live.half==='Bottom'?'Bottom':'Top'} ${n(live.inning)||1}`});
+    if(m.score>=50||m.maxInning>=8||m.margin>=12)rows.push({id:'live-extreme',live:true,...m,displayScore:m.score+30,ageGames:0,kicker:m.score>=74?'🚨 NMLB ALERT':'👀 DEVELOPING',detail:`${m.away?.abbr||'AWY'} ${n(live.awayScore)} – ${m.home?.abbr||'HME'} ${n(live.homeScore)} · ${live.half==='Bottom'?'Bottom':'Top'} ${n(live.inning)||1}`});
   }
   const finals=(data.games||[]).filter(g=>g?.status==='Final').slice(0,28);
   finals.forEach((g,index)=>{

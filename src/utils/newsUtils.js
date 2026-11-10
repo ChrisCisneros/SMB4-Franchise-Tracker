@@ -66,6 +66,21 @@ export function buildNewsFeed(data, teams, playoffPicture = []) {
   const seasonHistory = Array.isArray(data?.seasonHistory) ? data.seasonHistory : [];
   const teamById = (id) => activeTeams.find((team) => team.id === id);
 
+  // V6.6 simulation review: only games deliberately promoted from Daily Results
+  // become persistent newsroom assignments, keeping routine simulation finals quiet.
+  (data?.leagueExtras?.simulationHighlights || []).slice(0, 24).forEach((highlight, index) => stories.push({
+    id: `simulation-highlight-${highlight.id || index}`,
+    kind: 'simulation-highlight',
+    category: highlight.category || 'Simulation Classic',
+    tone: 'record',
+    dateLabel: highlight.createdAt ? new Date(highlight.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Simulation Desk',
+    badge: 'SIMULATION CLASSIC',
+    headline: highlight.headline,
+    dek: highlight.detail,
+    teams: highlight.teams || [],
+    priority: 96,
+  }));
+
   // V6.6 Record Watch is intentionally separate from ordinary milestones.
   // Only curated active chases and meaningful team records reach the newsroom.
   buildPostseasonPush(data, activeTeams).alerts.forEach((alert) => stories.push({

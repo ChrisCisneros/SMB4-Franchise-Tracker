@@ -112,8 +112,8 @@ export function buildPlayerFanPages(data={},teams=[]){
 
 export function buildMediaUniverse(){
   return [
-    ...NETWORK_PERSONALITIES.map((x,i)=>({...x,type:'analyst',handle:`@SMB${x.name.split(' ')[0]}`,show:['Numbers Desk','Clubhouse Live','October Watch','Hot Take Line'][i]})),
-    {id:'jo-santos',name:'Jo Santos',role:'League Reporter',style:'reporter',initials:'JS',type:'reporter',handle:'@JoSantosSMB',show:'Around the League'},
+    ...NETWORK_PERSONALITIES.map((x,i)=>({...x,type:'analyst',handle:`@NMLB${x.name.split(' ')[0]}`,show:['Numbers Desk','Clubhouse Live','October Watch','Hot Take Line'][i]})),
+    {id:'jo-santos',name:'Jo Santos',role:'League Reporter',style:'reporter',initials:'JS',type:'reporter',handle:'@JoSantosNMLB',show:'Around the League'},
     {id:'vince',name:'Vince Calder',role:'Radio Host',style:'radio',initials:'VC',type:'radio',handle:'@VinceAfterDark',show:'Extra Innings AM'},
     {id:'nina',name:'Nina Vale',role:'Features Writer',style:'culture',initials:'NV',type:'writer',handle:'@NinaOnBaseball',show:'The Long Read'},
     {id:'cole',name:'Cole Briggs',role:'Debate Host',style:'hot',initials:'CB',type:'host',handle:'@ColeTakes',show:'Diamond Debate'},
@@ -211,7 +211,7 @@ export function buildLivingFeed(data={},teams=[],playoffPicture=[],now=Date.now(
   });
 
   const latest=(data.games||[]).filter(g=>g?.status==='Final').slice(-1)[0];
-  if(latest){const aw=teams.find(t=>t.id===latest.awayTeamId),hm=teams.find(t=>t.id===latest.homeTeamId);const winner=safe(latest.awayScore)>safe(latest.homeScore)?aw:hm;posts.push({id:`final-${bucket}`,kind:'league',handle:'@SMBAfterFinal',name:'After Final',team:winner,text:`${aw?.abbr||'AWY'} ${latest.awayScore}, ${hm?.abbr||'HME'} ${latest.homeScore}. The replies are already a disaster.`,tone:'media',badge:'POSTGAME WIRE',time:'final'});}
+    if(latest){const aw=teams.find(t=>t.id===latest.awayTeamId),hm=teams.find(t=>t.id===latest.homeTeamId);const winner=safe(latest.awayScore)>safe(latest.homeScore)?aw:hm;posts.push({id:`final-${bucket}`,kind:'league',handle:'@NMLBAfterFinal',name:'After Final',team:winner,text:`${aw?.abbr||'AWY'} ${latest.awayScore}, ${hm?.abbr||'HME'} ${latest.homeScore}. The replies are already a disaster.`,tone:'media',badge:'POSTGAME WIRE',time:'final'});}
   posts.push({id:`league-${bucket}`,kind:'league',handle:'@LeagueGroupChat',name:'The League Group Chat',team:null,text:`Current league mood: ${leagueMood}. Week ${pulse.week}, Day ${pulse.dayInWeek}. Everybody has a take.`,tone:'neutral',badge:'LEAGUE CHAT',time:'live'});
   return shuffle(posts,`feed-${bucket}`).slice(0,18);
 }

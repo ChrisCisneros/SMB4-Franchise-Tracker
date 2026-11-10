@@ -234,7 +234,14 @@ V6.6 turns the final stretch into an active history chase and gives the two most
 - Bracket adds an October history-watch panel alongside the projected/official field and postseason memory.
 - Hall of Records adds Record Chase Command so all-time chases, franchise highs and curated player watches are visible in one place.
 - News consumes the same record-watch calculations as Dashboard and Bracket, preventing separate tabs from inventing different versions of the same chase.
+- Best-record tracking now compares winning percentage against archived seasons, so a 30–7 season can correctly pass a 29–11 season even before the schedule is complete; mathematically secured records receive their own newsroom alert.
+- Daily Results becomes the Final Week Bulk Desk: paste regular or extra-inning finals, add innings and notes, mark walk-offs, add rows in batches, and apply the slate in one pass.
+- The Final Week Classics Desk surfaces close games, marathons, walk-offs and high-scoring simulation finals for review, with one-click promotion into the News Network.
+- Quick Record Editor adds a Final Week Operator Desk with direct links into bulk entry, NMLB Dashboard and live record-watch status.
 - Visible branding updates to NMLB V6.6 · The Postseason Push.
+- Reworked All-Time Player Records into six ranked boards: HR, Strikeouts, Hits, Stolen Bases, Saves and Pitching Wins.
+- Each board features a large current leader plus second- and third-place entries, record status (`SET`, `EXPANDED` or `BROKEN`) and the season attached to each mark.
+- Record entry now uses a category-based Top 3 editor instead of repeated browser prompts, while preserving the curated record data separately from ordinary milestones.
 
 
 ## V6.4.13 — Live State Simplification & Postseason Readiness

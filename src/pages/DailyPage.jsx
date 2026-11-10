@@ -1,8 +1,31 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { teamOptionLabel } from "../utils/standingsUtils";
 
 export default function DailyPage({ ctx }) {
-  const { addDailyRows, applyBulkResultsInput, applyDailyResults, bulkResultsInput, bulkWarnings, clearDailyRow, data, getDailyRowIssue, numberedTeams, setBulkResultsInput, setData, teams, updateDailyRow } = ctx;
+  const { addDailyRows, applyBulkResultsInput, applyDailyResults, bulkResultsInput, bulkWarnings, clearDailyRow, data, getDailyRowIssue, numberedTeams, setBulkResultsInput, setData, syncLeagueExtrasToFirebase, teams, updateDailyRow } = ctx;
+  const [reviewFilter, setReviewFilter] = useState("all");
+  const recentNotableGames = useMemo(() => (data.games || []).filter((game) => game?.status === "Final" && (game.quickEntry || game.source === "simulation")).filter((game) => {
+    const innings = Number(game.innings || game.inning || 9);
+    const margin = Math.abs(Number(game.awayScore || 0) - Number(game.homeScore || 0));
+    const total = Number(game.awayScore || 0) + Number(game.homeScore || 0);
+    const notable = innings >= 12 || margin <= 1 || game.walkoff || total >= 14;
+    const promoted = (data.leagueExtras?.simulationHighlights || []).some((x) => x.gameId === game.id);
+    return reviewFilter === "promoted" ? notable && promoted : reviewFilter === "unreviewed" ? notable && !promoted : notable;
+  }).slice(0, 18), [data.games, data.leagueExtras?.simulationHighlights, reviewFilter]);
+  const promoteGame = (game) => {
+    const away = teams.find((team) => team.id === game.awayTeamId);
+    const home = teams.find((team) => team.id === game.homeTeamId);
+    if (!away || !home) return;
+    const innings = Number(game.innings || game.inning || 9);
+    const margin = Math.abs(Number(game.awayScore || 0) - Number(game.homeScore || 0));
+    const headline = innings >= 12 ? `${away.abbr} and ${home.abbr} survive a ${innings}-inning marathon` : game.walkoff ? `${home.abbr} walks it off against ${away.abbr}` : `${away.abbr}–${home.abbr} becomes an instant classic`;
+    const nextHighlight = { id: crypto.randomUUID(), gameId: game.id, createdAt: new Date().toISOString(), headline, category: "Simulation Classic", detail: `${away.abbr} ${game.awayScore}, ${home.abbr} ${game.homeScore} · ${innings} innings${margin <= 1 ? " · one-run finish" : ""}.`, teams: [away.abbr, home.abbr], source: "simulation" };
+    const extras = data.leagueExtras || {};
+    const nextExtras = { ...extras, simulationHighlights: [nextHighlight, ...(extras.simulationHighlights || []).filter((x) => x.gameId !== game.id)].slice(0, 80) };
+    syncLeagueExtrasToFirebase?.(nextExtras);
+    setData((prev) => ({ ...prev, leagueExtras: nextExtras }));
+  };
+  const isPromoted = (game) => (data.leagueExtras?.simulationHighlights || []).some((x) => x.gameId === game.id);
 
   return (
     <div className="daily-page-wrap">
@@ -15,13 +38,14 @@ export default function DailyPage({ ctx }) {
                   <div className="daily-controls">
                     <input type="date" value={data.dailyResultsDate} onChange={(e) => setData((prev) => ({ ...prev, dailyResultsDate: e.target.value }))} />
                     <button onClick={() => addDailyRows(5)}>Add 5 Rows</button>
+                    <button onClick={() => addDailyRows(10)}>Add 10 Rows</button>
                     <button onClick={applyDailyResults}>Apply All Valid Results</button>
                   </div>
                 </div>
     
                 <div className="daily-results-table">
                   <div className="daily-results-head">
-                    <div>Away</div><div>Away Score</div><div>Home</div><div>Home Score</div><div>Status</div><div>Clear</div>
+                    <div>Away</div><div>Away Score</div><div>Home</div><div>Home Score</div><div>Inn.</div><div>Note</div><div>Status</div><div>Clear</div>
                   </div>
                   {data.dailyResultsRows.map((row) => {
                     const away = teams.find((t) => t.id === row.awayTeamId);
@@ -43,6 +67,8 @@ export default function DailyPage({ ctx }) {
                           </select>
                         </div>
                         <div><input type="number" value={row.homeScore} onChange={(e) => updateDailyRow(row.id, "homeScore", e.target.value)} placeholder="0" /></div>
+                        <div><input className="daily-innings-input" type="number" min="1" max="30" value={row.innings ?? "9"} onChange={(e) => updateDailyRow(row.id, "innings", e.target.value)} title="Final innings" /></div>
+                        <div className="daily-note-cell"><input className="daily-note-input" value={row.note || ""} onChange={(e) => updateDailyRow(row.id, "note", e.target.value)} placeholder="Optional" /><label title="Mark as a walk-off"><input type="checkbox" checked={Boolean(row.walkoff)} onChange={(e) => updateDailyRow(row.id, "walkoff", e.target.checked)} /> WO</label></div>
                         <div className="daily-status-cell">
                           {issue === "applied" && <span className="status-pill applied">Applied</span>}
                           {issue === "same-team" && <span className="status-pill invalid">Same Team</span>}
@@ -83,7 +109,7 @@ export default function DailyPage({ ctx }) {
               </div>
     
                 <h3>Bulk Results Entry</h3>
-                <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong> or <strong>sf 5 sd 2</strong>. First valid line wins if a team is duplicated.</p>
+                <p className="muted">One game per line. Examples: <strong>1 3 2 4</strong>, <strong>sf 5 sd 2</strong>, or <strong>laa 3 tex 2 15</strong> for a 15-inning final.</p>
                 {bulkWarnings.length > 0 && (
                   <div className="bulk-warning-box">
                     <strong>Skipped lines</strong>
@@ -107,6 +133,10 @@ export default function DailyPage({ ctx }) {
                   <button onClick={applyBulkResultsInput}>Fill Rows From Bulk Entry</button>
                 </div>
               </div>
+              <section className="card v66-simulation-review">
+                <div className="daily-header-row"><div><div className="operator-kicker">V6.6 · SIMULATION REVIEW</div><h2>Final Week Classics Desk</h2><p className="muted">Simulation results still count automatically. Promote only the games that deserve permanent NMLB coverage.</p></div><div className="operator-segmented">{[["all","All"],["unreviewed","Unreviewed"],["promoted","Promoted"]].map(([value,label])=><button key={value} className={reviewFilter===value?"is-active":""} onClick={()=>setReviewFilter(value)}>{label}</button>)}</div></div>
+                <div className="v66-simulation-grid">{recentNotableGames.length ? recentNotableGames.map((game) => { const away=teams.find((team)=>team.id===game.awayTeamId); const home=teams.find((team)=>team.id===game.homeTeamId); const innings=Number(game.innings||game.inning||9); return <article key={game.id}><div><small>{isPromoted(game)?"PROMOTED":"NOTABLE FINAL"}</small><strong>{away?.abbr||"AWY"} {game.awayScore} · {home?.abbr||"HME"} {game.homeScore}</strong><span>{innings} innings{game.walkoff?" · WALK-OFF":""}{Math.abs(Number(game.awayScore||0)-Number(game.homeScore||0))<=1?" · ONE-RUN GAME":""}</span></div>{isPromoted(game)?<b className="v66-reviewed-pill">✓ IN NEWS</b>:<button type="button" onClick={()=>promoteGame(game)}>Promote to News</button>}</article>; }) : <p className="muted">No notable simulated finals are waiting for review.</p>}</div>
+              </section>
             </div>
   );
 }

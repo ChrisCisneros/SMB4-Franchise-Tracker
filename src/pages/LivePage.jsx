@@ -56,7 +56,7 @@ export default function LivePage({ ctx }) {
           <div className="live-ipad-header-row">
             <div>
               <h2>Live Scoring</h2>
-              <p className="muted">Big-button SMB controller for live games and postseason.</p>
+              <p className="muted">Big-button NMLB controller for live games and postseason.</p>
             </div>
     
             <div className="inline-buttons">

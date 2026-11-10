@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { buildLeagueRecords, formatPct } from "../utils/recordsUtils";
 import { buildNMLBUniverse } from "../utils/nmlbUniverseUtils";
 import { buildPostseasonPush } from "../utils/postseasonPushUtils";
+import PlayerRecordBookPanel from "../components/PlayerRecordBookPanel";
 
 function LeaderNames({ rows, valueKey, suffix = "" }) {
   if (!rows?.length) return <span className="records-empty-inline">No archived result yet</span>;
@@ -145,6 +146,8 @@ export default function LeagueRecordsPage({ ctx }) {
         </div>
         {!postseasonPush.teamChases.length&&!postseasonPush.playerWatches.length&&<p className="muted">No curated record chase is close enough for October coverage yet.</p>}
       </section>
+
+      <PlayerRecordBookPanel records={majorPlayerRecords} readOnly />
 
       <section className="card nmlb63-record-chases"><div className="records-section-heading"><div><div className="records-section-kicker">LIVE HISTORY WATCH</div><h3>Record Chases</h3></div><span className="records-table-note">The closer they get, the louder the league gets</span></div><div>{nmlb.chases.length?nmlb.chases.slice(0,6).map(x=><article key={x.id}><small>{x.urgency}</small><strong>{x.player.name}</strong><b>{x.remaining===0?'RECORD BROKEN':`${x.remaining.toLocaleString()} away`}</b><span>{x.current.toLocaleString()} / {x.target.toLocaleString()} {x.label}</span></article>):<p className="muted">Set major player records in Player Legacy to activate chase coverage.</p>}</div></section>
       {majorPlayerRecords.length>0&&<section className="card v61-player-record-gallery"><div className="records-section-heading"><div><div className="records-section-kicker">PLAYER IMMORTALS</div><h3>All-Time Career Records</h3></div><span className="records-table-note">Retired legends + active chase targets</span></div><div>{majorPlayerRecords.map(r=><article key={r.id||r.stat}><small>{String(r.label||r.stat).toUpperCase()}</small><strong>{Number(r.value||0).toLocaleString()}</strong><b>{r.holder}</b><span>{r.teamAbbr||'LEAGUE'} · {r.status||'RETIRED'}</span></article>)}</div></section>}

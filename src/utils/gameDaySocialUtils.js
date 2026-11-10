@@ -19,8 +19,8 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 export function getLeagueBrand(data={}){
   return {
     name:data.leagueExtras?.officialLeagueName||'Super Mega Baseball League',
-    abbr:data.leagueExtras?.officialLeagueAbbr||'SMBL',
-    handle:`@${data.leagueExtras?.officialLeagueAbbr||'SMBL'}`,
+    abbr:data.leagueExtras?.officialLeagueAbbr||'NMLB',
+    handle:`@${data.leagueExtras?.officialLeagueAbbr||'NMLB'}`,
   };
 }
 

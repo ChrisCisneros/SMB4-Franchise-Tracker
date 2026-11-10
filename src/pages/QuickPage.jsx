@@ -2,9 +2,10 @@ import React, { useMemo, useState } from "react";
 import { SEASON_LENGTH } from "../config/constants";
 import { eliminationNumber, gamesBack, pct } from "../utils/standingsUtils";
 import { chronicleSnapshots, compareSnapshotToCurrent } from "../utils/seasonChronicleUtils";
+import { buildPostseasonPush } from "../utils/postseasonPushUtils";
 
 export default function QuickPage({ ctx }) {
-  const { adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, teams } = ctx;
+  const { adjustTeamNumber, adjustTeamStreak, resetTeamStreak, undoLastTeamRecordChange, controlsUnlocked, data, recentlyUpdatedTeamId, resetRegularSeasonStats, setPage, teams } = ctx;
   const [search, setSearch] = useState("");
   const [leagueFilter, setLeagueFilter] = useState("ALL");
   const [progressFilter, setProgressFilter] = useState("all");
@@ -29,6 +30,8 @@ export default function QuickPage({ ctx }) {
   const latestLockedSnapshot = chronicleSnapshots(data).find((s) => s.status === "locked" && s.season === (data.activeSeasonName || "Season 4")) || null;
   const sinceSnapshot = useMemo(() => compareSnapshotToCurrent(latestLockedSnapshot, teams), [latestLockedSnapshot, teams]);
   const lastRecordChange = data.leagueExtras?.recordChangeHistory?.[0] || null;
+  const postseasonPush = useMemo(() => buildPostseasonPush(data, teams), [data, teams]);
+  const finalWeekTeams = useMemo(() => [...teams].filter((team) => Number(team.wins || 0) + Number(team.losses || 0) < SEASON_LENGTH).sort((a, b) => (Number(a.wins || 0) + Number(a.losses || 0)) - (Number(b.wins || 0) + Number(b.losses || 0))), [teams]);
 
   return (
     <div className="quick-groups-wrap quick-v3-page">
@@ -45,6 +48,12 @@ export default function QuickPage({ ctx }) {
         </div>
         {controlsUnlocked && <div className="quick-header-actions">{lastRecordChange&&<button className="ghost" onClick={undoLastTeamRecordChange}>↶ Undo {lastRecordChange.teamId} {lastRecordChange.field==='wins'?'W':'L'} Change</button>}<button className="danger-lite" onClick={resetRegularSeasonStats}>Reset Regular Season</button></div>}
       </div>
+
+      <section className="card v66-quick-command">
+        <div><div className="operator-kicker">V6.6 · FINAL WEEK OPERATOR DESK</div><h2>Quick Entry Command</h2><p className="muted">Correct records here. Enter full simulated finals and review historic games in Daily Results.</p></div>
+        <div className="v66-quick-command-stats"><span><b>{finalWeekTeams.length}</b> teams still playing</span><span><b>{postseasonPush.alerts.length}</b> history alerts</span><span><b>{(data.leagueExtras?.simulationHighlights || []).length}</b> promoted classics</span></div>
+        <div className="inline-buttons"><button type="button" onClick={()=>setPage?.("daily")}>Open Final Week Bulk Desk →</button><button type="button" onClick={()=>setPage?.("dashboard")}>View NMLB Dashboard →</button></div>
+      </section>
 
       {latestLockedSnapshot&&<div className="card quick-change-digest"><div><div className="operator-kicker">SINCE {latestLockedSnapshot.label.toUpperCase()}</div><h3>What Changed?</h3><p className="muted">A live commissioner digest from the last locked Chronicle snapshot.</p></div><div className="quick-change-list">{sinceSnapshot.length?sinceSnapshot.slice(0,12).map(x=><span key={x.team.id}><b>{x.team.abbr}</b> {x.winsDelta>0?`+${x.winsDelta}W`:''}{x.lossesDelta>0?` ${x.lossesDelta}L`:''} {x.team.streak?`· ${x.team.streak}`:''}</span>):<span>No record movement since the last locked snapshot.</span>}</div></div>}
 

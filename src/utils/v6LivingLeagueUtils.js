@@ -387,7 +387,7 @@ export function buildSeasonTimeCapsule(data={},teams=[],playoffPicture=[]){
   const chaos=buildLeagueChaos(data,teams,playoffPicture);
   const hot=[...teams].sort((a,b)=>pct(b)-pct(a)||n(b.runDiff)-n(a.runDiff))[0];
   const event=getScheduledDayEvent(data,currentLeagueDay(data,teams)?.slotIndex);
-  const tag=hot?`#${hot.abbr}${String(hot.streak||'Baseball').replace(/[^A-Za-z0-9]/g,'')}`:'#SMBLeague';
+  const tag=hot?`#${hot.abbr}${String(hot.streak||'Baseball').replace(/[^A-Za-z0-9]/g,'')}`:'#NMLBLeague';
   return {season:data.activeSeasonName||'Current Season',topTeam:hot?.abbr||'—',leagueMood:moods[0]?.mood||'FORMING',chaos:chaos.chaos,mainCharacter:chars[0]?.handle||'—',event:event?.name||event?.title||'No featured event today',hashtag:tag,summary:`If the season froze today: ${hot?.abbr||'the leader'} owns the pace, ${chars[0]?.handle||'the fanbase'} owns the timeline, and league chaos sits at ${chaos.chaos}/100.`};
 }
 

@@ -33,6 +33,17 @@ function priorTeamTotals(data = {}, teamId) {
   ).filter(Boolean);
 }
 
+function bestHistoricalSeason(data = {}) {
+  const rows = (data.seasonHistory || []).flatMap((season) =>
+    (season.teams || []).map((team) => ({
+      ...team,
+      seasonName: season.name || season.season || season.label || 'Archived season',
+      games: n(team.wins) + n(team.losses),
+    }))
+  ).filter((team) => team.games > 0);
+  return rows.sort((a, b) => (n(b.wins) / b.games) - (n(a.wins) / a.games) || n(b.wins) - n(a.wins))[0] || null;
+}
+
 function urgency(remaining) {
   if (remaining <= 0) return 'RECORD BROKEN';
   if (remaining === 1) return 'ONE AWAY';
@@ -51,14 +62,20 @@ function playerCurrent(player, watch) {
 export function buildPostseasonPush(data = {}, teams = []) {
   const activeTeams = Array.isArray(teams) ? teams : [];
   const currentSeason = data.activeSeasonName || 'Current season';
+  const historicalBestSeason = bestHistoricalSeason(data);
+  const historicalBestPct = historicalBestSeason ? n(historicalBestSeason.wins) / historicalBestSeason.games : 0;
   const teamRows = activeTeams.map((team) => {
     const prior = priorTeamTotals(data, team.id);
     const bestSeason = Math.max(0, ...prior.map((x) => n(x.wins)));
     const worstSeason = prior.length ? Math.min(...prior.map((x) => n(x.wins))) : null;
     const currentWins = n(team.wins);
+    const currentGames = gp(team);
+    const gamesRemaining = Math.max(0, n(data.seasonLength || 40) - currentGames);
+    const currentPct = currentGames ? currentWins / currentGames : 0;
+    const worstFinishPct = currentWins + gamesRemaining > 0 ? currentWins / Math.max(1, currentGames + gamesRemaining) : 0;
     const priorCareerWins = prior.reduce((sum, row) => sum + n(row.wins), 0);
     const careerWins = priorCareerWins + currentWins;
-    return { team, currentWins, careerWins, priorCareerWins, bestSeason, worstSeason, prior };
+    return { team, currentWins, careerWins, priorCareerWins, bestSeason, worstSeason, prior, currentGames, gamesRemaining, currentPct, worstFinishPct };
   });
 
   const historicalCareerLeaders = [...teamRows].sort((a, b) => b.priorCareerWins - a.priorCareerWins);
@@ -92,6 +109,8 @@ export function buildPostseasonPush(data = {}, teams = []) {
       recordTied: historicalRecord > 0 && row.careerWins === target,
       seasonLowThreat,
       season: currentSeason,
+      currentPct: row.currentPct,
+      gamesRemaining: row.gamesRemaining,
     };
   }).filter((row) => row.isAllTimeThreat || row.seasonRecordThreat || row.seasonLowThreat || row.recordBroken)
     .sort((a, b) => a.remaining - b.remaining || (a.seasonRemaining ?? 999) - (b.seasonRemaining ?? 999));
@@ -150,6 +169,30 @@ export function buildPostseasonPush(data = {}, teams = []) {
       detail: `${teamLabel(team)} is on pace to finish below its previous worst single-season win total of ${chase.worstSeason || 'the record-book line'}.`,
     });
   });
+
+  const bestRecordTeam = teamRows.find((row) => row.currentPct === Math.max(...teamRows.map((x) => x.currentPct))) || null;
+  const seasonRecordAlerts = [];
+  teamRows.forEach((row) => {
+    if (!historicalBestSeason || row.currentGames < 1) return;
+    const qualifies = row.currentPct >= historicalBestPct || row.worstFinishPct > historicalBestPct;
+    if (!qualifies) return;
+    const teamName = teamLabel(row.team);
+    const recordLabel = `${historicalBestSeason.wins}-${historicalBestSeason.losses} (${(historicalBestPct * 100).toFixed(1)}%)`;
+    const broken = row.currentPct > historicalBestPct;
+    const tied = Math.abs(row.currentPct - historicalBestPct) < 0.000001;
+    const secured = !broken && !tied && row.worstFinishPct > historicalBestPct;
+    seasonRecordAlerts.push({
+      id: `best-season-${row.team.id}`,
+      category: 'League History', tone: 'record',
+      priority: broken ? 124 : secured ? 121 : 116,
+      badge: broken ? 'BEST RECORD IN HISTORY' : secured ? 'RECORD SECURED' : 'RECORD TIED',
+      teams: [row.team.abbr],
+      headline: broken ? `${row.team.abbr} owns the best record in NMLB history` : secured ? `${row.team.abbr} has secured the best record in NMLB history` : `${row.team.abbr} ties the best record in NMLB history`,
+      detail: `${teamName} is ${row.currentWins}-${n(row.team.losses)} (${(row.currentPct * 100).toFixed(1)}%). The previous best was ${recordLabel}${secured ? `, and even a ${row.currentWins}-${n(row.team.losses) + row.gamesRemaining} finish keeps the record above it.` : '.'}`,
+      seasonRecord: { team: row.team, wins: row.currentWins, losses: n(row.team.losses), pct: row.currentPct, previous: historicalBestSeason },
+    });
+  });
+  alerts.push(...seasonRecordAlerts);
   playerWatches.slice(0, 5).forEach((watch) => {
     const playerName = watch.player?.name || watch.playerName || 'The active chaser';
     if (watch.remaining <= 10 || watch.current >= watch.target) alerts.push({
@@ -168,6 +211,10 @@ export function buildPostseasonPush(data = {}, teams = []) {
     historicalRecord,
     teamChases,
     playerWatches,
+    historicalBestSeason,
+    historicalBestPct,
+    bestRecordTeam,
+    seasonRecordAlerts,
     alerts: alerts.sort((a, b) => b.priority - a.priority).slice(0, 12),
     topAlert: alerts.sort((a, b) => b.priority - a.priority)[0] || null,
   };

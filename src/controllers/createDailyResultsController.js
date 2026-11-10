@@ -28,18 +28,19 @@ export default function createDailyResultsController({
 
     lines.forEach((line, index) => {
       const parts = line.split(/\s+/).filter(Boolean);
-      if (parts.length !== 4) {
-        warnings.push(`Line ${index + 1} skipped: use format "away score home score".`);
+      if (parts.length < 4 || parts.length > 5) {
+        warnings.push(`Line ${index + 1} skipped: use "away score home score" or add innings as a fifth value.`);
         return;
       }
 
-      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw] = parts;
+      const [awayToken, awayScoreRaw, homeToken, homeScoreRaw, inningsRaw] = parts;
       const awayKey = awayToken.toUpperCase();
       const homeKey = homeToken.toUpperCase();
       const awayTeamId = teamNumberLookup[awayToken] || teamAbbrLookup[awayKey];
       const homeTeamId = teamNumberLookup[homeToken] || teamAbbrLookup[homeKey];
       const awayScore = Number(awayScoreRaw);
       const homeScore = Number(homeScoreRaw);
+      const innings = inningsRaw === undefined ? 9 : Number(inningsRaw);
 
       if (!awayTeamId || !homeTeamId) {
         warnings.push(`Line ${index + 1} skipped: team not recognized.`);
@@ -55,6 +56,10 @@ export default function createDailyResultsController({
       }
       if (awayScore === homeScore) {
         warnings.push(`Line ${index + 1} skipped: ties are not allowed.`);
+        return;
+      }
+      if (!Number.isInteger(innings) || innings < 1 || innings > 30) {
+        warnings.push(`Line ${index + 1} skipped: innings must be a whole number from 1 to 30.`);
         return;
       }
       if (usedTeamIds.has(awayTeamId)) {
@@ -76,6 +81,9 @@ export default function createDailyResultsController({
         homeTeamId,
         awayScore: String(awayScore),
         homeScore: String(homeScore),
+        innings: String(innings),
+        walkoff: false,
+        note: "",
         applied: false,
       });
     });
@@ -186,7 +194,9 @@ function nextStreak(result, current = "") {
           id: crypto.randomUUID(), date: prev.dailyResultsDate,
           awayTeamId: row.awayTeamId, homeTeamId: row.homeTeamId,
           awayScore, homeScore, status: "Final", quickEntry: true,
-          gameType: "regular", inning: 9, seasonName: prev.activeSeasonName || "Season 4",
+          gameType: "regular", inning: Number(row.innings || 9), innings: Number(row.innings || 9),
+          extraInnings: Number(row.innings || 9) > 9, walkoff: Boolean(row.walkoff),
+          gameNote: row.note || "", source: "simulation", seasonName: prev.activeSeasonName || "Season 4",
           finalizedAt: new Date().toISOString()
         });
       });
