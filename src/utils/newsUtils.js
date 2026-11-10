@@ -3,6 +3,7 @@ import { buildLeagueRecords, formatPct } from "./recordsUtils";
 import { buildGameRecords, buildHeadToHead, buildTeamHistoryLeaders } from "./historyUtils";
 import { buildHistoricGameAlerts } from "./ballparkLifeUtils";
 import { getPostseasonStatus, isDivisionEliminated, maxPossibleWins, hasClinchedDivision, hasClinchedTopLeagueSeed } from "./standingsUtils";
+import { buildPostseasonPush } from "./postseasonPushUtils";
 
 function gamePct(team) {
   const wins = Number(team?.wins || 0);
@@ -64,6 +65,21 @@ export function buildNewsFeed(data, teams, playoffPicture = []) {
   const activeTeams = Array.isArray(teams) ? teams : [];
   const seasonHistory = Array.isArray(data?.seasonHistory) ? data.seasonHistory : [];
   const teamById = (id) => activeTeams.find((team) => team.id === id);
+
+  // V6.6 Record Watch is intentionally separate from ordinary milestones.
+  // Only curated active chases and meaningful team records reach the newsroom.
+  buildPostseasonPush(data, activeTeams).alerts.forEach((alert) => stories.push({
+    id: `postseason-push-${alert.id}`,
+    kind: 'record-watch',
+    category: alert.category,
+    tone: alert.tone || 'record',
+    dateLabel: 'History watch',
+    badge: alert.badge,
+    headline: alert.headline,
+    dek: alert.detail,
+    teams: alert.teams || [],
+    priority: alert.priority || 90,
+  }));
 
   // V6.5 race-event ledger: finalized clinches/eliminations are preserved as actual league events,
   // so a major moment cannot disappear simply because a later render reorders the inferred story pool.

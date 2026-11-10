@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { buildLeagueRecords, formatPct } from "../utils/recordsUtils";
 import { buildNMLBUniverse } from "../utils/nmlbUniverseUtils";
+import { buildPostseasonPush } from "../utils/postseasonPushUtils";
 
 function LeaderNames({ rows, valueKey, suffix = "" }) {
   if (!rows?.length) return <span className="records-empty-inline">No archived result yet</span>;
@@ -96,6 +97,7 @@ export default function LeagueRecordsPage({ ctx }) {
   const { data, teams, playoffPicture } = ctx;
   const majorPlayerRecords = data.leagueExtras?.majorPlayerRecords || [];
   const nmlb = useMemo(()=>buildNMLBUniverse(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
+  const postseasonPush = useMemo(()=>buildPostseasonPush(data,teams),[data,teams]);
   const records = useMemo(
     () => buildLeagueRecords(data.seasonHistory || [], teams || []),
     [data.seasonHistory, teams]
@@ -132,6 +134,16 @@ export default function LeagueRecordsPage({ ctx }) {
           <div><strong>{records.summary.championsCrowned}</strong><span>Champions</span></div>
           <div><strong>{records.summary.teamsTracked}</strong><span>Franchises</span></div>
         </div>
+      </section>
+
+      <section className="card v66-record-command">
+        <div className="records-section-heading"><div><div className="records-section-kicker">V6.6 · THE POSTSEASON PUSH</div><h3>Record Chase Command</h3></div><span className="records-table-note">Curated history watches, not ordinary milestones</span></div>
+        {postseasonPush.topAlert&&<div className="v66-record-lead"><span>{postseasonPush.topAlert.badge}</span><strong>{postseasonPush.topAlert.headline}</strong><p>{postseasonPush.topAlert.detail}</p></div>}
+        <div className="v66-record-watch-grid">
+          {postseasonPush.teamChases.slice(0,6).map(x=><article key={x.id}><small>{x.urgency}</small><strong>{x.team.abbr}</strong><b>{x.recordTied?'RECORD TIED':x.recordBroken?'RECORD BROKEN':`${x.remaining} away`}</b><span>{x.label}</span>{x.seasonRecordThreat&&<em>{x.seasonRemaining<=0?'NEW FRANCHISE HIGH':`${x.seasonRemaining} from best season`}</em>}</article>)}
+          {postseasonPush.playerWatches.slice(0,5).map(x=><article key={x.id}><small>{x.urgency}</small><strong>{x.player?.name||x.playerName}</strong><b>{x.current===x.target?'RECORD TIED':x.current>x.target?'RECORD BROKEN':`${x.remaining} away`}</b><span>{x.title}</span><em>{x.current.toLocaleString()} / {x.target.toLocaleString()}</em></article>)}
+        </div>
+        {!postseasonPush.teamChases.length&&!postseasonPush.playerWatches.length&&<p className="muted">No curated record chase is close enough for October coverage yet.</p>}
       </section>
 
       <section className="card nmlb63-record-chases"><div className="records-section-heading"><div><div className="records-section-kicker">LIVE HISTORY WATCH</div><h3>Record Chases</h3></div><span className="records-table-note">The closer they get, the louder the league gets</span></div><div>{nmlb.chases.length?nmlb.chases.slice(0,6).map(x=><article key={x.id}><small>{x.urgency}</small><strong>{x.player.name}</strong><b>{x.remaining===0?'RECORD BROKEN':`${x.remaining.toLocaleString()} away`}</b><span>{x.current.toLocaleString()} / {x.target.toLocaleString()} {x.label}</span></article>):<p className="muted">Set major player records in Player Legacy to activate chase coverage.</p>}</div></section>

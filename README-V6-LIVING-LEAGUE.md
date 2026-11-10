@@ -219,6 +219,23 @@ V6.4.13 is a deep stability and operator-workflow pass ahead of the NMLB postsea
 - Bracket Admin adds active/finished counts, Next Active Series navigation, a stronger series-control meter, a denser series board, and a one-click Load Series into Live Scoring action.
 - Visible NMLB version labels are normalized to V6.4.13 across the runtime source.
 
+## V6.6 — The Postseason Push
+V6.6 turns the final stretch into an active history chase and gives the two most visited postseason surfaces a dedicated October command layer.
+
+### Record Chase Command
+- Team all-time regular-season wins are compared against archived franchise history, with escalation at ten, five, three, one, tie and break points.
+- Current teams can be flagged for new single-season highs and meaningful franchise record threats without flooding the archive with ordinary milestones.
+- Player record chasing is a separate curated Record Watch list, limited to five players and stored in `leagueExtras.careerRecordWatches`.
+- Player watches support a stat, target, holder, custom title and live current total; they never create ordinary milestone-history entries merely because a player is two or four home runs away.
+- Record Watch produces reusable newsroom tags such as `WITHIN REACH`, `HISTORY TONIGHT`, `ONE AWAY`, `RECORD TIED`, `RECORD BROKEN`, `NEW FRANCHISE HIGH` and `NEW ALL-TIME RECORD`.
+
+### October surfaces
+- Dashboard adds `HISTORY TONIGHT`, a compact feed of the most important active team and player record chases.
+- Bracket adds an October history-watch panel alongside the projected/official field and postseason memory.
+- Hall of Records adds Record Chase Command so all-time chases, franchise highs and curated player watches are visible in one place.
+- News consumes the same record-watch calculations as Dashboard and Bracket, preventing separate tabs from inventing different versions of the same chase.
+- Visible branding updates to NMLB V6.6 · The Postseason Push.
+
 
 ## V6.4.13 — Live State Simplification & Postseason Readiness
 V6.4.13 removes the dual-authority live-game persistence system and returns Live Scoring to a single source of truth: Firebase Realtime Database.

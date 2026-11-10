@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { buildPlayerCareerBoard } from '../utils/historyUtils';
 import { buildSpecialAchievements } from '../utils/playerLegacyUtils';
 import { getTeamColorsByAbbr } from '../config/teamColors';
+import { recordWatchFields } from '../utils/postseasonPushUtils';
 
 const STAT_DEFS = [
   {id:'hits',label:'Hits',abbr:'H',icon:'⚾',careerKey:'careerHits',steps:[300,400,500,600,750,1000]},
@@ -66,6 +67,10 @@ export default function PlayerLegacyDesk({data,teams,controlsUnlocked,saveExtras
   const [value,setValue]=useState('');
   const [note,setNote]=useState('');
   const [retroactive,setRetroactive]=useState(false);
+  const [watchStat,setWatchStat]=useState('hr');
+  const [watchTarget,setWatchTarget]=useState('');
+  const [watchHolder,setWatchHolder]=useState('');
+  const [watchTitle,setWatchTitle]=useState('');
   const results=useMemo(()=>{const q=query.trim().toLowerCase();return q?careers.filter(p=>p.name.toLowerCase().includes(q)||String(teams.find(t=>t.id===p.teamId)?.abbr||p.teamAbbr||'').toLowerCase().includes(q)).slice(0,12):careers.slice(0,12)},[query,careers,teams]);
   const player=careers.find(p=>p.id===selectedId)||results[0]||careers[0]||null;
   const team=teams.find(t=>t.id===player?.teamId)||teams.find(t=>String(t.abbr||'').toUpperCase()===String(player?.teamAbbr||'').toUpperCase())||null;
@@ -97,6 +102,17 @@ export default function PlayerLegacyDesk({data,teams,controlsUnlocked,saveExtras
     const next={id:current.id||crypto.randomUUID(),stat:def.id,label:def.label,holder:holder.trim(),value:recordValue,teamAbbr,status,updatedAt:new Date().toISOString()};
     saveExtras({majorPlayerRecords:[next,...records.filter(r=>r.stat!==def.id)]});
   };
+  const addRecordWatch=()=>{
+    if(!controlsUnlocked||!player)return;
+    const targetNumber=Number(watchTarget||0); if(!targetNumber)return;
+    const watches=extras.careerRecordWatches||[];
+    const existing=watches.find(w=>w.playerId===player.id&&w.stat===watchStat);
+    const field=recordWatchFields().find(x=>x.id===watchStat);
+    const next={id:existing?.id||crypto.randomUUID(),playerId:player.id,playerName:player.name,teamAbbr:team?.abbr||player.teamAbbr||'',stat:watchStat,playerKey:field?.key,target:targetNumber,holder:watchHolder.trim()||'the current record holder',title:watchTitle.trim()||`${field?.label||'Career'} Record`,updatedAt:new Date().toISOString()};
+    saveExtras({careerRecordWatches:[next,...watches.filter(w=>w.id!==existing?.id)].slice(0,5)});
+    setWatchTarget(''); setWatchHolder(''); setWatchTitle('');
+  };
+  const removeRecordWatch=(id)=>{if(!controlsUnlocked)return;saveExtras({careerRecordWatches:(extras.careerRecordWatches||[]).filter(w=>w.id!==id)});};
   const addMilestone=()=>{
     if(!controlsUnlocked||!player||!team)return;
     const def=STAT_DEFS.find(s=>s.id===stat); const n=Number(value||0); if(!def||!n)return;
@@ -119,5 +135,6 @@ export default function PlayerLegacyDesk({data,teams,controlsUnlocked,saveExtras
     </>:<div className="v61-legacy-empty"><p className="muted">No player matches yet. Add a historical player to the NMLB legacy directory, then preserve their milestones.</p>{controlsUnlocked&&<button type="button" onClick={addLegacyPlayer}>+ Add Historical Player</button>}</div>}
 
     {mode!=='profile'&&<div className="v61-major-record-book"><div className="v61-record-book-head"><div><small>THE IMMORTALS</small><h3>All-Time Player Records</h3><p>Enter retired legends once, then every active career has something enormous to chase.</p></div></div><div className="v61-record-book-grid">{STAT_DEFS.filter(d=>['hits','hr','rbi','stolenBases','wins','saves','strikeouts'].includes(d.id)).map(def=>{const rec=records.find(r=>r.stat===def.id);const active=def.careerKey?[...careers].sort((a,b)=>Number(b[def.careerKey]||0)-Number(a[def.careerKey]||0))[0]:null;const remaining=rec&&active?Math.max(0,Number(rec.value)-Number(active[def.careerKey]||0)):null;return <article key={def.id}><div className="v61-record-icon">{def.icon}</div><small>ALL-TIME {def.label.toUpperCase()}</small><strong>{rec?Number(rec.value).toLocaleString():'—'}</strong><b>{rec?.holder||'Record holder not entered'}</b><span>{rec?`${rec.teamAbbr||'LEAGUE'} · ${rec.status||'RETIRED'}`:'Add the retired legend and total'}</span>{active&&rec&&<div className="v61-record-chase"><em>ACTIVE CHASE</em><b>{active.name}</b><span>{Number(active[def.careerKey]||0).toLocaleString()} · {remaining===0?'RECORD REACHED':`${remaining.toLocaleString()} away`}</span></div>}{controlsUnlocked&&<button type="button" onClick={()=>updateRecord(def)}>{rec?'Edit Record':'Set Record'}</button>}</article>})}</div></div>}
+    {mode!=='profile'&&<div className="v66-player-record-watch card"><div className="v61-record-book-head"><div><small>V6.6 · CURATED RECORD WATCH</small><h3>Track a Player Chasing History</h3><p>These watches stay separate from ordinary milestones. Keep the list focused on up to five major chases.</p></div><strong>{(extras.careerRecordWatches||[]).length}/5</strong></div>{controlsUnlocked&&player&&<div className="v66-watch-form"><select value={watchStat} onChange={e=>setWatchStat(e.target.value)}>{recordWatchFields().map(x=><option key={x.id} value={x.id}>{x.label}</option>)}</select><input type="number" min="1" value={watchTarget} onChange={e=>setWatchTarget(e.target.value)} placeholder="Record target"/><input value={watchHolder} onChange={e=>setWatchHolder(e.target.value)} placeholder="Record holder"/><input value={watchTitle} onChange={e=>setWatchTitle(e.target.value)} placeholder="Watch title, e.g. ALL-TIME HR RECORD"/><button type="button" onClick={addRecordWatch}>Add / Update Watch</button></div>}<div className="v66-watch-list">{(extras.careerRecordWatches||[]).map(w=><span key={w.id}><b>{w.playerName}</b><em>{w.title||String(w.stat||'record').toUpperCase()} · {Number(w.target||0).toLocaleString()}</em>{controlsUnlocked&&<button type="button" onClick={()=>removeRecordWatch(w.id)} aria-label={`Remove ${w.playerName} record watch`}>×</button>}</span>)}</div></div>}
   </section>;
 }

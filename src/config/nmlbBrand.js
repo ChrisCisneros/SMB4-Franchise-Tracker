@@ -1,8 +1,8 @@
 export const NMLB_BRAND = Object.freeze({
   shortName: 'NMLB',
   name: "Nicky's Major League Baseball",
-  version: '6.5',
-  release: 'Final Week & Living League Expansion',
+  version: '6.6',
+  release: 'The Postseason Push',
   colors: {
     purple: '#1f0554',
     white: '#ffffff',

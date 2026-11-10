@@ -6,6 +6,7 @@ import { getTeamColorsByAbbr } from "../config/teamColors";
 import { buildPostseasonSeriesMemory, buildPostseasonNightlyShow, buildPostseasonMythology } from "../utils/postseasonMemoryUtils";
 import { buildStretchRunBoard } from "../utils/finalWeeksUtils";
 import { buildFinalWeekCommand, buildPostseasonReadiness } from '../utils/v65LifeUtils';
+import { buildPostseasonPush } from '../utils/postseasonPushUtils';
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
@@ -53,6 +54,7 @@ export default function BracketPage({ ctx }) {
   const stretchRun=buildStretchRunBoard(data,data.teams||[],playoffPicture||[]);
   const v65Command=buildFinalWeekCommand(data,data.teams||[],playoffPicture||[]);
   const v65Ready=buildPostseasonReadiness(data,data.teams||[],playoffPicture||[]);
+  const postseasonPush=buildPostseasonPush(data,data.teams||[]);
 
   return <div className={`bracket-page nmlb-postseason-page ${nmlbPostseason.stage.toLowerCase().replace(/\s+/g,'-')}`}>
     <div className="card season-format-card bracket-hero-v423"><div><span>NMLB · ROAD TO THE COMMISSIONER'S TROPHY</span><h2>{nmlbPostseason.headline}</h2><p className="muted">{nmlbPostseason.detail}</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
@@ -65,6 +67,7 @@ export default function BracketPage({ ctx }) {
 
     {stretchRun.phase.id!=='regular'&&<section className="v65-bracket-ramp card"><div><small>NMLB V6.5 · SELECTION SHOW READINESS</small><h2>{v65Command.selectionReady?'THE FIELD IS SET':`${v65Command.unresolved} SPOT${v65Command.unresolved===1?'':'S'} STILL OPEN`}</h2><p>{v65Command.selectionReady?'All postseason seats are mathematically claimed. The official bracket reveal can begin.':'Projected seeds remain live until every berth is locked.'}</p></div><div className="v65-ready-board">{v65Ready.slice(0,8).map(x=><span key={x.team.id}><b>{x.team.abbr}</b><strong>{x.readiness}%</strong><em>{x.label}</em></span>)}</div></section>}
     {stretchRun.phase.id!=='postseason'&&stretchRun.phase.id!=='regular'&&<section className={`card nmlb6411-projected-bracket ${stretchRun.phase.id}`}><div><small>{stretchRun.phase.id==='selection'?'NMLB SELECTION SHOW':'IF THE SEASON ENDED TONIGHT'}</small><h2>{stretchRun.phase.id==='selection'?'The field is set.':'Projected postseason field'}</h2><p>{stretchRun.phase.id==='selection'?'Seeds, matchups and predictions are ready for the official bracket reveal.':'Ghosted seeds update with the live pennant race until the bracket becomes official.'}</p></div><div className="nmlb6411-projected-field">{stretchRun.field.map(l=><article key={l.league}><h3>{l.league}</h3>{l.seeds.map(x=><span key={x.team.id}><b>#{x.seed}</b><strong>{x.team.abbr}</strong><em>{x.status.marker||'LIVE'}</em></span>)}</article>)}</div></section>}
+    {postseasonPush.alerts.length>0&&<section className="card v66-bracket-record-watch"><div><small>OCTOBER HISTORY WATCH</small><h2>{postseasonPush.topAlert?.headline||'History is in play'}</h2><p>{postseasonPush.topAlert?.detail}</p></div><div>{postseasonPush.alerts.slice(0,5).map(x=><span key={x.id}><b>{x.badge}</b><em>{x.headline}</em></span>)}</div></section>}
     {predictions.phase.id!=='preview'&&<section className={`nmlb64-predictions ${predictions.phase.locked?'is-locked':''}`}>
       <div className="nmlb64-predictions-head"><div><small>NMLB NETWORK · POSTSEASON PICKS</small><h3>{predictions.phase.label}</h3><p>{predictions.phase.detail}</p></div><span>{predictions.phase.locked?'🔒 RECEIPTS PRESERVED':'LIVE FORECAST'}</span></div>
       <div className="nmlb64-prediction-grid">{predictions.analysts.slice(0,4).map(a=><div className="nmlb64-prediction-card" key={a.name}><b>{a.name}</b><span>{a.role}</span><strong>{a.al} / {a.nl}</strong><em>Champion: {a.champion} · {a.note}</em></div>)}</div>
