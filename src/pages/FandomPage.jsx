@@ -16,6 +16,7 @@ import { buildV6LivingLeague } from '../utils/v6LivingLeagueUtils';
 import NMLBUniverseHub from '../components/NMLBUniverseHub';
 import { buildNMLBCulture } from '../utils/nmlbCultureUtils';
 import { buildCollectibles65, buildFanInteractions65, buildFranchiseScrapbook65, buildLeaguePulse65, buildWeeklyRituals65 } from '../utils/v65LifeUtils';
+import PostseasonCalendar from '../components/PostseasonCalendar';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,Number(value)||0))}%`}}/></div>}
@@ -25,6 +26,7 @@ const TABS=[['v6','NMLB League Life'],['calendar','Calendar'],['overview','Overv
 
 export default function FandomPage({ctx}){
   const {data,teams,playoffPicture,favoriteTeam,controlsUnlocked,setPage}=ctx;
+  const isPostseason=data.leagueExtras?.seasonPhase==='postseason'||data.currentGame?.gameType==='playoff'||(data.games||[]).some(g=>g?.gameType==='playoff');
   const [now,setNow]=useState(Date.now());
   const [teamId,setTeamId]=useState('');
   const [tab,setTab]=useState('overview');
@@ -40,7 +42,7 @@ export default function FandomPage({ctx}){
   const universe=useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const selectedId=teamId||favoriteTeam?.id||universe.teamStates[0]?.team.id;
   const selected=universe.teamStates.find(x=>x.team.id===selectedId);
-  const selectedColors=getTeamColorsByAbbr(selected?.team?.abbr);
+  const selectedColors=isPostseason?getTeamColorsByAbbr(selected?.team?.abbr,'post'):getTeamColorsByAbbr(selected?.team?.abbr);
   const fandomStyle={'--fandom-main':selectedColors.main,'--fandom-alt':selectedColors.alt,'--fandom-border':selectedColors.border,'--fandom-text':selectedColors.text};
 
   const poll=useMemo(()=>buildFanPoll(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
@@ -132,6 +134,11 @@ export default function FandomPage({ctx}){
   const selectedCrowd=buildCrowdPersonality(data,teams,selectedId);
   const selectedPark=buildBallparkProfile(data,teams.find(t=>t.id===selectedId));
   const selectedCityBuzz=cityBuzz.find(x=>x.team.id===selectedId);
+  const postseasonDistricts=useMemo(()=>{
+    const ids=[...(playoffPicture||[]).flatMap(p=>(p.leagueTeams||[]).map(t=>t.id||t.teamId)),...Object.values(data.playoffBracket||{}).flatMap(x=>x&&typeof x==='object'?[x.awayTeamId,x.homeTeamId]:[])].filter(Boolean);
+    const unique=[...new Set(ids)];
+    return unique.map(id=>teams.find(t=>t.id===id)).filter(Boolean).slice(0,12);
+  },[playoffPicture,data.playoffBracket,teams]);
 
   useEffect(()=>{if(feedPaused)return undefined;const t=setInterval(()=>setNow(Date.now()),8000);return()=>clearInterval(t)},[feedPaused]);
   useEffect(()=>setMerchOffset(0),[selectedId,merchScope]);
@@ -140,7 +147,7 @@ export default function FandomPage({ctx}){
   const TeamChooser=()=> <section className="card fanbase-index-card"><div className="fan-section-head"><div><div className="fan-kicker">FANBASE INDEX</div><h2>Choose Your Crowd</h2><p className="fan-section-subtitle">Every district now has its own grudges, relationships, culture and local media personality.</p></div><select value={selectedId||''} onChange={e=>setTeamId(e.target.value)}>{teams.map(t=><option key={t.id} value={t.id}>{t.abbr} — {t.city} {t.name}</option>)}</select></div><div className="fan-team-switcher">{teams.map(t=><TeamBadge key={t.id} team={t} active={t.id===selectedId} onClick={()=>setTeamId(t.id)}/>)}</div>{selected&&<div className="fan-selected-team"><div className="fan-team-title"><TeamBadge team={selected.team}/><div><h2>{selected.team.city} {selected.team.name}</h2><p>{selected.personality.icon} {selected.personality.title} · {selected.personality.detail}</p></div><strong className={`fan-mood mood-${selected.mood.toLowerCase()}`}>{selected.mood}</strong></div><div className="fan-metric-grid">{[['Approval',selected.approval],['Hype',selected.hype],['Bandwagon',selected.bandwagon],['Market Heat',selected.marketHeat]].map(([l,v])=><div key={l}><span>{l}</span><strong>{Math.round(v)}</strong><Meter value={v}/></div>)}</div><div className="fan-team-context"><span>Expected: {fmtPct(selected.expected)}</span><span>Actual: {fmtPct(selected.actual)}</span><span>Atmosphere: {selected.atmosphere}</span><span>Titles: {selected.history.titles}</span>{selectedTradition&&<span>Tradition: {selectedTradition.tradition}</span>}</div></div>}</section>;
 
   return <div className="fandom-page" style={fandomStyle}>
-    <section className="card fandom-hero"><div><div className="fan-kicker">NMLB 6.5 · NICKY'S MAJOR LEAGUE BASEBALL</div><h1>The League Never Logs Off.</h1><p>Every club now gets its own fan district, relationships, ballpark life, local culture, social ecosystem and memories that create future consequences.</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div><div className="fan-week-badge"><small>SEASON RHYTHM</small><strong>WEEK {pulse.week}</strong><span>{pulse.phase}</span></div></section>
+    <section className="card fandom-hero"><div><div className="fan-kicker">NMLB 6.8 · NICKY'S MAJOR LEAGUE BASEBALL</div><h1>{isPostseason?'The League Has Entered October.':'The League Never Logs Off.'}</h1><p>{isPostseason?'Every fan district now has a postseason stake: series pressure, road crowds, receipts, rituals and championship dreams.':'Every club now gets its own fan district, relationships, ballpark life, local culture, social ecosystem and memories that create future consequences.'}</p>{selected&&<div className="fan-portal-now"><TeamBadge team={selected.team}/><span>NOW VISITING</span><strong>{selected.team.city} {selected.team.name} Fan District</strong><small>{selected.mood} · {selected.personality.title} · {selected.atmosphere}</small></div>}</div><div className="fan-week-badge"><small>{isPostseason?'POSTSEASON RHYTHM':'SEASON RHYTHM'}</small><strong>{isPostseason?'OCTOBER':`WEEK ${pulse.week}`}</strong><span>{isPostseason?'CURRENT SERIES CULTURE':pulse.phase}</span></div></section>
 
     <nav className="fandom-subtabs" aria-label="Fandom sections">{TABS.map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}</nav>
 
@@ -168,6 +175,8 @@ export default function FandomPage({ctx}){
     </>}
 
     {tab==='district'&&<>
+      {isPostseason&&<section className="card fan-district-postseason-hero"><div className="fan-district-postseason-copy"><div className="fan-kicker">NMLB FAN DISTRICTS · POSTSEASON EDITION</div><h2>Every city has a reason to stay up late.</h2><p>The regular season created the identities. October turns them into pressure: watch parties, road invasions, elimination dread, bandwagon debates and the next generation of NMLB folklore.</p><div className="fan-district-postseason-tags"><span>🏟️ WATCH PARTIES</span><span>📣 ROAD INVASIONS</span><span>🔥 RIVALRY RECEIPTS</span><span>🏆 TROPHY DREAMS</span></div></div><div className="fan-district-postseason-board"><strong>{postseasonDistricts.length||0}</strong><span>current postseason districts</span><small>{postseasonDistricts.length?'Every active city has a live October angle.':'The bracket will activate the districts.'}</small></div></section>}
+      {isPostseason&&<section className="fan-district-postseason-grid">{postseasonDistricts.slice(0,6).map((team,i)=>{const c=getTeamColorsByAbbr(team.abbr,'post');const state=['WATCH PARTY CITY','ROAD CROWD CITY','UNDERDOG CITY','PRESSURE CITY','RECEIPTS CITY','TROPHY CITY'][i%6];return <article key={team.id} style={{'--district-main':c.main,'--district-alt':c.alt,'--district-border':c.border}}><TeamBadge team={team}/><div><small>{state}</small><strong>{team.city} {team.name}</strong><span>{i%2?'Fans are pricing the next road trip.':'The local timeline is tracking every pitch.'}</span></div><b>{Math.max(62,92-i*5)}<em> HEAT</em></b></article>})}</section>}
       <TeamChooser/>
       <section className="fandom-supercharge-grid"><article className="card"><div className="fan-kicker">FRANCHISE REPUTATION</div><h2>{selected?.team?.abbr} · {selectedReputation?.era||'OPEN ERA'}</h2><div className="reputation-tags">{selectedReputation?.labels.map(x=><span key={x}>{x}</span>)}</div><p>Reputation score {selectedReputation?.score||50}/100.</p></article><article className="card"><div className="fan-kicker">BALLPARK IDENTITY</div><h2>{selectedCulture?.identity||'Culture forming'}</h2><p>Loudness {selectedCulture?.loud||50} · Loyalty {selectedCulture?.loyalty||50} · Food buzz {selectedCulture?.food||50}</p></article><article className="card"><div className="fan-kicker">FANBASE IDENTITY</div><h2>{selectedProfile?.identity||'Still forming'}</h2><p>Favorite team to beat: {selectedProfile?.favoriteOpponent?.abbr||selectedProfile?.hatedOpponent?.abbr||'Still developing'}</p></article><article className="card"><div className="fan-kicker">CURRENT TRADITION</div><h2>{selectedTraditionFile?.chant||'The chant is forming'}</h2><p>{selectedTraditionFile?.ritual}</p></article></section>
       <section className="card fan-culture-center"><div className="fan-section-head"><div><div className="fan-kicker">FAN CULTURE DIRECTORY</div><h2>People, Pages & Personalities</h2></div><div className="fan-culture-tabs">{[['clubs','Fan Pages'],['media','Local Media'],['traditions','Traditions']].map(([id,label])=><button key={id} className={cultureView===id?'active':''} onClick={()=>setCultureView(id)}>{label}</button>)}</div></div>{cultureView==='clubs'&&<div className="fan-identity-grid">{selectedClubs.map(c=><article key={c.id} className="fan-identity-card"><TeamBadge team={c.team}/><div><strong>{c.name}</strong><span>{c.handle}</span><p>{c.bio}</p><small>{c.archetype.icon} {c.archetype.label} · {shortNum(c.followers)} followers</small></div></article>)}</div>}{cultureView==='media'&&<div className="fan-media-roster">{mediaUniverse.slice(0,6).map(m=><article key={m.id}><div>{m.initials}</div><strong>{selected?.team?.abbr} {m.name}</strong><span>{m.handle}</span><small>{m.role} · local beat</small></article>)}</div>}{cultureView==='traditions'&&<div className="fan-tradition-grid">{traditions.filter(t=>t.team.id===selectedId).map(t=><article key={t.team.id}><TeamBadge team={t.team}/><div><strong>{t.tradition}</strong><span>{t.identity}</span><p>{t.crowd} crowd · Loyalty {t.loyalty}/100</p></div></article>)}</div>}</section>
@@ -182,8 +191,11 @@ export default function FandomPage({ctx}){
     </>}
 
     {tab==='calendar'&&<>
+      {isPostseason&&<PostseasonCalendar data={data} teams={teams} editable={false}/>} 
+      {!isPostseason&&<>
       <section className="fan-week-strip card">{Array.from({length:8},(_,i)=>{const w=i+1;const weekSlots=buildSeasonCalendar(data,teams).filter(slot=>slot.week===w&&slot.gameNumber);const first=weekSlots[0]?.gameNumber,last=weekSlots.at(-1)?.extraGameNumbers?.at(-1)||weekSlots.at(-1)?.gameNumber;const gameCount=weekSlots.reduce((sum,slot)=>sum+(slot.gameNumbers?.length||1),0);return <div key={w} className={w===pulse.week?'active':w<pulse.week?'done':''}><b>W{w}</b><span>{weekSlots.length?`Games ${first}–${last}`:'Calendar open'}</span><small>{w===1?'Opening':w===4?'All-Star':w===8?'Pennant Race':w<4?'Build-up':'Second Half'} · {gameCount} game{gameCount===1?'':'s'}</small></div>})}</section>
       <section className="card fan-game-night-planner"><div className="fan-section-head"><div><div className="fan-kicker">GAME NIGHT CALENDAR</div><h2>Promotions, Giveaways & Special Nights</h2></div><div className="fan-game-night-actions"><label>Game <select value={promoGame} onChange={e=>setPromoGame(Number(e.target.value))}>{Array.from({length:40},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label>{controlsUnlocked?<button onClick={()=>setPage?.('office')}>Open League Office →</button>:<span className="fan-calendar-lock">🔒 League Office controlled</span>}</div></div>{selectedGameNight&&<div className="fan-tonight-promo"><span>{selectedGameNight.icon||'🎟️'}</span><div><small>GAME {promoGame}</small><strong>{selectedGameNight.name}</strong><p>{selectedGameNight.giveaway||'Special game-day event'}</p></div></div>}<SeasonCalendar data={data} teams={teams} selectedGameNumber={promoGame} onSelectGame={setPromoGame}/><div className="fan-calendar-print-row"><span>League Office controls Game Days, matchups, promotions and ceremonies.</span><button onClick={()=>window.print()}>🖨 Print Season Calendar</button></div></section>
+      </>}
     </>}
 
     {tab==='ballpark'&&<>
