@@ -11,7 +11,7 @@ export default function createPlayoffController({
   data, teams, currentGame, setData,
   selectedPlayoffSeriesId, playoffAwayScore, playoffHomeScore,
   setPlayoffAwayScore, setPlayoffHomeScore,
-  syncPlayoffBracketToFirebase,
+  syncPlayoffBracketToFirebase, syncGamesToFirebase,
 }) {
   const playoffPicture = buildPlayoffPictureFromTeams(data, teams);
 
@@ -342,10 +342,14 @@ function resetSelectedPlayoffSeries() {
   );
 
   syncPlayoffBracketToFirebase(nextBracket);
+  const seasonName=data.activeSeasonName||"Season 4";
+  const nextGames=(data.games||[]).filter(game=>!(game?.gameType==='playoff'&&game?.playoffSeriesId===selectedPlayoffSeriesId&&game?.seasonName===seasonName));
+  syncGamesToFirebase?.(nextGames);
 
   setData((prev) => ({
     ...prev,
     playoffBracket: nextBracket,
+    games: nextGames,
   }));
 
   setPlayoffAwayScore("");
@@ -413,10 +417,34 @@ function addPlayoffGameResult() {
   }
 
   syncPlayoffBracketToFirebase(nextBracket);
+  const seasonName=data.activeSeasonName||"Season 4";
+  const seriesGameNumber=(series.games||[]).length+1;
+  const finalGame={
+    id:crypto.randomUUID(),
+    gameType:"playoff",
+    playoffSeriesId:selectedPlayoffSeriesId,
+    playoffGameNumber:seriesGameNumber,
+    seasonGameNumber:null,
+    seasonName,
+    status:"Final",
+    date:new Date().toISOString().slice(0,10),
+    finalizedAt:new Date().toISOString(),
+    awayTeamId:series.awayTeamId,
+    homeTeamId:series.homeTeamId,
+    awayScore,
+    homeScore,
+    winnerTeamId,
+    loserTeamId:winnerTeamId===series.awayTeamId?series.homeTeamId:series.awayTeamId,
+    margin:Math.abs(awayScore-homeScore),
+    totalRuns:awayScore+homeScore,
+  };
+  const nextGames=[...(data.games||[]),finalGame];
+  syncGamesToFirebase?.(nextGames);
 
   setData((prev) => ({
     ...prev,
     playoffBracket: nextBracket,
+    games: nextGames,
   }));
 
   setPlayoffAwayScore("");

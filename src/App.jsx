@@ -420,7 +420,7 @@ useEffect(() => {
   } = createPlayoffController({
     data, teams, currentGame, setData, selectedPlayoffSeriesId, playoffAwayScore,
     playoffHomeScore, setPlayoffAwayScore, setPlayoffHomeScore,
-    syncPlayoffBracketToFirebase,
+    syncPlayoffBracketToFirebase, syncGamesToFirebase,
   });
 
   useEffect(() => {
