@@ -19,7 +19,7 @@ export default function PostseasonCalendar({data={},teams=[],editable=false,onSa
   const bracket=useMemo(()=>makeSafePlayoffBracket(data.playoffBracket),[data.playoffBracket]);
   const finalGames=useMemo(()=>{
     const current=data.activeSeasonName;
-    return (data.games||[]).filter(game=>game?.gameType==='playoff'&&game?.status==='Final'&&(!current||!game.seasonName||game.seasonName===current)).reduce((map,game)=>{
+    return (data.games||[]).filter(game=>game?.gameType==='playoff'&&game?.status==='Final'&&(!current||game.seasonName===current)).reduce((map,game)=>{
       const id=game.playoffSeriesId||''; if(!id)return map; (map[id] ||= []).push(game); return map;
     },{});
   },[data.games,data.activeSeasonName]);

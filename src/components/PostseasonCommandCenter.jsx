@@ -18,15 +18,16 @@ function SeriesCard({item,teams,games}){
   const played=games.final.filter(g=>g.playoffSeriesId===id).sort((a,b)=>(Date.parse(a.finalizedAt||a.date)||0)-(Date.parse(b.finalizedAt||b.date)||0));
   const count=Math.max(played.length,Array.isArray(series.games)?series.games.length:0);
   const need=getWinsNeededForSeries(id); const winner=teams.find(t=>t.id===series.winnerTeamId);
-  const status=winner?`${winner.abbr} clinched ${series.awayWins||0}-${series.homeWins||0}`:away&&home?(series.awayWins||series.homeWins?`${teamName(away)} ${series.awayWins||0} · ${teamName(home)} ${series.homeWins||0}`:'Series not started'):'Matchup TBD';
-  return <article className={`postseason-series-card ${winner?'is-complete':''}`}><div className="postseason-series-card-head"><small>{league} · {label}</small><b>{winner?'FINAL':count?`GAME ${count+1} NEXT`:'UPCOMING'}</b></div><h3>{teamName(away)} <span>vs</span> {teamName(home)}</h3><strong className="postseason-series-score">{status}</strong><div className="postseason-series-games">{Array.from({length:Math.max(3,need*2-1)},(_,i)=>{const g=played[i];return <span key={i} className={g?'played':''}><b>G{i+1}</b>{g?`${g.awayScore}-${g.homeScore}`:i<count?'ARCHIVED':'TBD'}</span>})}</div>{!winner&&away&&home&&<em>First to {need} · {count<3?'Games 1–3 ready to enter':`Game ${count+1} opens after the latest final`}</em>}</article>;
+  const currentAway=away||teams.find(t=>t.id===played[0]?.awayTeamId), currentHome=home||teams.find(t=>t.id===played[0]?.homeTeamId);
+  const status=winner?`${winner.abbr} clinched ${series.awayWins||0}-${series.homeWins||0}`:currentAway&&currentHome?(series.awayWins||series.homeWins?`${teamName(currentAway)} ${series.awayWins||0} · ${teamName(currentHome)} ${series.homeWins||0}`:'Series not started'):'Matchup TBD';
+  return <article className={`postseason-series-card ${winner?'is-complete':''}`}><div className="postseason-series-card-head"><small>{league} · {label}</small><b>{winner?'FINAL':count?`GAME ${count+1} NEXT`:'UPCOMING'}</b></div><h3>{teamName(currentAway)} <span>vs</span> {teamName(currentHome)}</h3><strong className="postseason-series-score">{status}</strong><div className="postseason-series-games">{Array.from({length:Math.max(3,need*2-1)},(_,i)=>{const g=played[i];return <span key={i} className={g?'played':''}><b>G{i+1}</b>{g?`${g.awayScore}-${g.homeScore}`:i<count?'ARCHIVED':'TBD'}</span>})}</div>{!winner&&currentAway&&currentHome&&<em>First to {need} · {count<3?'Games 1–3 ready to enter':`Game ${count+1} opens after the latest final`}</em>}</article>;
 }
 
 export default function PostseasonCommandCenter({data={},teams=[]}){
   const [tab,setTab]=useState('overview');
   const [seriesFilter,setSeriesFilter]=useState('all');
   const bracket=useMemo(()=>makeSafePlayoffBracket(data.playoffBracket),[data.playoffBracket]);
-  const finals=useMemo(()=> (data.games||[]).filter(g=>g?.gameType==='playoff'&&g?.status==='Final'&&(!g.seasonName||g.seasonName===data.activeSeasonName)),[data.games,data.activeSeasonName]);
+  const finals=useMemo(()=> (data.games||[]).filter(g=>g?.gameType==='playoff'&&g?.status==='Final'&&(!data.activeSeasonName||g.seasonName===data.activeSeasonName)),[data.games,data.activeSeasonName]);
   const live=data.currentGame?.gameType==='playoff'&&['Live','Mid-Inning','Warmup','Delay'].includes(data.currentGame?.status)?data.currentGame:null;
   const seriesData={bracket,final:finals};
   const activeSeries=SERIES.map(([league,id,label])=>({league,id,label,series:getPlayoffSeries(bracket,id)})).filter(x=>x.series?.awayTeamId&&x.series?.homeTeamId&&!x.series?.winnerTeamId);

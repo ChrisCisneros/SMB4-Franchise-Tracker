@@ -257,7 +257,7 @@ export default function NewsPage({ ctx }) {
 
       {(honorInterviews.length>0||onThisDate.length>0)&&<section className="news-memory-grid">{honorInterviews.length>0&&<article className="card"><div className="news-kicker">LEGENDS DESK</div><h3>Honor Interview</h3><strong>{honorInterviews[0].name} · {honorInterviews[0].team||'LEAGUE'}</strong><blockquote>“{honorInterviews[0].quote}”</blockquote><small>{honorInterviews[0].occasion}</small></article>}{onThisDate.length>0&&<article className="card"><div className="news-kicker">ON THIS DATE</div><h3>{onThisDate[0].title}</h3><p>{onThisDate[0].detail}</p></article>}</section>}
 
-      <section className="news-ad-grid">{ads.slice(0,3).map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><span>{ad.copy}</span><b>{ad.cta} →</b></article>)}</section>
+      <section className="news-ad-grid">{ads.slice(0,3).map(ad=><article key={ad.id}><div className={`sponsor-ad-art sponsor-${ad.id}`}><span>{({tickets:'🎟️',promo:'🎪',network:'📡',local:'🍟',rail:'📶',food:'🍔','grandstand-pass':'🎫',gear:'🧢',travel:'✈️'})[ad.id]||'✨'}</span><b>{ad.kicker}</b></div><small>{ad.kicker}</small><strong>{ad.title}</strong><span>{ad.copy}</span><b>{ad.cta} →</b></article>)}</section>
 
       <section className="news-fandom-strip card"><div><div className="news-kicker">FAN & MEDIA PULSE · WEEK {pulse.week}</div><h3>{fanPoll.question}</h3><div className="news-fan-mini-poll">{fanPoll.options.slice(0,4).map(o=><span key={o.team.id}><b>{o.team.abbr}</b> {o.pct}%</span>)}</div></div><div className="news-social-wire">{social.slice(0,2).map((x,i)=><p key={i}><b>{x.handle}</b> {x.text}</p>)}</div></section>
 

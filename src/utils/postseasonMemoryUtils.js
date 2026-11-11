@@ -1,6 +1,6 @@
 function finalPlayoffGames(data={}){
   const season=data.activeSeasonName||'Season';
-  return (data.games||[]).filter(g=>g&&g.status==='Final'&&g.gameType==='playoff'&&(!g.seasonName||g.seasonName===season));
+  return (data.games||[]).filter(g=>g&&g.status==='Final'&&g.gameType==='playoff'&&(!data.activeSeasonName||g.seasonName===season));
 }
 function teamMap(teams=[]){return new Map((teams||[]).map(t=>[t.id,t]));}
 function scoreFor(game,side){return Number(side==='away'?game.awayScore:game.homeScore)||0;}
