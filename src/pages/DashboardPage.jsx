@@ -80,6 +80,7 @@ export default function DashboardPage({ ctx }) {
   const tonightBoard = useMemo(()=>buildAroundLeagueTonight(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const talkingAbout = useMemo(()=>buildFansTalkingAbout(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
   const dynamicAds = useMemo(()=>buildDynamicAds(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
+  const commercialAds = useMemo(()=>{if(!dynamicAds.length)return [];const start=Math.floor(dashboardClock/9000)%dynamicAds.length;return Array.from({length:Math.min(3,dynamicAds.length)},(_,i)=>dynamicAds[(start+i)%dynamicAds.length]);},[dynamicAds,dashboardClock]);
   const weeklyRoundup = useMemo(()=>buildWeeklyMediaRoundup(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const lifeMainCharacter = useMemo(()=>buildLeagueMainCharacter(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
   const lifeTopics = useMemo(()=>buildTopicLifecycles(data,teams,playoffPicture),[data,teams,playoffPicture,dashboardClock]);
@@ -401,7 +402,7 @@ export default function DashboardPage({ ctx }) {
     <section className="dashboard-culture-strip">
       <div className="card dashboard-around-tonight"><div className="v3-section-heading compact"><div><span>AROUND THE LEAGUE TONIGHT</span><h3>What matters elsewhere</h3></div></div>{tonightBoard.map((x,i)=><div className="dashboard-tonight-row" key={`${x.type}-${i}`}><b>{x.icon}</b><span><strong>{x.title}</strong><small>{x.detail}</small></span></div>)}</div>
       <div className="card dashboard-talking-about"><div className="v3-section-heading compact"><div><span>FANS ARE TALKING ABOUT</span><h3>Conversation Board</h3></div></div>{talkingAbout.map((x,i)=><div className="dashboard-topic-row" key={`${x.label}-${i}`}><b>{x.icon}</b><span><strong>{x.label}</strong><small>{x.detail}</small></span></div>)}</div>
-      <div className="card dashboard-ad-rotation"><div className="v3-section-heading compact"><div><span>COMMERCIAL BREAK</span><h3>From around the league</h3></div></div>{dynamicAds.slice(0,3).map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><p>{ad.copy}</p><b>{ad.cta} →</b></article>)}</div>
+      <div className="card dashboard-ad-rotation"><div className="v3-section-heading compact"><div><span>COMMERCIAL BREAK</span><h3>From around the league</h3></div></div>{commercialAds.map(ad=><article key={ad.id}><small>{ad.kicker}</small><strong>{ad.title}</strong><p>{ad.copy}</p><b>{ad.cta} →</b></article>)}</div>
     </section>
 
     <section className="dashboard-recent-only"><div className="card v3-recent-results"><div className="v3-section-heading compact"><div><span>SCOREBOARD</span><h3>Recent Finals</h3></div><button onClick={()=>setPage?.('league')}>Game Archive →</button></div><div className="v3-recent-list">{gameRecords.games.length?gameRecords.games.slice(0,6).map(g=><div key={g.id}><small>{g.date} · {g.gameType==='playoff'?'POST':'REG'}</small><strong>{g.away?.abbr||'AWY'} {g.awayScore} <em>–</em> {g.home?.abbr||'HME'} {g.homeScore}</strong></div>):<div className="v3-empty-compact">Season finals will appear here automatically.</div>}</div></div></section>

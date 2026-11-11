@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
 import { buildNMLBPostseasonPredictions } from "../utils/nmlbCultureUtils";
 import NMLBCommissionersTrophy from "../components/NMLBCommissionersTrophy";
@@ -8,6 +8,7 @@ import { buildStretchRunBoard } from "../utils/finalWeeksUtils";
 import { buildFinalWeekCommand, buildPostseasonReadiness } from '../utils/v65LifeUtils';
 import { buildPostseasonPush } from '../utils/postseasonPushUtils';
 import PostseasonCommandCenter from '../components/PostseasonCommandCenter';
+import NMLBAwardsShow from '../components/NMLBAwardsShow';
 
 function teamsAverage(teams=[]){ return teams.length?teams.reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0)/teams.length:0; }
 
@@ -35,6 +36,7 @@ function LeagueWing({league,renderBracketSeries}){
 
 export default function BracketPage({ ctx }) {
   const { renderBracketSeries, data, teamById, playoffPicture } = ctx;
+  const [awardsShowOpen,setAwardsShowOpen]=useState(false);
   const history = data.seasonHistory || [];
   const latest = [...history].sort((a,b)=>(Date.parse(b.archivedAt)||0)-(Date.parse(a.archivedAt)||0))[0];
   const defendingChampion = latest?.championTeamId ? (latest.teams || []).find((t)=>t.id===latest.championTeamId) : null;
@@ -56,6 +58,16 @@ export default function BracketPage({ ctx }) {
   const v65Command=buildFinalWeekCommand(data,data.teams||[],playoffPicture||[]);
   const v65Ready=buildPostseasonReadiness(data,data.teams||[],playoffPicture||[]);
   const postseasonPush=buildPostseasonPush(data,data.teams||[]);
+  const addPostseasonAward=()=>{
+    if(!ctx.controlsUnlocked)return;
+    const award=window.prompt('Postseason award name:','Postseason MVP'); if(!award)return;
+    const winner=window.prompt('Winner:',''); if(!winner)return;
+    const teamAbbr=(window.prompt('Team abbreviation:','')||'').toUpperCase();
+    const note=window.prompt('Stat / postseason note:','')||'';
+    const row={id:crypto.randomUUID(),createdAt:new Date().toISOString(),season:data.activeSeasonName||'Season',scope:'POSTSEASON',award,category:'October Honor',icon:'🏆',winner,teamAbbr,note};
+    const next={...(data.leagueExtras||{}),postseasonAwards:[row,...(data.leagueExtras?.postseasonAwards||[])]};
+    ctx.syncLeagueExtrasToFirebase?.(next);ctx.setData?.(p=>({...p,leagueExtras:next}));
+  };
 
   return <div className={`bracket-page nmlb-postseason-page ${nmlbPostseason.stage.toLowerCase().replace(/\s+/g,'-')}`}>
     <div className="card season-format-card bracket-hero-v423"><div><span>NMLB · ROAD TO THE COMMISSIONER'S TROPHY</span><h2>{nmlbPostseason.headline}</h2><p className="muted">{nmlbPostseason.detail}</p></div><div className="bracket-season-progress"><small>{phase}</small><strong>{progress}%</strong><div><i style={{width:`${progress}%`}}/></div><span>League average: {avgGames.toFixed(1)} / 40 games</span></div></div>
@@ -67,6 +79,7 @@ export default function BracketPage({ ctx }) {
     </div>
 
     <PostseasonCommandCenter data={data} teams={data.teams||[]} />
+    <section className="card postseason-awards-bridge"><div><small>AFTER THE FINAL OUT</small><h2>NMLB Awards Night</h2><p>Regular-season honors and postseason awards now share one closing ceremony. Add October winners here, then reveal every award on the stage.</p></div><div><span>{(data.leagueExtras?.awards||[]).filter(x=>x?.winner).length} regular</span><span>{(data.leagueExtras?.postseasonAwards||[]).filter(x=>x?.winner).length} postseason</span><button type="button" onClick={()=>setAwardsShowOpen(true)}>Launch Ceremony</button>{ctx.controlsUnlocked&&<button type="button" className="ghost" onClick={addPostseasonAward}>Add Postseason Award</button>}</div></section>
 
     {stretchRun.phase.id!=='regular'&&<section className="v65-bracket-ramp card"><div><small>NMLB V6.5 · SELECTION SHOW READINESS</small><h2>{v65Command.selectionReady?'THE FIELD IS SET':`${v65Command.unresolved} SPOT${v65Command.unresolved===1?'':'S'} STILL OPEN`}</h2><p>{v65Command.selectionReady?'All postseason seats are mathematically claimed. The official bracket reveal can begin.':'Projected seeds remain live until every berth is locked.'}</p></div><div className="v65-ready-board">{v65Ready.slice(0,8).map(x=><span key={x.team.id}><b>{x.team.abbr}</b><strong>{x.readiness}%</strong><em>{x.label}</em></span>)}</div></section>}
     {stretchRun.phase.id!=='postseason'&&stretchRun.phase.id!=='regular'&&<section className={`card nmlb6411-projected-bracket ${stretchRun.phase.id}`}><div><small>{stretchRun.phase.id==='selection'?'NMLB SELECTION SHOW':'IF THE SEASON ENDED TONIGHT'}</small><h2>{stretchRun.phase.id==='selection'?'The field is set.':'Projected postseason field'}</h2><p>{stretchRun.phase.id==='selection'?'Seeds, matchups and predictions are ready for the official bracket reveal.':'Ghosted seeds update with the live pennant race until the bracket becomes official.'}</p></div><div className="nmlb6411-projected-field">{stretchRun.field.map(l=><article key={l.league}><h3>{l.league}</h3>{l.seeds.map(x=><span key={x.team.id}><b>#{x.seed}</b><strong>{x.team.abbr}</strong><em>{x.status.marker||'LIVE'}</em></span>)}</article>)}</div></section>}
@@ -88,5 +101,6 @@ export default function BracketPage({ ctx }) {
       </div>
       <LeagueWing league="NL" renderBracketSeries={renderBracketSeries}/>
     </div>
+    {awardsShowOpen&&<NMLBAwardsShow data={data} onClose={()=>setAwardsShowOpen(false)} />}
   </div>;
 }

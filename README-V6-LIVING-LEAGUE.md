@@ -318,3 +318,11 @@ The dashboard now has an explicit **Begin Postseason** control. This preserves t
 
 The living-world economy also has more fictional league-wide advertisers, food and ballpark brands, ticket bundles, travel packages, apparel drops, and NMLB Network commercial inventory so the ecosystem is not financially dependent on one franchise.
 
+## Postseason Life Pass
+
+The postseason calendar now uses a select-then-place workflow: choose a bracket matchup/game, then click the postseason day where it belongs. Multiple games can share a day, and league events can be placed between games. The calendar is labeled by postseason week rather than assuming a specific month.
+
+Awards Night now combines regular-season and postseason winners in one closing ceremony. The Postseason hub can add October awards and launch the reveal sequence after the final out.
+
+Commercial breaks rotate through a larger fictional NMLB economy: broadcast, wireless, food, ticketing, apparel, travel and ballpark brands now take turns appearing around the league.
+

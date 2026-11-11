@@ -80,7 +80,7 @@ history: [],
 });
 
 export const defaultLeagueExtras = {
-  awards: [], hallOfFame: [], transactions: [], injuries: [], managers: [],
+  awards: [], postseasonAwards: [], hallOfFame: [], transactions: [], injuries: [], managers: [],
   rebrands: [], retiredNumbers: [], prospects: [], milestones: [],
   openingDay: "", seasonTagline: "", powerRankSnapshots: [],
   standingsSnapshots: [], customRecords: [], manualEvents: [], achievements: [],
