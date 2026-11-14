@@ -12,6 +12,7 @@ import ChampionshipCeremony from '../components/ChampionshipCeremony';
 import PlayerLegacyDesk from '../components/PlayerLegacyDesk';
 import NMLBAwardsShow from '../components/NMLBAwardsShow';
 import NMLBThemeLab from '../components/NMLBThemeLab';
+import PlayerHardwareVault from '../components/PlayerHardwareVault';
 import { buildNMLBCulture } from '../utils/nmlbCultureUtils';
 import { buildNMLBPowerIndex, buildNMLBSeasonNarrative } from '../utils/nmlbUniverseUtils';
 import { buildSeasonCalendar } from '../utils/seasonCalendarUtils';
@@ -57,6 +58,7 @@ export default function V4CenterPage({ctx}){
   const v65Pulse=useMemo(()=>buildLeaguePulse65(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const v65Rituals=useMemo(()=>buildWeeklyRituals65(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const activeSeason=data.activeSeasonName||'Season 4';
+  const isPostseason=data.leagueExtras?.seasonPhase==='postseason'||data.currentGame?.gameType==='playoff'||(data.games||[]).some(g=>g?.gameType==='playoff'&&g?.seasonName===activeSeason);
   const metrics=useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const metric=metrics.find(m=>m.team.id===selectedTeamId)||metrics[0]||null;
   const records=useMemo(()=>buildLeagueRecords(data.seasonHistory||[],teams),[data.seasonHistory,teams]);
@@ -216,7 +218,7 @@ export default function V4CenterPage({ctx}){
 
   return <div className={`v4-page nmlb64-center-page tab-${tab}`}>
     <section className="nmlb64-center-hero">
-      <div><div className="v4-kicker">NMLB · VERSION 6.5 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>WEEK {culture.week}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div><button type="button" className="theme-lab-quick-launch" onClick={()=>setTab('theme')}>Open Theme Lab</button></div>
+      <div><div className="v4-kicker">NMLB · VERSION 6.9 · LEAGUE HEADQUARTERS</div><h1>NMLB Center</h1><p>The brain of Nicky's Major League Baseball: intelligence, stories, awards, records, culture, history and preserved snapshots of exactly what the league felt like.</p><div className="nmlb64-culture-tags"><span>{nmlbNarrative.era}</span><span>{isPostseason?'POSTSEASON LIVE':`WEEK ${culture.week}`}</span><span>{culture.predictions.phase.label}</span><span>{theme}</span></div><button type="button" className="theme-lab-quick-launch" onClick={()=>setTab('theme')}>Open Theme Lab</button></div>
       <div className="nmlb64-center-pulse"><div><span>POWER #1</span><strong>{nmlbPower[0]?.team?.abbr||'—'}</strong></div><div><span>POWER INDEX</span><strong>{nmlbPower[0]?.score||0}</strong></div><div><span>STORED GAMES</span><strong>{(data.games||[]).length}</strong></div><div><span>ARCHIVED SEASONS</span><strong>{(data.seasonHistory||[]).length}</strong></div></div>
     </section>
     <section className="card v424-global-search"><div><small>GLOBAL LEAGUE SEARCH</small><input value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="Search Cain, Season 3, SF vs LAD, 50th homer..."/></div>{searchResults.length>0&&<div className="v424-search-results">{searchResults.map(r=><button type="button" key={r.id} onClick={()=>{if(r.teamId)setSelectedTeamId(r.teamId);setTab(r.tab||'intelligence');setGlobalSearch('')}}><span>{r.type}</span><strong>{r.title}</strong><small>{r.detail}</small></button>)}</div>}</section>
@@ -305,6 +307,7 @@ export default function V4CenterPage({ctx}){
     </div>}
 
     {tab==='players'&&<div className="v4-stack">
+      <PlayerHardwareVault data={data} teams={teams} />
       {culture.week>=8&&<section className="card v65-final-ballot"><SectionTitle kicker="AWARDS RACE · FINAL BALLOT" title="Last chance to make the case" detail="Race leaders remain nominees only. Winners are not revealed until they are finalized for Awards Night."/><div>{(extras.awardRace||[]).slice(0,10).map(a=><article key={`${a.id}-${a.scope}`}><small>{a.scope||'REGULAR'} · {a.category}</small><strong>{a.award}</strong><b>{a.leader}</b><span>{a.teamAbbr} · {a.stat}</span></article>)}</div></section>}
       <section className="card nmlb63-awards-launch"><div><small>NMLB AWARDS NIGHT</small><h2>Turn the season honors into a spectacle.</h2><p>Use the award-race board as nominees, or reveal the winners you have already entered one category at a time.</p></div><button type="button" onClick={()=>setAwardsShowOpen(true)}>Launch Awards Night</button></section>
       <PlayerLegacyDesk data={data} teams={teams} controlsUnlocked={controlsUnlocked} saveExtras={saveExtras} mode="profile" />
