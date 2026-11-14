@@ -10,7 +10,9 @@ export default function HistoryPage({ ctx }) {
   const extras=data.leagueExtras||{};
   const historyFeed=useMemo(()=>{
     const rows=[];
-    (data.games||[]).filter(g=>g?.status==='Final').forEach(g=>rows.push({id:`game-${g.id}`,type:'Games',teamAbbr:'',season:g.seasonName||data.activeSeasonName||'',title:`${teamById(g.awayTeamId)?.abbr||'AWY'} ${g.awayScore}–${g.homeScore} ${teamById(g.homeTeamId)?.abbr||'HME'}`,detail:g.gameType==='playoff'?'Postseason final':'Regular-season final',date:g.finalizedAt||g.date||''}));
+    // Archived games live inside season snapshots. Keep the active feed focused on
+    // the current season so it does not grow forever after a snapshot is locked.
+    (data.games||[]).filter(g=>g?.status==='Final' && (!data.activeSeasonName || !g.seasonName || g.seasonName===data.activeSeasonName)).forEach(g=>rows.push({id:`game-${g.id}`,type:'Games',teamAbbr:'',season:g.seasonName||data.activeSeasonName||'',title:`${teamById(g.awayTeamId)?.abbr||'AWY'} ${g.awayScore}–${g.homeScore} ${teamById(g.homeTeamId)?.abbr||'HME'}`,detail:g.gameType==='playoff'?'Postseason final':'Regular-season final',date:g.finalizedAt||g.date||''}));
     (extras.manualEvents||[]).forEach(e=>rows.push({id:`event-${e.id}`,type:/rival/i.test(`${e.title} ${e.note}`)?'Rivalries':/champ|world series|title/i.test(`${e.title} ${e.note}`)?'Championships':'Cultural Moments',teamAbbr:e.teamAbbr||'',season:e.date||'',title:e.title||'History Event',detail:e.note||'',date:e.createdAt||''}));
     (extras.achievements||[]).forEach(a=>rows.push({id:`ach-${a.id}`,type:'Player Milestones',teamAbbr:a.teamAbbr||'',season:a.season||'',title:`${a.playerName||'Player'} · ${a.title}`,detail:a.note||'',date:a.createdAt||''}));
     (extras.customRecords||[]).forEach(r=>rows.push({id:`record-${r.id}`,type:'Records',teamAbbr:r.teamAbbr||'',season:r.season||'',title:r.title||'Record',detail:`${r.holder||''}${r.value?` · ${r.value}`:''}${r.note?` · ${r.note}`:''}`,date:r.createdAt||''}));

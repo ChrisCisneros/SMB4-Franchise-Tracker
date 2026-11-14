@@ -3,6 +3,7 @@ import { buildFanClubs, buildFanTraditions } from './livingWorldUtils';
 import { buildSeasonScrapbook, buildFanbaseGrudges, buildHotColdBoard } from './mediaMemoryUtils';
 import { currentLeagueDay } from './seasonCalendarUtils';
 import { getScheduledDayEvent } from './dayEventUtils';
+import { isNmlbPostseason, buildPostseasonChatter } from './nmlbPostseasonLifeUtils';
 
 const n=v=>Number(v||0);
 const gp=t=>n(t?.wins)+n(t?.losses);
@@ -54,14 +55,18 @@ export function buildTopicLifecycles(data={},teams=[],playoffPicture=[]){
   const {hot,cold}=buildHotColdBoard(teams);
   const slot=currentLeagueDay(data,teams);
   const raw=[];
+  const postseason=isNmlbPostseason(data);
+  if(postseason){
+    buildPostseasonChatter(data,teams,playoffPicture,Date.now()).slice(0,4).forEach((item,i)=>raw.push({topic:item.headline,weight:96-i*7,source:'postseason'}));
+  }
   if(hot[0])raw.push({topic:`${hot[0].abbr} ${hot[0].streak}`,weight:78+n(String(hot[0].streak).slice(1))*3,source:'streak'});
   if(cold[0])raw.push({topic:`${cold[0].abbr} skid`,weight:65+n(String(cold[0].streak).slice(1))*4,source:'streak'});
   if(universe.rivalries?.[0])raw.push({topic:`${universe.rivalries[0].teamA?.abbr}/${universe.rivalries[0].teamB?.abbr} rivalry`,weight:55+n(universe.rivalries[0].heat)*.4,source:'rivalry'});
   if(slot?.promo)raw.push({topic:slot.promo.name,weight:64+n(slot.promo.hype)*3,source:'event'});
-  if(slot?.gameNumber)raw.push({topic:`Game ${slot.gameNumber} tonight`,weight:58,source:'schedule'});
+  if(slot?.gameNumber&&!postseason)raw.push({topic:`Game ${slot.gameNumber} tonight`,weight:58,source:'schedule'});
   (data.leagueExtras?.worldMoments||[]).slice(-3).forEach((m,i)=>raw.push({topic:m.title||'League moment',weight:70-i*8,source:'world'}));
   return raw.slice(0,7).map((x,i)=>{
-    const age=(hash(`${x.topic}-${getSeasonPulse(data,teams).week}`)%5);
+    const age=(hash(`${x.topic}-${postseason?'postseason':getSeasonPulse(data,teams).week}`)%5);
     const score=clamp(Math.round(x.weight-age*7));
     const stage=score>=82?'TRENDING':score>=66?'EMERGING':score>=48?'SATURATED':score>=30?'FADING':'DORMANT';
     const fatigue=stage==='SATURATED'?'Media fatigue rising':stage==='FADING'?'Cooling unless something new happens':stage==='TRENDING'?'Owning the baseball conversation':'Still building';
@@ -72,12 +77,13 @@ export function buildTopicLifecycles(data={},teams=[],playoffPicture=[]){
 export function buildPredictionReceipts(data={},teams=[]){
   const sorted=[...teams].sort((a,b)=>pct(b)-pct(a)||n(b.runDiff)-n(a.runDiff));
   const receipts=[];
+  const postseason=isNmlbPostseason(data);
   sorted.slice(0,3).forEach((t,i)=>{
     const seed=hash(`${t.id}-${data.activeSeasonName||'season'}`);
     const oldTake=pick(['“Not convinced yet.”','“Probably a middle-of-the-pack club.”','“The run differential will come back to earth.”','“Circle back in two weeks.”'],seed);
-    receipts.push({team:t,verdict:'AGING BADLY',oldTake,now:`Now: ${t.wins}-${t.losses}${t.streak?` · ${t.streak}`:''}`,score:85-i*8});
+    receipts.push({team:t,verdict:postseason?'OCTOBER RECEIPT':'AGING BADLY',oldTake,now:postseason?`Postseason résumé: ${t.wins}-${t.losses}${t.streak?` · ${t.streak}`:''}`:`Now: ${t.wins}-${t.losses}${t.streak?` · ${t.streak}`:''}`,score:postseason?94-i*7:85-i*8});
   });
-  sorted.slice(-2).reverse().forEach((t,i)=>receipts.push({team:t,verdict:'RECEIPT PENDING',oldTake:pick(['“Sneaky contender.”','“This club could surprise people.”','“The ceiling is higher than people think.”'],`${t.id}-cold`),now:`Now: ${t.wins}-${t.losses}${t.streak?` · ${t.streak}`:''}`,score:58-i*7}));
+  sorted.slice(-2).reverse().forEach((t,i)=>receipts.push({team:t,verdict:postseason?'NEXT YEAR RECEIPT':'RECEIPT PENDING',oldTake:pick(postseason?['“They will be back.”','“The core is too good to waste.”','“This is the beginning, not the ending.”']:['“Sneaky contender.”','“This club could surprise people.”','“The ceiling is higher than people think.”'],`${t.id}-cold`),now:postseason?`Next season starts with ${t.wins}-${t.losses} still on the wall.`:`Now: ${t.wins}-${t.losses}${t.streak?` · ${t.streak}`:''}`,score:postseason?74-i*7:58-i*7}));
   return receipts;
 }
 
@@ -150,7 +156,7 @@ export function buildOffDayWorld(data={},teams=[],playoffPicture=[]){
     {icon:'🧢',title:'Merch and collector watch',detail:'Fans are comparing drops, giveaways and resale prices while the field is quiet.'},
     {icon:'📚',title:'Archive hour',detail:`${reps[0]?.team?.abbr||'League'} history is getting pulled back into the conversation.`},
     {icon:'⚔️',title:'Rivalry discourse never sleeps',detail:'Old clips, receipts and grudges are doing the work even without first pitch.'},
-    {icon:'📈',title:'Next game starts now',detail:cold[0]?`${cold[0].abbr} gets the “response game” treatment next time out.`:`Week ${pulse.week} storylines are already shifting.`},
+    {icon:'📈',title:isNmlbPostseason(data)?'Next series starts now':'Next game starts now',detail:isNmlbPostseason(data)?'The next matchup, travel day and possible elimination game are already part of the conversation.':cold[0]?`${cold[0].abbr} gets the “response game” treatment next time out.`:`Week ${pulse.week} storylines are already shifting.`},
   ];
   return {isOff,label:isOff?(scheduledEvent?scheduledEvent.name:'OFF-DAY MODE'):'BETWEEN PITCHES',items,scheduledEvent,slot};
 }

@@ -18,9 +18,11 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 
 export function getLeagueBrand(data={}){
   return {
-    name:data.leagueExtras?.officialLeagueName||"Nicky's Major League Baseball",
-    abbr:data.leagueExtras?.officialLeagueAbbr||'NMLB',
-    handle:`@${data.leagueExtras?.officialLeagueAbbr||'NMLB'}`,
+    // The live league identity is now canonical. Older Firebase extras may still
+    // contain the retired SMBL label, but they should never leak into the UI.
+    name:"Nicky's Major League Baseball",
+    abbr:'NMLB',
+    handle:'@NMLB',
   };
 }
 

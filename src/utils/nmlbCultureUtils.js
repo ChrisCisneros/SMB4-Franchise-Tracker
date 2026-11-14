@@ -61,9 +61,9 @@ export function predictionPhase(data={},teams=[]){
   const bracket=data.playoffBracket||{};
   const playoffStarted=Boolean((data.games||[]).some(g=>g?.gameType==='playoff'&&g?.status==='Final') || bracket?.al?.qf1?.awayTeamId || bracket?.nl?.qf1?.awayTeamId || bracket?.finals?.awayTeamId);
   if(playoffStarted)return {id:'locked',label:'PICKS LOCKED',detail:'The postseason has started. Nobody gets to move the goalposts now.',week:8,locked:true};
-  if(avg>=35)return {id:'final',label:'FINAL CALLS',detail:'Week 8: final bracket calls before October locks the receipts.',week:8,locked:false};
-  if(avg>=30)return {id:'forecast',label:'PREDICTION SEASON',detail:'Week 7: picks are live and may still move with the standings.',week:7,locked:false};
-  return {id:'preview',label:'TOO EARLY TO LOCK IT IN',detail:'NMLB Network begins its formal postseason picks in Week 7.',week:Math.max(1,Math.ceil(avg/5)),locked:false};
+  if(avg>=35)return {id:'final',label:'FINAL CALLS',detail:'The regular season is closing. Final bracket calls are being filed before the postseason begins.',week:8,locked:false};
+  if(avg>=30)return {id:'forecast',label:'PREDICTION SEASON',detail:'Picks are live, the field is taking shape and every result can still move the board.',week:7,locked:false};
+  return {id:'preview',label:'TOO EARLY TO LOCK IT IN',detail:'NMLB Network will begin its formal postseason picks when the field is ready.',week:Math.max(1,Math.ceil(avg/5)),locked:false};
 }
 
 export function buildNMLBPostseasonPredictions(data={},teams=[],playoffPicture=[]){

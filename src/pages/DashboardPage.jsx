@@ -28,6 +28,7 @@ import MerchProductArt from "../components/MerchProductArt";
 import NMLBUniverseHub from "../components/NMLBUniverseHub";
 import { buildNMLBCulture } from "../utils/nmlbCultureUtils";
 import { buildNMLBPostseasonTakeover } from "../utils/nmlbUniverseUtils";
+import { buildPostseasonChatter, isNmlbPostseason } from "../utils/nmlbPostseasonLifeUtils";
 import { buildPostseasonNightlyShow, buildPostseasonMythology, buildPostseasonMemoryCards, buildPostseasonSeriesMemory } from "../utils/postseasonMemoryUtils";
 import { buildStretchRunBoard, postseasonGamePressure } from "../utils/finalWeeksUtils";
 import { buildFinalWeekCommand, buildLeaguePulse65, buildPostseasonReadiness, buildWeeklyRituals65 } from "../utils/v65LifeUtils";
@@ -60,7 +61,7 @@ export default function DashboardPage({ ctx }) {
   useEffect(()=>{const t=setInterval(()=>setMerchSlide(x=>x+1),22000);return()=>clearInterval(t)},[]);
   useEffect(()=>{const t=setInterval(()=>setTickerSlide(x=>x+1),9000);return()=>clearInterval(t)},[]);
   const activeSeason = data.activeSeasonName || "Season 4";
-  const isPostseason = data.leagueExtras?.seasonPhase === 'postseason' || data.currentGame?.gameType === 'playoff' || (data.games||[]).some(g=>g?.gameType==='playoff');
+  const isPostseason = isNmlbPostseason(data);
   const nmlbCulture = useMemo(()=>buildNMLBCulture(data,teams,playoffPicture||[]),[data,teams,playoffPicture,tickerSlide]);
   const postseasonTakeover = useMemo(()=>buildNMLBPostseasonTakeover(data,teams,playoffPicture||[]),[data,teams,playoffPicture]);
   const postseasonTonight = useMemo(()=>buildPostseasonNightlyShow(data,teams),[data.games,data.activeSeasonName,teams]);
@@ -93,7 +94,7 @@ export default function DashboardPage({ ctx }) {
   const v4Metrics = useMemo(()=>buildV4TeamMetrics(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanUniverse = useMemo(()=>buildFanUniverse(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const fanPoll = useMemo(()=>buildFanPoll(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
-  const fanChatter = useMemo(()=>buildSocialChatter(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
+  const fanChatter = useMemo(()=>isPostseason ? buildPostseasonChatter(data,teams,playoffPicture||[],dashboardClock).map(x=>({id:x.id,handle:`@NMLB_${String(x.team?.abbr||'FANS').toLowerCase()}`,text:`${x.icon||'📣'} ${x.headline} — ${x.detail}`,tone:x.kind})) : buildSocialChatter(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock,isPostseason]);
   const livingFeed = useMemo(()=>buildLivingFeed(data,teams,playoffPicture,dashboardClock,favoriteTeam?.id).slice(0,3),[data,teams,playoffPicture,dashboardClock,favoriteTeam?.id]);
   const gameDaySocial = useMemo(()=>buildGameDaySocial(data,teams,playoffPicture,dashboardClock),[data,teams,playoffPicture,dashboardClock]);
   const seasonPulse = useMemo(()=>getSeasonPulse(data,teams),[data,teams]);
@@ -216,12 +217,12 @@ export default function DashboardPage({ ctx }) {
     const items=[
       ...news.slice(0,4).map(x=>`${x.category}: ${x.headline}`),
       fanPoll.options[0] ? `FAN POLL: ${fanPoll.options[0].team.abbr} leads "${fanPoll.question}" at ${fanPoll.options[0].pct}%` : null,
-      fanChatter[0] ? `SMB SOCIAL: ${fanChatter[0].handle} — ${fanChatter[0].text}` : null,
+      fanChatter[0] ? `NMLB SOCIAL: ${fanChatter[0].handle} — ${fanChatter[0].text}` : null,
       featuredMerch ? `TEAM STORE: ${featuredMerch.name} · ${featuredMerch.tag}` : null,
-      `WEEK ${seasonPulse.week}: ${seasonPulse.phase}`
+      isPostseason ? `POSTSEASON: ${postseasonTakeover.stage}` : `WEEK ${seasonPulse.week}: ${seasonPulse.phase}`
     ].filter(Boolean);
     return items;
-  },[news,fanPoll,fanChatter,featuredMerch,seasonPulse]);
+  },[news,fanPoll,fanChatter,featuredMerch,seasonPulse,isPostseason,postseasonTakeover.stage]);
   const opponentRows = useMemo(() => {
     if (!favoriteTeam) return [];
     const teamMap = new Map(teams.map((team) => [team.id, team]));
@@ -376,7 +377,7 @@ export default function DashboardPage({ ctx }) {
 
         <div className="card v3-rail-card v3-franchise-focus"><div className="v3-rail-head"><div><span>FRANCHISE FOCUS</span><h3>{favoriteTeam?.abbr || '—'}</h3></div>{favoriteMarker&&<MiniPill tone="gold">{favoriteMarker}</MiniPill>}</div>{favoriteTeam?<><div className="v3-focus-record"><strong>{favoriteTeam.wins}-{favoriteTeam.losses}</strong><span>{pct(favoriteTeam.wins,favoriteTeam.losses)}</span></div><div className="v3-focus-grid"><div><span>Division</span><strong>#{favoriteDivisionRank||'—'}</strong></div><div><span>RD</span><strong>{favoriteTeam.runDiff>0?'+':''}{favoriteTeam.runDiff||0}</strong></div><div><span>Games Left</span><strong>{favoriteGamesLeft}</strong></div></div><p>{favoriteDivisionRank===1?`Leading the ${favoriteTeam.league} ${favoriteTeam.division}${favoriteDivisionChaser?` over ${favoriteDivisionChaser.abbr}`:''}.`:`${gamesBack(favoriteTeam,favoriteDivisionLeader)} GB in the division.`}</p></>:<p className="muted">No franchise selected.</p>}</div>
 
-        <div className="card v3-rail-card dashboard-fandom-card"><div className="v3-rail-head"><div><span>FAN PULSE</span><h3>Week {seasonPulse.week} · {seasonPulse.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Fandom →</button></div><div className="dashboard-fan-mood"><strong>{fanUniverse.leagueMood}</strong><span>{fanPoll.question}</span></div>{fanPoll.options.slice(0,2).map(o=><div className="dashboard-fan-poll" key={o.team.id}><b>{o.team.abbr}</b><i><em style={{width:`${o.pct}%`}}/></i><span>{o.pct}%</span></div>)}<div className="dashboard-living-wire">{livingFeed.slice(0,2).map(x=><p key={x.id}><b>{x.handle}</b> {x.text}</p>)}</div>{featuredMerch&&<div className="dashboard-merch-ad"><small>{featuredMerch.tag}</small><strong>{featuredMerch.name}</strong><span>Visit Team Store →</span></div>}</div>
+        <div className="card v3-rail-card dashboard-fandom-card"><div className="v3-rail-head"><div><span>FAN PULSE</span><h3>{isPostseason?'POSTSEASON · NMLB FAN PULSE':`Week ${seasonPulse.week} · ${seasonPulse.phase}`}</h3></div><button onClick={()=>setPage?.('fandom')}>Fandom →</button></div><div className="dashboard-fan-mood"><strong>{fanUniverse.leagueMood}</strong><span>{isPostseason?fanChatter[0]?.text||'Every series is being watched.':fanPoll.question}</span></div>{fanPoll.options.slice(0,2).map(o=><div className="dashboard-fan-poll" key={o.team.id}><b>{o.team.abbr}</b><i><em style={{width:`${o.pct}%`}}/></i><span>{o.pct}%</span></div>)}<div className="dashboard-living-wire">{(isPostseason?fanChatter:livingFeed).slice(0,2).map(x=><p key={x.id}><b>{x.handle||'NMLB FANS'}</b> {x.text}</p>)}</div>{featuredMerch&&<div className="dashboard-merch-ad"><small>{featuredMerch.tag}</small><strong>{featuredMerch.name}</strong><span>Visit Team Store →</span></div>}</div>
 
         {historicAlerts[0]&&<div className={`card v3-rail-card dashboard-extreme-card ${historicAlerts[0].live?'is-live':''}`}><div className="v3-rail-head"><div><span>{historicAlerts[0].kicker}</span><h3>{historicAlerts[0].tier} Moment</h3></div><b>{historicAlerts[0].score}/100</b></div><strong>{historicAlerts[0].headline}</strong><small>{historicAlerts[0].detail}</small></div>}
         <div className="card v3-rail-card dashboard-ballpark-card"><div className="v3-rail-head"><div><span>BALLPARK LIFE</span><h3>{ballparkLife.phase}</h3></div><button onClick={()=>setPage?.('fandom')}>Explore</button></div>{ballparkLife.events.slice(0,2).map(e=><div key={e.id} className="dashboard-ballpark-row"><b>{e.icon}</b><span><strong>{e.title}</strong><small>{e.detail}</small></span></div>)}{revengeWatch[0]&&<div className="dashboard-ballpark-row"><b>⚔️</b><span><strong>{revengeWatch[0].label}</strong><small>{revengeWatch[0].loserTeam?.abbr} remembers {revengeWatch[0].winnerTeam?.abbr}</small></span></div>}</div>

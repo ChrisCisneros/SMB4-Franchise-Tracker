@@ -17,6 +17,7 @@ import NMLBUniverseHub from '../components/NMLBUniverseHub';
 import { buildNMLBCulture } from '../utils/nmlbCultureUtils';
 import { buildCollectibles65, buildFanInteractions65, buildFranchiseScrapbook65, buildLeaguePulse65, buildWeeklyRituals65 } from '../utils/v65LifeUtils';
 import PostseasonCalendar from '../components/PostseasonCalendar';
+import { buildPostseasonChatter, isNmlbPostseason } from '../utils/nmlbPostseasonLifeUtils';
 
 function TeamBadge({team,onClick,active=false}){if(!team)return <span>—</span>;const c=getTeamColorsByAbbr(team.abbr);const Tag=onClick?'button':'span';return <Tag type={onClick?'button':undefined} onClick={onClick} className={`fan-team-badge ${onClick?'is-clickable':''} ${active?'is-active':''}`} style={{'--fan-main':c.main,'--fan-alt':c.alt,'--fan-border':c.border,'--fan-text':c.text}}>{team.abbr}</Tag>}
 function Meter({value}){return <div className="fan-meter"><i style={{width:`${Math.max(0,Math.min(100,Number(value)||0))}%`}}/></div>}
@@ -26,7 +27,7 @@ const TABS=[['v6','NMLB League Life'],['calendar','Calendar'],['overview','Overv
 
 export default function FandomPage({ctx}){
   const {data,teams,playoffPicture,favoriteTeam,controlsUnlocked,setPage}=ctx;
-  const isPostseason=data.leagueExtras?.seasonPhase==='postseason'||data.currentGame?.gameType==='playoff'||(data.games||[]).some(g=>g?.gameType==='playoff');
+  const isPostseason=isNmlbPostseason(data);
   const [now,setNow]=useState(Date.now());
   const [teamId,setTeamId]=useState('');
   const [tab,setTab]=useState('overview');
@@ -46,7 +47,7 @@ export default function FandomPage({ctx}){
   const fandomStyle={'--fandom-main':selectedColors.main,'--fandom-alt':selectedColors.alt,'--fandom-border':selectedColors.border,'--fandom-text':selectedColors.text};
 
   const poll=useMemo(()=>buildFanPoll(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
-  const chatter=useMemo(()=>buildSocialChatter(data,teams,playoffPicture,now),[data,teams,playoffPicture,now]);
+  const chatter=useMemo(()=>isPostseason ? buildPostseasonChatter(data,teams,playoffPicture||[],now).map(x=>({handle:`@NMLB_${String(x.team?.abbr||'FANS').toLowerCase()}`,team:x.team?.abbr||'NMLB',text:`${x.icon||'📣'} ${x.headline} — ${x.detail}`,tone:x.kind})) : buildSocialChatter(data,teams,playoffPicture,now),[data,teams,playoffPicture,now,isPostseason]);
   const analysts=useMemo(()=>buildAnalystDesk(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const products=useMemo(()=>buildMerch(data,teams,playoffPicture),[data,teams,playoffPicture]);
   const programming=useMemo(()=>buildProgramming(pulse,new Date(now)),[pulse,now]);
@@ -187,7 +188,7 @@ export default function FandomPage({ctx}){
     {tab==='social'&&<>
       {gameDaySocial.phase!=='idle'&&<div className="fandom-gameday-wrap"><GameDaySocial social={gameDaySocial}/></div>}
       <section className="card fan-live-wall"><div className="fan-live-wall-head"><div><div className="fan-kicker">LIVE FAN WIRE</div><h2>The Baseball Internet Is Awake</h2></div><div className="fan-wire-controls"><span className="fan-live-dot">● LIVE</span><button onClick={()=>setFeedPaused(x=>!x)}>{feedPaused?'Resume':'Pause'}</button></div></div><div className="fan-feed-tabs">{[['all','Everything'],['fan','Fan Pages'],['rivalry','Rivalry'],['media','Media'],['league','League Chat']].map(([id,label])=><button key={id} className={feedFilter===id?'active':''} onClick={()=>setFeedFilter(id)}>{label}</button>)}</div><div className="fan-live-feed">{filteredFeed.map(post=><article className={`fan-wire-post ${post.tone}`} key={post.id}><div className="fan-wire-avatar">{post.team?<TeamBadge team={post.team}/>:<span className="league-avatar">FC</span>}</div><div className="fan-wire-body"><div className="fan-wire-meta"><strong>{post.name}</strong><span>{post.handle}</span><em>{post.badge}</em><small>{post.time}</small></div><p>{post.text}</p><div className="fan-wire-actions"><span>♡ {12+((post.id.length*37)%480)}</span><span>↻ {3+((post.id.length*11)%95)}</span><span>💬 {2+((post.id.length*7)%64)}</span></div></div></article>)}</div></section>
-      <div className="fan-grid-2"><section className="card"><div className="fan-kicker">LIVE FAN POLL</div><h2>{poll.question}</h2>{poll.options.map(o=><div className="fan-poll" key={o.team.id}><TeamBadge team={o.team}/><div><i style={{width:`${o.pct}%`}}/></div><strong>{o.pct}%</strong></div>)}</section><section className="card"><div className="fan-kicker">SMB SOCIAL QUICK HITS</div><h2>The Timeline Is Normal About Baseball</h2><div className="fan-social-list">{chatter.map((x,i)=><div className={`fan-post ${x.tone}`} key={`${x.handle}-${i}`}><strong>{x.handle}</strong><span>{x.team}</span><p>{x.text}</p></div>)}</div></section></div>
+      <div className="fan-grid-2"><section className="card"><div className="fan-kicker">LIVE FAN POLL</div><h2>{poll.question}</h2>{poll.options.map(o=><div className="fan-poll" key={o.team.id}><TeamBadge team={o.team}/><div><i style={{width:`${o.pct}%`}}/></div><strong>{o.pct}%</strong></div>)}</section><section className="card"><div className="fan-kicker">NMLB SOCIAL QUICK HITS</div><h2>The Timeline Is Normal About Baseball</h2><div className="fan-social-list">{chatter.map((x,i)=><div className={`fan-post ${x.tone}`} key={`${x.handle}-${i}`}><strong>{x.handle}</strong><span>{x.team}</span><p>{x.text}</p></div>)}</div></section></div>
     </>}
 
     {tab==='calendar'&&<>

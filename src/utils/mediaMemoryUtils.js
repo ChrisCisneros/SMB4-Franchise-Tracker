@@ -2,6 +2,7 @@ import { buildFanUniverse, weeklyMediaPackage } from './fandomUtils';
 import { buildHeadToHead } from './historyUtils';
 import { buildTicketMarket, buildTeamCultureProfiles, buildWorldState } from './cultureUtils';
 import { currentSeasonDay, scheduleEntryLabel } from './seasonCalendarUtils';
+import { buildNmlbSponsorRotation } from './nmlbPostseasonLifeUtils';
 
 const safe=n=>Number(n||0);
 const gp=t=>safe(t?.wins)+safe(t?.losses);
@@ -131,7 +132,9 @@ export function buildDynamicAds(data={},teams=[],playoffPicture=[]){
   ads.push({id:'grandstand-pass',kicker:'GRANDSTAND PASS',title:'Your seat is part of the story.',copy:'Flexible ticket bundles for rivalry nights, fireworks and October baseball.',cta:'FIND YOUR SEAT'});
   ads.push({id:'gear',kicker:'NMLB OUTFITTERS',title:'Wear the moment before it becomes history.',copy:'Fresh city editions, fan appreciation drops and limited postseason gear.',cta:'SHOP THE DROP'});
   ads.push({id:'travel',kicker:'SUMMIT AIR',title:'Follow your club anywhere.',copy:'Road-trip packages built for fans who refuse to watch October from home.',cta:'PLAN THE TRIP'});
-  return ads;
+  // Keep the base campaign cards, then rotate a broad fictional sponsor ecosystem
+  // through every surface so the league feels like a living broadcast world.
+  return [...ads, ...buildNmlbSponsorRotation(data, teams, Date.now(), 50).map(ad=>({...ad, id:`dynamic-${ad.id}`}))];
 }
 
 export function buildOnThisDateMoments(data={},teams=[]){

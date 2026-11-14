@@ -235,7 +235,7 @@ export function buildCulturalAwards(data={},teams=[]){
     {award:'Game Everyone Remembers',winner:biggest?`${biggest.m.away?.abbr} ${biggest.g.awayScore} – ${biggest.m.home?.abbr} ${biggest.g.homeScore}`:'Still waiting',detail:biggest?.m.nickname||biggest?.m.tier||'—'},
     {award:'Wildest Inning',winner:biggest?.m.maxInning?`${biggest.m.maxSide} · ${biggest.m.maxInning} runs`:'Still waiting',detail:biggest?.m.maxInningNo?`${ordinal(biggest.m.maxInningNo)} inning`:'—'},
     {award:'Pettiest Rivalry',winner:grudges[0]?`${grudges[0].teamA?.abbr} / ${grudges[0].teamB?.abbr}`:'Still waiting',detail:grudges[0]?.label||'—'},
-    {award:'Take That Aged Worst',winner:'SMB media desk',detail:'The receipts folder remains open.'},
+    {award:'Take That Aged Worst',winner:'NMLB media desk',detail:'The receipts folder remains open.'},
   ];
 }
 
